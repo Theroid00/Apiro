@@ -56,6 +56,27 @@ MAX_NODES_PER_RUN   = 30              # hard cap on nodes expanded per traversal
 FRONTIER_SORT       = "entropy_desc"   # always expand highest-entropy node first
 N_CHILD_HYPOTHESES  = 3                # child nodes generated per expansion
 
+# BeliefGraph construction defaults. These were previously hard-coded in the
+# BeliefGraph constructor and unreachable from config.
+GRAPH_MAX_NODES = 200
+GRAPH_MAX_DEPTH = 6
+
+# Runtime bound on the *exploration* half of a run (depth >= 1 expansions).
+# Seed expansions are deterministic and cheap to justify; exploration
+# expansions each cost one generation call plus N_CHILD_HYPOTHESES entropy
+# calls, so this is the knob that decides wall-clock per case.
+# NOTE: before the saturation fix, runs halted after ~5 seed expansions and
+# never reached this bound. Lower it if per-case latency matters more than
+# depth of reasoning.
+MAX_EXPLORATION_EXPANSIONS = 24
+
+# Cap on how many deterministic axioms are seeded into the graph. Biomedical
+# NER over a long vignette routinely yields 40+ entities, many of them
+# duplicates or non-clinical; seeding all of them floods the graph budget and
+# the prompt before any reasoning happens. Axioms are ranked by weight and the
+# top MAX_SEED_NODES are kept.
+MAX_SEED_NODES = 20
+
 # RAG retrieval
 RAG_DOMAIN_FILTER   = True            # filter ChromaDB by node.domain when True
 

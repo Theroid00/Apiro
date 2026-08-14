@@ -281,12 +281,17 @@ class NodeExpander:
         llm_client,
         collection_name: str = "medical_knowledge",
         contradiction_detector=None,
+        inline_contradiction_check: bool = False,
     ):
         self.entropy_engine = entropy_engine
         self.chroma_client = chroma_client
         self.llm_client = llm_client
         self.collection_name = collection_name
         self.contradiction_detector = contradiction_detector
+        # ApiroTraversal owns the contradiction pass and runs it batched over
+        # the same node set. Set True only when driving the expander directly
+        # without a traversal.
+        self.inline_contradiction_check = inline_contradiction_check
         self._node_counter = 0
 
     def _generate_node_id(self, parent_id: str, index: int) -> str:
@@ -575,8 +580,14 @@ class NodeExpander:
 
             domain = classify_domain(hypothesis, embedder=getattr(self.chroma_client, '_emb', None))
 
-            # Step 5b: Semantic DAG Merging
-            match = graph.find_semantic_match(hypothesis)
+            # Step 5b: Semantic DAG Merging.
+            # The expanding node, its ancestors, and every depth-0 axiom are
+            # excluded. Merging into an ancestor makes a cycle and throws the
+            # expansion away; merging into an axiom replaces a new hypothesis
+            # with a restatement of a fact the engine already had.
+            exclude = {node.id} | graph.ancestors_of(node.id)
+            exclude |= {n.id for n in graph.nodes.values() if n.depth == 0}
+            match = graph.find_semantic_match(hypothesis, exclude_ids=exclude)
             if match:
                 logger.info(
                     f"[NodeExpander] Semantic match: merging '{hypothesis[:40]}' "
@@ -605,12 +616,17 @@ class NodeExpander:
             # Step 5d: Create the edge
             edge = Edge(parent_id=node.id, child_id=child_id)
 
-            if self.contradiction_detector:
+            # Step 5e: Optional inline contradiction pass.
+            # OFF by default: ApiroTraversal runs the same comparison over the
+            # same node set immediately after expand() returns, batched. Doing
+            # it here as well doubled the LLM-judge calls (the expensive stage
+            # of the two-stage detector) for a flag the traversal recomputes.
+            if self.contradiction_detector and self.inline_contradiction_check:
                 for existing in list(graph.nodes.values()):
                     if not self.contradiction_detector.should_check(hypothesis, existing.claim):
                         continue
                     result = self.contradiction_detector.check(hypothesis, existing.claim)
-                    if result.label == "contradiction" and result.score > CONTRADICTION_THRESHOLD:
+                    if result.label == "contradiction" and result.score >= CONTRADICTION_THRESHOLD:
                         edge.contradiction_flag = True
                         logger.info(
                             f"[NodeExpander] Contradiction flagged: "
@@ -623,13 +639,16 @@ class NodeExpander:
             # add_node() may silently drop the node if it exceeds max_depth or
             # max_nodes budget. Only add the edge if the node was actually accepted.
             graph.add_node(child_node)
-            if child_id in graph.nodes:
-                graph.add_edge(edge)
-            else:
+            if child_id not in graph.nodes:
+                # Rejected by the graph (past max_depth). Returning it anyway
+                # made the traversal contradiction-check and log a node that
+                # does not exist, and let phantom nodes reach the caller.
                 logger.debug(
-                    f"[NodeExpander] Node '{child_id}' dropped by graph "
-                    f"(depth={child_node.depth} or budget exceeded) — skipping edge."
+                    f"[NodeExpander] Node '{child_id}' rejected by graph "
+                    f"(depth={child_node.depth} exceeds max_depth) — dropping."
                 )
+                continue
+            graph.add_edge(edge)
             new_nodes.append(child_node)
             logger.debug(
                 f"  → Child {i}: '{hypothesis[:60]}' "

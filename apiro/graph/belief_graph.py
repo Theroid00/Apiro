@@ -16,6 +16,7 @@ import numpy as np
 
 from apiro.graph.node import Node
 from apiro.graph.edge import Edge
+from apiro.config import GRAPH_MAX_DEPTH, GRAPH_MAX_NODES
 
 
 class BudgetExceededError(Exception):
@@ -32,7 +33,7 @@ class BeliefGraph:
     picks `frontier[0]` (highest uncertainty) to expand next.
     """
 
-    def __init__(self, max_depth: int = 6, max_nodes: int = 150):
+    def __init__(self, max_depth: int = GRAPH_MAX_DEPTH, max_nodes: int = GRAPH_MAX_NODES):
         self._graph: nx.DiGraph   = nx.DiGraph()
         self.nodes:  dict[str, Node] = {}   # id → Node
         self.edges:  list[Edge]      = []
@@ -185,17 +186,41 @@ class BeliefGraph:
             self._embedder = globals()["_SHARED_EMBEDDER"]
         return self._embedder
 
-    def find_semantic_match(self, claim: str, threshold: float = 0.92) -> Optional[Node]:
+    def ancestors_of(self, node_id: str) -> set[str]:
+        """All transitive parents of a node, following Node.parent_id links."""
+        chain: set[str] = set()
+        cur = self.nodes.get(node_id)
+        while cur is not None:
+            parent_id = getattr(cur, "parent_id", None)
+            if not parent_id or parent_id in chain:
+                break
+            chain.add(parent_id)
+            cur = self.nodes.get(parent_id)
+        return chain
+
+    def find_semantic_match(
+        self,
+        claim: str,
+        threshold: float = 0.92,
+        exclude_ids: set[str] | None = None,
+    ) -> Optional[Node]:
         """
         Find an existing node in the graph with a semantically equivalent claim.
         Returns the Node if one exists above the similarity threshold, else None.
+
+        Args:
+            exclude_ids: node IDs that must not be considered a match. Callers
+                pass the expanding node and its ancestors: merging a child into
+                its own parent creates a self-loop and silently discards the
+                expansion, and merging a generated hypothesis into a depth-0
+                axiom destroys the hypothesis outright.
         """
         if not self.nodes:
             return None
-            
+
         embedder = self._get_embedder()
         new_emb = embedder.encode(claim, normalize_embeddings=True)
-        
+
         # Ensure all existing nodes are embedded
         unembedded = [n for n in self.nodes.values() if n.id not in self._embeddings]
         if unembedded:
@@ -203,20 +228,24 @@ class BeliefGraph:
             embs = embedder.encode(texts, normalize_embeddings=True)
             for n, emb in zip(unembedded, embs):
                 self._embeddings[n.id] = emb
-                
+
+        excluded = exclude_ids or set()
+
         # Find highest cosine similarity
         best_match = None
         best_score = -1.0
-        
+
         for n_id, emb in self._embeddings.items():
+            if n_id in excluded or n_id not in self.nodes:
+                continue
             score = np.dot(new_emb, emb)
             if score > best_score:
                 best_score = score
                 best_match = self.nodes[n_id]
-                
+
         if best_match and best_score >= threshold:
             return best_match
-            
+
         return None
 
     # ------------------------------------------------------------------

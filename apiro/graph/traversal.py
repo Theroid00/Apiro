@@ -29,6 +29,7 @@ from apiro.config import (
     CONTRADICTION_THRESHOLD_EF,
     CONTRADICTION_PENALTY,
     SATURATION_MIN_EXPLORATION,
+    MAX_EXPLORATION_EXPANSIONS,
 )
 from apiro.graph.belief_graph import BudgetExceededError
 from apiro.graph.critic import CriticEngine
@@ -175,6 +176,22 @@ class ApiroTraversal:
             # expansions are excluded: they are deterministic anchors, not
             # evidence that the engine has learned anything.
             n_explored = graph.count_expansions(min_depth=1)
+
+            # ── Stop condition -1: Exploration budget ─────────────────────────
+            # Bounds wall-clock per case. Each exploration expansion costs one
+            # generation call plus N_CHILD_HYPOTHESES entropy calls.
+            if n_explored >= MAX_EXPLORATION_EXPANSIONS:
+                stop_reason = "exploration_budget"
+                logger.info(
+                    f"[Traversal] Exploration budget reached "
+                    f"({n_explored}/{MAX_EXPLORATION_EXPANSIONS} expansions)."
+                )
+                self._log({
+                    "event":       "exploration_budget_reached",
+                    "iteration":   iteration,
+                    "expansions":  n_explored,
+                })
+                break
 
             # ── Stop condition 0: Global Critic Halting ───────────────────────
             if (
