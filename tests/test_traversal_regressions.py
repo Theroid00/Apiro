@@ -461,3 +461,57 @@ class TestSeeding:
         ax = ClinicalAxiom(id="a", text="Roth spots", domain="symptom", polarity="affirmed",
                            value=None, unit=None, weight=0.92)
         assert axioms_to_seed_nodes([ax])[0].metadata["axiom_weight"] == 0.92
+
+
+# ── Retrieval quality ─────────────────────────────────────────────────────────
+
+class _DistanceChroma:
+    """Chroma stub returning documents with explicit distances."""
+
+    def __init__(self, docs_with_distance):
+        self.pairs = docs_with_distance
+        self.last_query = None
+
+    def query(self, query_texts=None, n_results=6, where=None):
+        self.last_query = (query_texts or [""])[0]
+        return {
+            "documents": [[d for d, _ in self.pairs]],
+            "distances": [[dist for _, dist in self.pairs]],
+        }
+
+
+class TestRetrieval:
+    def _expander(self, chroma):
+        from apiro.graph.expander import NodeExpander, StubEntropyEngine
+        return NodeExpander(entropy_engine=StubEntropyEngine(),
+                            chroma_client=chroma, llm_client=_RecordingLLM())
+
+    def test_far_chunks_are_discarded(self):
+        """
+        A vector store always returns top-k however far away they are, so a
+        rare-disease query came back with six confident but off-topic chunks
+        that the prompt then labels "use ONLY what is stated here".
+        """
+        chroma = _DistanceChroma([("close enough", 0.20), ("also close", 0.40),
+                                  ("unrelated", 0.95), ("also unrelated", 0.99)])
+        chunks, grounded = self._expander(chroma)._retrieve_context("Aquaporin-4 antibodies")
+        assert chunks == ["close enough", "also close"]
+        assert grounded is True
+
+    def test_all_far_chunks_switch_to_parametric_mode(self):
+        chroma = _DistanceChroma([("unrelated", 0.91), ("also unrelated", 0.99)])
+        chunks, grounded = self._expander(chroma)._retrieve_context("Ultra-rare syndrome")
+        assert chunks == []
+        assert grounded is False
+
+    def test_forged_sentence_scaffolding_is_stripped_from_the_query(self):
+        chroma = _DistanceChroma([("doc", 0.1), ("doc2", 0.2)])
+        self._expander(chroma)._retrieve_context(
+            "The patient presents with the clinical finding of epigastric pain.")
+        assert chroma.last_query == "epigastric pain"
+
+    def test_plain_claims_are_queried_verbatim(self):
+        chroma = _DistanceChroma([("doc", 0.1), ("doc2", 0.2)])
+        claim = "Elevated lipase indicates pancreatic inflammation."
+        self._expander(chroma)._retrieve_context(claim)
+        assert chroma.last_query == claim

@@ -64,7 +64,12 @@ def run_evaluation(real_components: bool):
                 query_texts = query_texts or []
                 text = query_texts[0] if query_texts else ""
                 results = self._emb.query(text, n_results=n_results, where=where)
-                return {"documents": [[r["text"] for r in results]]}
+                # Distances are passed through so the expander can discard
+                # chunks that are merely nearest neighbours, not real evidence.
+                return {
+                    "documents": [[r["text"] for r in results]],
+                    "distances": [[r.get("distance") for r in results]],
+                }
 
         chroma_adapter = _ChromaAdapter(embedder)
         entropy_engine = EntropyEngine(model=PRIMARY_MODEL, ollama_url=OLLAMA_BASE_URL)

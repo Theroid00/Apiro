@@ -41,6 +41,14 @@ RAG_TOP_K      = 6    # chunks retrieved per query
 # mode (LLM-only, no corpus constraint) so rare-disease nodes still expand
 # meaningfully instead of recycling the same thin context.
 RAG_MIN_CHUNKS_FOR_GROUNDING = 2
+# Maximum cosine distance for a retrieved chunk to count as evidence.
+# ChromaDB always returns the top-k nearest neighbours, however far away they
+# are, so a rare-disease query still comes back with 6 confidently-formatted
+# chunks about something else — which the expander then injects under
+# "use ONLY what is stated here". Chunks beyond this distance are discarded,
+# and if too few survive the expander falls back to parametric mode.
+# Set to None to disable distance filtering.
+RAG_MAX_DISTANCE = 0.65
 
 # ---------------------------------------------------------------------------
 # Corpus chunking

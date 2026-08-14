@@ -40,6 +40,7 @@ from apiro.config import (
     CONTRADICTION_THRESHOLD,
     RAG_TOP_K,
     RAG_MIN_CHUNKS_FOR_GROUNDING,
+    RAG_MAX_DISTANCE,
 )
 
 logger = logging.getLogger(__name__)
@@ -299,6 +300,31 @@ class NodeExpander:
         self._node_counter += 1
         return f"{parent_id}_c{index}"
 
+    # Sentence scaffolding added by the axiom extractor. It is there so the NLI
+    # detector sees grammatical claims, but it is dead weight in a vector query:
+    # every seed embeds partly as "the patient presents with the clinical
+    # finding of", which pulls all seeds toward each other and away from the
+    # textbook passage that actually describes the finding.
+    _SEED_PREFIXES = (
+        "the patient presents with the clinical finding of ",
+        "the patient has a lab result or vital sign showing ",
+        "the patient has a lab result showing ",
+        "the patient has a documented diagnosis of ",
+        "the patient denies the clinical finding of ",
+        "the patient has a history of ",
+        "the patient has undergone ",
+        "the patient is on ",
+    )
+
+    @classmethod
+    def _retrieval_query(cls, claim: str) -> str:
+        """Strip forged-sentence scaffolding before querying the vector store."""
+        lowered = claim.lower()
+        for prefix in cls._SEED_PREFIXES:
+            if lowered.startswith(prefix):
+                return claim[len(prefix):].rstrip(". ").strip() or claim
+        return claim
+
     def _retrieve_context(
         self,
         claim: str,
@@ -324,24 +350,43 @@ class NodeExpander:
             if db_domain in allowed_domains:
                 where = {"medical_domain": db_domain}
 
+        query_text = self._retrieval_query(claim)
+
         chunks: list[str] = []
+        distances: list[float] = []
         try:
             try:
                 result = self.chroma_client.query(
-                    query_texts=[claim],
+                    query_texts=[query_text],
                     n_results=n_results,
                     where=where,
                 )
             except TypeError:
                 result = self.chroma_client.query(
                     collection_name=self.collection_name,
-                    query_texts=[claim],
+                    query_texts=[query_text],
                     n_results=n_results,
                 )
             docs = result.get("documents", [[]])
             chunks = docs[0] if docs else []
+            dists = result.get("distances") or []
+            distances = dists[0] if dists else []
         except Exception as e:
             logger.warning(f"[NodeExpander] ChromaDB query failed: {e}. Continuing without context.")
+
+        # Drop chunks that are merely the nearest neighbours rather than actual
+        # evidence. A vector store always returns top-k; without this the
+        # expander hands the LLM six off-topic passages labelled
+        # "use ONLY what is stated here" and steers it away from a rare
+        # diagnosis it would otherwise have reached from parametric knowledge.
+        if RAG_MAX_DISTANCE is not None and distances and len(distances) == len(chunks):
+            kept = [c for c, d in zip(chunks, distances) if d is not None and d <= RAG_MAX_DISTANCE]
+            if len(kept) != len(chunks):
+                logger.info(
+                    f"[NodeExpander] Dropped {len(chunks) - len(kept)}/{len(chunks)} retrieved "
+                    f"chunks beyond distance {RAG_MAX_DISTANCE} for '{query_text[:50]}'."
+                )
+            chunks = kept
 
         is_grounded = len(chunks) >= RAG_MIN_CHUNKS_FOR_GROUNDING
         if not is_grounded:

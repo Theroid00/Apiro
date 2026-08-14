@@ -180,7 +180,16 @@ class EntropyEngine:
                 resp.raise_for_status()
                 raw = resp.json().get("response", "").strip()
                 count = self._parse_count(raw)
-                return count
+                if count is not None:
+                    return count
+                # An unparseable answer is a transient formatting miss, not a
+                # dead server; returning immediately spent the whole retry
+                # budget on nothing and defaulted the node to max uncertainty,
+                # which sends it straight to the top of the frontier.
+                logger.debug(
+                    f"[EntropyEngine] Unparseable count {raw[:40]!r} "
+                    f"(attempt {attempt + 1}/{self.retries})."
+                )
             except requests.exceptions.Timeout:
                 time.sleep(3 * (attempt + 1))
             except Exception as e:
