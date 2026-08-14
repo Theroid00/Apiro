@@ -240,3 +240,51 @@ class TestContradictionGuardrail:
         assert len(results) == len(pairs)
         assert results[0].label == "contradiction"
         assert results[1].label == "neutral"
+
+
+# ── Rabbit-hole detection is a property of a path, not of the whole graph ─────
+
+class TestRabbitHoleLocality:
+    def _detector(self):
+        from apiro.graph.rabbit_hole import RabbitHoleDetector
+        return RabbitHoleDetector(min_depth=3, reversal_window=4)
+
+    def _chain(self, entropies: list[float]) -> tuple[BeliefGraph, Node]:
+        g = BeliefGraph()
+        parent = None
+        node = None
+        for i, h in enumerate(entropies):
+            node = Node(id=f"n{i}", claim=f"claim {i}", domain="lab",
+                        entropy_score=h, depth=i, parent_id=parent)
+            g.add_node(node)
+            parent = node.id
+        return g, node
+
+    def test_fires_on_a_genuinely_reversing_path(self):
+        g, leaf = self._chain([0.65, 0.45, 0.30, 0.45, 0.60])
+        assert self._detector().check(g, leaf) is True
+
+    def test_healthy_converging_path_survives_a_noisy_graph(self):
+        """
+        A node whose own lineage is converging must not be flagged just because
+        unrelated branches pushed the global entropy trend upward — the old
+        global check killed exactly the highest-entropy frontier node this way.
+        """
+        g, leaf = self._chain([0.69, 0.55, 0.40, 0.25, 0.15])
+        for i, h in enumerate([0.2, 0.4, 0.6, 0.69]):
+            g.add_node(Node(id=f"other{i}", claim=f"other {i}", domain="lab",
+                            entropy_score=h, depth=1, parent_id="n0"))
+            g.mark_resolved(f"other{i}")
+        assert self._detector().check(g, leaf) is False
+
+    def test_shallow_nodes_are_never_flagged(self):
+        g, leaf = self._chain([0.30, 0.45, 0.60])
+        assert self._detector().check(g, leaf) is False
+
+    def test_detached_node_falls_back_to_global_window(self):
+        g = BeliefGraph()
+        for i, h in enumerate([2.0, 1.5, 1.0, 1.5, 2.0]):
+            g.add_node(Node(id=f"g{i}", claim=f"c{i}", domain="lab", entropy_score=h))
+            g.mark_resolved(f"g{i}")
+        detached = Node(id="deep", claim="deep", domain="lab", entropy_score=2.0, depth=4)
+        assert self._detector().check(g, detached) is True
