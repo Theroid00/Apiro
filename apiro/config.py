@@ -114,6 +114,15 @@ VITAL_THRESHOLDS: dict[str, tuple[float, float]] = {
 # inherently uncertain — a higher bar prevents premature stopping.
 SATURATION_WINDOW       = 5      # look back at last N expanded nodes
 SATURATION_MAX_VARIANCE = 0.04   # entropy variance threshold
+# Depth-0 seed nodes are deterministic axioms injected with a fixed near-zero
+# entropy (~0.01). Counting them in the saturation window makes the engine
+# "converge" the moment the first SATURATION_WINDOW seeds are expanded — i.e.
+# before any hypothesis has ever been generated. Saturation must therefore only
+# look at exploration (depth >= 1) expansions.
+SATURATION_EXPLORATION_ONLY = True
+# Hard warm-up floor: never declare saturation before this many depth >= 1
+# nodes have been expanded, regardless of how flat the entropy curve looks.
+SATURATION_MIN_EXPLORATION = 8
 # Guard: do NOT declare saturation when the mean RAG retrieval depth
 # (chunks returned) across the window is below this value. Consistently
 # sparse retrieval means the corpus is dry, not that the engine converged.

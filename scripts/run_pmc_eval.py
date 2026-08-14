@@ -29,6 +29,7 @@ from apiro.graph.belief_graph import BeliefGraph
 from apiro.graph.node import Node
 from apiro.graph.traversal import ApiroTraversal
 from apiro.axioms.extractor import AxiomExtractor
+from apiro.config import SATURATION_EXPLORATION_ONLY
 
 def run_evaluation(real_components: bool):
     # Load distractor cases
@@ -106,7 +107,9 @@ def run_evaluation(real_components: bool):
             llm_client=llm_client,
             contradiction_detector=contradiction,
         )
-        saturation = SaturationDetector()
+        # exploration_only: depth-0 axiom seeds have a fixed entropy and must
+        # never be counted as evidence of convergence.
+        saturation = SaturationDetector(exploration_only=SATURATION_EXPLORATION_ONLY)
         rabbit_hole = RabbitHoleDetector()
         traversal = ApiroTraversal(
             expander=expander,
@@ -299,7 +302,10 @@ def run_evaluation(real_components: bool):
             llm_client=llm_client,
             contradiction_detector=contradiction,
         )
-        saturation = SaturationDetector(theta=0.25, window=5, max_variance=0.04)
+        saturation = SaturationDetector(
+            theta=0.25, window=5, max_variance=0.04,
+            exploration_only=SATURATION_EXPLORATION_ONLY,
+        )
         rabbit_hole = RabbitHoleDetector(min_depth=3, reversal_window=4)
         traversal = ApiroTraversal(
             expander=expander,

@@ -119,24 +119,45 @@ class BeliefGraph:
 
         return sorted(candidates, key=score, reverse=True)
 
-    def get_entropy_trend(self, window: int = 5) -> float:
+    def get_entropy_trend(self, window: int = 5, min_depth: int | None = None) -> float:
         """
         Linear trend coefficient of entropy over the last `window` expansions.
         Positive = entropy rising (rabbit hole risk).
         Negative = entropy declining (converging toward saturation).
         Returns 0.0 if fewer than 2 expansions have occurred.
+
+        Args:
+            min_depth: when given, only expansions of nodes at this depth or
+                       deeper are considered. Use min_depth=1 to measure the
+                       *exploration* trend and ignore deterministic depth-0
+                       seed anchors (whose entropy is a fixed constant and
+                       therefore carries no convergence signal).
         """
-        log = self._expansion_log[-window:]
-        if len(log) < 2:
+        entropies = self.get_recent_entropies(window, min_depth=min_depth)
+        if len(entropies) < 2:
             return 0.0
-        entropies = [e["entropy"] for e in log]
         x = np.arange(len(entropies), dtype=float)
         slope = float(np.polyfit(x, entropies, 1)[0])
         return round(slope, 9)
 
-    def get_recent_entropies(self, window: int = 5) -> list[float]:
-        """Return entropy values from the last `window` expanded nodes."""
-        return [e["entropy"] for e in self._expansion_log[-window:]]
+    def get_recent_entropies(self, window: int = 5, min_depth: int | None = None) -> list[float]:
+        """
+        Return entropy values from the last `window` expanded nodes.
+
+        Args:
+            min_depth: when given, expansions of nodes shallower than this are
+                       filtered out *before* the window is applied.
+        """
+        log = self._expansion_log
+        if min_depth is not None:
+            log = [e for e in log if (e.get("depth") or 0) >= min_depth]
+        return [e["entropy"] for e in log[-window:]]
+
+    def count_expansions(self, min_depth: int | None = None) -> int:
+        """Number of nodes expanded so far, optionally filtered by minimum depth."""
+        if min_depth is None:
+            return len(self._expansion_log)
+        return sum(1 for e in self._expansion_log if (e.get("depth") or 0) >= min_depth)
 
     def get_contradiction_edges(self) -> list[Edge]:
         """Return all edges that were flagged as contradictions."""

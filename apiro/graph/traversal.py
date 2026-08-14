@@ -25,7 +25,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from apiro.config import CONTRADICTION_THRESHOLD_EF, CONTRADICTION_PENALTY
+from apiro.config import (
+    CONTRADICTION_THRESHOLD_EF,
+    CONTRADICTION_PENALTY,
+    SATURATION_MIN_EXPLORATION,
+)
 from apiro.graph.belief_graph import BudgetExceededError
 from apiro.graph.critic import CriticEngine
 
@@ -167,8 +171,18 @@ class ApiroTraversal:
         while True:
             iteration += 1
 
+            # Number of *exploration* expansions so far (depth >= 1). Seed
+            # expansions are excluded: they are deterministic anchors, not
+            # evidence that the engine has learned anything.
+            n_explored = graph.count_expansions(min_depth=1)
+
             # ── Stop condition 0: Global Critic Halting ───────────────────────
-            if iteration >= 10 and iteration % 5 == 0 and self.critic.evaluate_halting(graph, vignette=vignette):
+            if (
+                n_explored >= SATURATION_MIN_EXPLORATION
+                and iteration >= 10
+                and iteration % 5 == 0
+                and self.critic.evaluate_halting(graph, vignette=vignette)
+            ):
                 stop_reason = "critic_halt"
                 logger.info(f"[Traversal] Global Critic approved halting at iteration {iteration}.")
                 self._log({
@@ -178,7 +192,11 @@ class ApiroTraversal:
                 break
 
             # ── Stop condition 1: Saturation ─────────────────────────────────
-            if self.saturation.is_saturated(graph):
+            # Warm-up guard: saturation is only meaningful once the engine has
+            # actually explored. Without this, a run seeded with N >= window
+            # deterministic axioms (all at entropy 0.01) "saturates" on its own
+            # seed nodes and halts before generating a single hypothesis.
+            if n_explored >= SATURATION_MIN_EXPLORATION and self.saturation.is_saturated(graph):
                 status = self.saturation.get_status(graph)
                 stop_reason = "saturation"
                 logger.info(
@@ -207,13 +225,21 @@ class ApiroTraversal:
                 break
 
             # ── Stop condition 2: Max depth ───────────────────────────────────
-            if frontier[0].depth >= max_depth:
+            # Only nodes that are still allowed to expand are eligible. The old
+            # code halted the entire run whenever the *top-scoring* node was at
+            # max depth, discarding an otherwise healthy frontier of shallower
+            # nodes — a single deep node could end the traversal outright.
+            expandable = [n for n in frontier if n.depth < max_depth]
+            if not expandable:
                 stop_reason = "max_depth"
-                logger.info(f"[Traversal] Max depth {max_depth} reached.")
+                logger.info(
+                    f"[Traversal] Max depth {max_depth} reached — "
+                    f"{len(frontier)} frontier node(s) all at or beyond the limit."
+                )
                 break
 
             # ── Pick best node ────────────────────────────────────────────────
-            node = frontier[0]
+            node = expandable[0]
 
             # ── Stop condition 3: Rabbit hole check ──────────────────────────
             # If the top node is a rabbit hole, flag it and restart the loop.

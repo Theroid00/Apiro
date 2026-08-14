@@ -30,7 +30,11 @@ def build_components():
     from apiro.graph.rabbit_hole import RabbitHoleDetector
     from apiro.graph.contradiction import ContradictionDetector
     from apiro.graph.traversal import ApiroTraversal
-    from apiro.config import OLLAMA_BASE_URL, PRIMARY_MODEL
+    from apiro.config import (
+        OLLAMA_BASE_URL,
+        PRIMARY_MODEL,
+        SATURATION_EXPLORATION_ONLY,
+    )
 
     try:
         r = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
@@ -98,7 +102,9 @@ def build_components():
         llm_client=llm_client,
         contradiction_detector=contradiction,
     )
-    saturation = SaturationDetector()
+    # exploration_only: deterministic depth-0 axiom seeds carry a fixed entropy
+    # and must not be allowed to trigger saturation (see config comments).
+    saturation = SaturationDetector(exploration_only=SATURATION_EXPLORATION_ONLY)
     rabbit_hole = RabbitHoleDetector()
     
     traversal = ApiroTraversal(
