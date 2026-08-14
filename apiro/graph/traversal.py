@@ -305,10 +305,17 @@ class ApiroTraversal:
                 break
             graph.mark_resolved(node.id)
 
-            # ── Contradiction check: new nodes vs ALL existing nodes ───────────
-            # Collect all pairs that pass the domain gate first, then run a
-            # single batched NLI forward pass instead of one GPU call per pair.
-            existing_nodes = list(graph.nodes.values())
+            # ── Contradiction check ───────────────────────────────────────────
+            # Compared against: every deterministic anchor (the point of the
+            # hybrid design) and every already-expanded claim. Unresolved
+            # siblings are skipped — three hypotheses generated from one prompt
+            # are competing alternatives by construction, and checking them
+            # against each other just manufactures "contradictions" between
+            # differentials that are supposed to coexist.
+            existing_nodes = [
+                n for n in graph.nodes.values()
+                if n.depth == 0 or n.resolved
+            ]
 
             batch_pairs:   list[tuple[str, str]]      = []
             batch_meta:    list[tuple[object, object]] = []  # (new_node, existing)
@@ -362,28 +369,37 @@ class ApiroTraversal:
                         )
 
                         # ── Contradiction-informed soft-pruning ───────────────
-                        # Seed nodes (depth 0) are ground truth and must never be penalized.
-                        # If a hypothesis contradicts ground truth, the hypothesis is penalized.
+                        # The penalty exists to kill hypotheses that contradict
+                        # the patient's deterministic facts. It is applied ONLY
+                        # when one side is a depth-0 anchor.
+                        #
+                        # It used to fire on any contradicting pair, penalising
+                        # the deeper or higher-entropy node. Two competing
+                        # differentials contradict each other by definition, so
+                        # that rule silently eliminated one live alternative per
+                        # detected pair — chosen by entropy, not by evidence —
+                        # and directly contradicts the documented soft-pruning
+                        # intent of keeping alternatives alive for synthesis.
                         if new_node.depth == 0 and existing.depth == 0:
-                            # Both are ground truth, do not penalize either
+                            # Two deterministic facts disagree. That is a data
+                            # problem, not a hypothesis to prune.
+                            logger.warning(
+                                f"[Traversal] Two anchors contradict: "
+                                f"'{new_node.claim[:40]}' vs '{existing.claim[:40]}'"
+                            )
                             continue
                         elif new_node.depth == 0:
                             weaker = existing
                         elif existing.depth == 0:
                             weaker = new_node
                         else:
-                            # Penalize the deeper (more speculative/derived) node
-                            if new_node.depth != existing.depth:
-                                weaker = new_node if new_node.depth > existing.depth else existing
-                            else:
-                                # Depths are equal: penalize the more uncertain (higher entropy) node
-                                new_h      = new_node.entropy_score  or 0.0
-                                existing_h = existing.entropy_score  or 0.0
-                                weaker = new_node if new_h >= existing_h else existing
+                            # Hypothesis vs hypothesis: recorded on the edge and
+                            # in the log, but not penalised.
+                            continue
 
                         weaker.contradiction_penalty = CONTRADICTION_PENALTY
                         logger.info(
-                            f"[Traversal] Soft-pruned weaker contradicting node: "
+                            f"[Traversal] Soft-pruned hypothesis contradicting a deterministic anchor: "
                             f"'{weaker.claim[:50]}' (entropy={weaker.entropy_score:.3f}, penalty={CONTRADICTION_PENALTY})"
                         )
 
