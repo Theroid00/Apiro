@@ -11,3 +11,9 @@ class ClinicalAxiom:
     unit: Optional[str]    # Unit string (e.g. "mg/dL", "mmHg", "C")
     weight: float       # Diagnostic specificity weight (0.1-1.0)
     snomed_cui: Optional[str] = None  # Ontology code if matched
+    # The bare entity as it appeared in the vignette ("epigastric pain"), before
+    # it was forged into a full sentence. Downstream stages used to recover this
+    # by slicing a hard-coded sentence prefix off `text`, which broke silently
+    # whenever the phrasing changed.
+    raw_text: Optional[str] = None
+    confidence: float = 1.0   # extractor confidence (NER score; 1.0 for regex)

@@ -288,3 +288,95 @@ class TestRabbitHoleLocality:
             g.mark_resolved(f"g{i}")
         detached = Node(id="deep", claim="deep", domain="lab", entropy_score=2.0, depth=4)
         assert self._detector().check(g, detached) is True
+
+
+# ── Deterministic axiom extraction ────────────────────────────────────────────
+
+class TestLabParser:
+    def _parse(self, text):
+        from apiro.axioms.lab_parser import LabParser
+        return {ax.raw_text for ax in LabParser().parse(text)}
+
+    def test_filler_words_no_longer_discard_the_lab(self):
+        """
+        The name group swallows the words preceding the number, so natural
+        phrasing arrived as "Hemoglobin of" — and any captured stopword made
+        the parser drop the whole measurement.
+        """
+        found = self._parse("Hemoglobin of 9.5 g/dL and Troponin was 5.2 ng/mL.")
+        assert "Hemoglobin 9.5 g/dL" in found
+        assert "Troponin 5.2 ng/mL" in found
+
+    def test_blood_pressure_is_not_shredded_by_the_general_pattern(self):
+        found = self._parse("BP 88/54 mmHg on arrival.")
+        assert "BP 88/54 mmHg" in found
+        assert not any(f.endswith("/") for f in found)
+
+    def test_social_history_is_not_a_lab_value(self):
+        found = self._parse("He drinks 2 units weekly and smoked 20 cigarettes daily.")
+        assert found == set()
+
+    def test_repeated_measurement_is_deduplicated(self):
+        from apiro.axioms.lab_parser import LabParser
+        axioms = LabParser().parse("Potassium 5.6 mmol/L. Repeat Potassium 5.6 mmol/L.")
+        assert len(axioms) == 1
+
+
+class TestNegationScope:
+    def _classify(self, text, words):
+        from apiro.axioms.negation import NegationClassifier
+        from apiro.axioms.models import ClinicalAxiom
+        clf = NegationClassifier.__new__(NegationClassifier)
+        clf.nlp = None   # force the regex path
+        axioms = [ClinicalAxiom(id="", text=w, domain="symptom", polarity="affirmed",
+                                value=None, unit=None, weight=0.0, raw_text=w)
+                  for w in words]
+        return {ax.raw_text: ax.polarity for ax in clf.classify(text, axioms)}
+
+    def test_negation_does_not_leak_across_sentences(self):
+        """
+        A flat 45-character lookback crossed sentence boundaries, so a finding
+        following "No fever." was recorded as denied — which then tells the
+        synthesizer that any diagnosis requiring it is wrong.
+        """
+        got = self._classify("No fever. Severe epigastric pain radiating to the back.",
+                             ["fever", "epigastric pain"])
+        assert got["fever"] == "negated"
+        assert got["epigastric pain"] == "affirmed"
+
+    def test_affirmed_anywhere_beats_a_single_negated_mention(self):
+        got = self._classify("No chest pain on admission. Chest pain recurred overnight.",
+                             ["chest pain"])
+        assert got["chest pain"] == "affirmed"
+
+    def test_history_is_distinguished_from_the_acute_problem(self):
+        got = self._classify("Past medical history of diabetes.", ["diabetes"])
+        assert got["diabetes"] == "historical"
+
+
+class TestAxiomSelection:
+    def _axiom(self, text, domain, weight):
+        from apiro.axioms.models import ClinicalAxiom
+        return ClinicalAxiom(id="", text=text, domain=domain, polarity="affirmed",
+                             value=None, unit=None, weight=weight, raw_text=text)
+
+    def test_measurements_survive_the_seed_cap(self):
+        from apiro.axioms.extractor import AxiomExtractor
+        axioms = [self._axiom(f"noise {i}", "symptom", 0.3) for i in range(30)]
+        axioms.append(self._axiom("Troponin 5.2 ng/mL", "lab", 0.8))
+        kept = AxiomExtractor._select(axioms, max_axioms=10)
+        assert len(kept) == 10
+        assert any(a.domain == "lab" for a in kept)
+
+    def test_cap_prefers_high_weight_axioms(self):
+        from apiro.axioms.extractor import AxiomExtractor
+        axioms = [self._axiom("fatigue", "symptom", 0.1),
+                  self._axiom("roth spots", "symptom", 0.92),
+                  self._axiom("malaise", "symptom", 0.1)]
+        kept = [a.text for a in AxiomExtractor._select(axioms, max_axioms=1)]
+        assert kept == ["roth spots"]
+
+    def test_no_cap_returns_everything(self):
+        from apiro.axioms.extractor import AxiomExtractor
+        axioms = [self._axiom(f"s{i}", "symptom", 0.3) for i in range(40)]
+        assert len(AxiomExtractor._select(axioms, max_axioms=None)) == 40

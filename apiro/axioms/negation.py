@@ -4,6 +4,25 @@ from .models import ClinicalAxiom
 
 logger = logging.getLogger(__name__)
 
+_LEGACY_PREFIX = "The patient presents with the clinical finding of "
+
+
+def _raw_of(axiom: ClinicalAxiom) -> str:
+    """
+    The bare entity text for an axiom.
+
+    Prefers the `raw_text` recorded by the extractor. Falls back to stripping
+    the legacy sentence prefix for axioms built before that field existed —
+    the old code sliced this prefix off blindly, so any axiom forged with a
+    different template silently had its entire sentence treated as the entity.
+    """
+    if getattr(axiom, "raw_text", None):
+        return axiom.raw_text
+    if axiom.text.startswith(_LEGACY_PREFIX):
+        return axiom.text[len(_LEGACY_PREFIX):].rstrip(".")
+    return axiom.text
+
+
 class NegationClassifier:
     def __init__(self):
         try:
@@ -26,15 +45,8 @@ class NegationClassifier:
             try:
                 from medspacy.ner import TargetMatcher, TargetRule
                 
-                # Extract raw words from the forged sentence structure
-                prefix = "The patient presents with the clinical finding of "
-                raw_words = []
-                for ax in axioms:
-                    if ax.text.startswith(prefix):
-                        raw_words.append(ax.text[len(prefix):].rstrip("."))
-                    else:
-                        raw_words.append(ax.text)
-                        
+                raw_words = [_raw_of(ax) for ax in axioms]
+
                 target_matcher = TargetMatcher(self.nlp.vocab)
                 rules = [TargetRule(word, "AXIOM") for word in raw_words]
                 target_matcher.add(rules)
@@ -77,30 +89,49 @@ class NegationClassifier:
             r"\b(history of|past medical history|previously|prior episode|prior history|years ago|months ago)\b"
         ]
         
-        prefix = "The patient presents with the clinical finding of "
         for ax in axioms:
-            if ax.text.startswith(prefix):
-                raw_word = ax.text[len(prefix):].rstrip(".")
-            else:
-                raw_word = ax.text
-                
+            raw_word = _raw_of(ax)
             word_lower = raw_word.lower()
-            idx = text_lower.find(word_lower)
-            if idx != -1:
-                # Check window before the word (up to 45 characters)
-                window_start = max(0, idx - 45)
-                window_before = text_lower[window_start:idx]
-                
-                is_negated = any(re.search(pat, window_before) for pat in neg_patterns)
-                is_historical = any(re.search(pat, window_before) for pat in history_patterns)
-                
-                if is_historical:
-                    ax.polarity = "historical"
-                    ax.text = f"The patient has a history of {raw_word}."
-                elif is_negated:
-                    ax.polarity = "negated"
-                    ax.text = f"The patient denies the clinical finding of {raw_word}."
+
+            occurrences = [m.start() for m in re.finditer(re.escape(word_lower), text_lower)]
+            if not occurrences:
+                continue
+
+            # A finding affirmed anywhere in the vignette is affirmed. The old
+            # code only inspected the FIRST occurrence, so "no chest pain on
+            # admission; chest pain recurred overnight" was recorded as denied.
+            polarities = []
+            for idx in occurrences:
+                window_before = self._scope_before(text_lower, idx)
+                if any(re.search(pat, window_before) for pat in history_patterns):
+                    polarities.append("historical")
+                elif any(re.search(pat, window_before) for pat in neg_patterns):
+                    polarities.append("negated")
                 else:
-                    ax.polarity = "affirmed"
-                    
+                    polarities.append("affirmed")
+
+            if "affirmed" in polarities:
+                ax.polarity = "affirmed"
+            elif "negated" in polarities:
+                ax.polarity = "negated"
+                ax.text = f"The patient denies the clinical finding of {raw_word}."
+            else:
+                ax.polarity = "historical"
+                ax.text = f"The patient has a history of {raw_word}."
+
         return axioms
+
+    @staticmethod
+    def _scope_before(text_lower: str, idx: int, max_chars: int = 45) -> str:
+        """
+        The negation scope preceding `idx`, clipped at the nearest clause or
+        sentence boundary.
+
+        A fixed 45-character lookback crosses sentence boundaries, so
+        "No fever. Severe epigastric pain" marked the pain as denied — and a
+        negated axiom tells the synthesizer that any diagnosis requiring that
+        finding is wrong, which is exactly backwards.
+        """
+        window = text_lower[max(0, idx - max_chars):idx]
+        boundary = max(window.rfind(c) for c in ".;!?\n")
+        return window[boundary + 1:] if boundary != -1 else window
