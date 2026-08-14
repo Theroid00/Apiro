@@ -364,7 +364,14 @@ class ApiroTraversal:
         duration = round(time.time() - start_time, 2)
 
         # ── Synthesize differential ───────────────────────────────────────────
-        synthesis = self.expander.synthesize_differential(graph)
+        # The vignette is passed through: the bare-LLM baseline reads the whole
+        # case, so the synthesizer must too — otherwise Apiro argues its final
+        # answer from graph fragments alone.
+        try:
+            synthesis = self.expander.synthesize_differential(graph, vignette=vignette)
+        except TypeError:
+            # Back-compat with expanders whose signature predates `vignette`.
+            synthesis = self.expander.synthesize_differential(graph)
 
         self._log({
             "event":            "traversal_complete",

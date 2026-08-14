@@ -95,3 +95,96 @@ class TestExpansionFilters:
         # Depth-blind view is dominated by the seed step-up; the exploration
         # view correctly reports a declining trend.
         assert g.get_entropy_trend(5, min_depth=1) < 0
+
+
+# ── Final synthesis must see the patient, not just the graph ──────────────────
+
+class _RecordingLLM:
+    """Captures the prompt it is handed and returns a fixed differential."""
+
+    def __init__(self):
+        self.prompts: list[str] = []
+
+    def chat(self, prompt: str) -> str:
+        self.prompts.append(prompt)
+        return "Acute pancreatitis\nCholedocholithiasis\nPeptic ulcer perforation"
+
+    def generate(self, prompt: str) -> str:
+        return self.chat(prompt)
+
+
+def _graph_for_synthesis() -> BeliefGraph:
+    g = BeliefGraph()
+    g.add_node(Node(id="ax_0", claim="The patient has a lab result showing Lipase 1200 U/L.",
+                    domain="lab", entropy_score=0.01, depth=0))
+    g.add_node(Node(id="ax_1", claim="The patient denies the clinical finding of fever.",
+                    domain="symptom", entropy_score=0.01, depth=0))
+    # 20 vague, high-breadth exploration claims + 1 highly specific one.
+    for i in range(20):
+        g.add_node(Node(id=f"vague{i}", claim=f"Abdominal pain may reflect many causes {i}.",
+                        domain="pathophysiology", entropy_score=0.693, depth=1,
+                        parent_id="ax_0"))
+    g.add_node(Node(id="specific", claim="Lipase above three times normal is diagnostic of pancreatitis.",
+                    domain="lab", entropy_score=0.10, depth=2, parent_id="ax_0"))
+    return g
+
+
+def _expander(llm):
+    from apiro.graph.expander import NodeExpander, StubEntropyEngine, StubChromaClient
+    return NodeExpander(entropy_engine=StubEntropyEngine(),
+                        chroma_client=StubChromaClient(), llm_client=llm)
+
+
+class TestSynthesisContext:
+    def test_vignette_reaches_the_synthesizer(self):
+        llm = _RecordingLLM()
+        _expander(llm).synthesize_differential(
+            _graph_for_synthesis(), vignette="52M epigastric pain radiating to the back.")
+        assert "52M epigastric pain radiating to the back." in llm.prompts[0]
+
+    def test_confirmed_anchors_are_never_truncated_away(self):
+        """
+        Anchors carry entropy ~0.01. Under the old entropy-descending top_k cut
+        they were dropped in favour of 15 vague claims, so the final prompt
+        contained none of the patient's actual findings.
+        """
+        llm = _RecordingLLM()
+        _expander(llm).synthesize_differential(_graph_for_synthesis(), top_k=5)
+        prompt = llm.prompts[0]
+        assert "Lipase 1200 U/L" in prompt
+
+    def test_specific_claims_outrank_vague_ones(self):
+        llm = _RecordingLLM()
+        _expander(llm).synthesize_differential(_graph_for_synthesis(), top_k=3)
+        assert "diagnostic of pancreatitis" in llm.prompts[0]
+
+    def test_negated_findings_are_listed_as_ruled_out(self):
+        llm = _RecordingLLM()
+        _expander(llm).synthesize_differential(_graph_for_synthesis())
+        assert "RULED-OUT" in llm.prompts[0]
+        assert "denies the clinical finding of fever" in llm.prompts[0]
+
+    def test_empty_graph_returns_empty_differential(self):
+        llm = _RecordingLLM()
+        assert _expander(llm).synthesize_differential(BeliefGraph()) == []
+        assert llm.prompts == []
+
+
+# ── Parser must not fabricate placeholder hypotheses ──────────────────────────
+
+class TestHypothesisParsing:
+    def test_no_placeholder_padding_by_default(self):
+        llm = _RecordingLLM()
+        parsed = _expander(llm)._parse_hypotheses("Only one real hypothesis here.")
+        assert parsed == ["Only one real hypothesis here."]
+        assert not any(p.startswith("[Expansion failed") for p in parsed)
+
+    def test_numbering_and_bullets_stripped(self):
+        llm = _RecordingLLM()
+        parsed = _expander(llm)._parse_hypotheses("1. Alpha claim\n- Beta claim\n2) Gamma claim")
+        assert parsed == ["Alpha claim", "Beta claim", "Gamma claim"]
+
+    def test_preamble_dropped(self):
+        llm = _RecordingLLM()
+        parsed = _expander(llm)._parse_hypotheses("Hypotheses:\nAlpha claim\nBeta claim")
+        assert parsed == ["Alpha claim", "Beta claim"]

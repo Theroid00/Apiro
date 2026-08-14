@@ -467,30 +467,43 @@ class NodeExpander:
         re.IGNORECASE,
     )
 
-    def _parse_hypotheses(self, llm_output: str) -> list[str]:
+    def _parse_hypotheses(self, llm_output: str, limit: int = 3, pad: bool = False) -> list[str]:
         """
-        Parse the LLM's output into exactly 3 hypothesis strings.
-        Defensive: strips preamble headers, numbering, drops empty lines,
-        pads if fewer than 3 returned.
+        Parse the LLM's output into up to `limit` hypothesis strings.
+
+        Defensive: strips preamble headers and numbering, drops empty lines.
+
+        `pad` is False by default. Padding used to inject synthetic
+        "[Expansion failed for: ...]" strings, which then entered the graph as
+        real nodes: the entropy engine scores anything starting with "[" at
+        ln(2), the maximum, so these placeholders sorted straight to the top of
+        the depth>=1 frontier and got expanded ahead of genuine hypotheses,
+        burning the node budget on nothing. An expansion that yields two usable
+        hypotheses should return two.
         """
         lines = llm_output.strip().split("\n")
         hypotheses = []
         for line in lines:
-            clean = re.sub(r"^[\d]+[\.)] \s*|^[-*•]\s*", "", line.strip())
+            clean = re.sub(r"^\s*\d+\s*[\.)]\s*|^\s*[-*•]\s*", "", line.strip())
+            clean = clean.strip()
             if not clean:
                 continue
             # Skip preamble/header lines that are not actual clinical claims
             if self._PREAMBLE_RE.match(clean):
                 continue
+            # Skip degenerate fragments (bare punctuation, stray markdown fences)
+            if len(clean) < 4 or clean.startswith("```"):
+                continue
             hypotheses.append(clean)
 
-        if len(hypotheses) > 3:
-            hypotheses = hypotheses[:3]
+        if len(hypotheses) > limit:
+            hypotheses = hypotheses[:limit]
 
-        while len(hypotheses) < 3:
-            hypotheses.append(
-                f"[Expansion failed for: {hypotheses[0][:40] if hypotheses else 'unknown'}]"
-            )
+        if pad:
+            while len(hypotheses) < limit:
+                hypotheses.append(
+                    f"[Expansion failed for: {hypotheses[0][:40] if hypotheses else 'unknown'}]"
+                )
 
         return hypotheses
 
@@ -626,109 +639,153 @@ class NodeExpander:
         return new_nodes
 
 
-    def synthesize_differential(self, graph, top_k: int = 15) -> list[str]:
+    def synthesize_differential(self, graph, top_k: int = 15, vignette: str = None) -> list[str]:
         """
         Synthesize a final differential diagnosis from the belief graph.
 
-        Only high-signal nodes are passed to the LLM:
-          - Rabbit-hole nodes are excluded (they are known dead-ends).
-          - Contradiction-flagged nodes are excluded (actively disputed claims).
-          - The remaining nodes are sorted by entropy descending and capped at
-            top_k (default 15) so the synthesizer sees the most informationally
-            rich, unresolved claims — not a dump of every node including noise.
+        The synthesizer is given three tiers of context, in this order:
+
+          1. The patient's presentation (the vignette).
+          2. Every confirmed depth-0 anchor — the deterministic axioms. These
+             ARE the patient's facts; a differential written without them is
+             guesswork.
+          3. Exploration claims (depth >= 1), ranked by *diagnostic specificity*.
+
+        Two bugs are fixed here, both of which handed the win to a plain
+        zero-shot LLM:
+
+          - The vignette was never passed in, so the bare-LLM baseline saw the
+            whole case and Apiro saw only disembodied graph claims.
+          - Nodes were ranked by entropy DESCENDING and truncated at top_k.
+            Entropy in this engine is differential breadth (how many diagnoses
+            a finding is compatible with), so descending order fed the LLM the
+            15 *vaguest* claims in the graph and cut every specific one — and,
+            because depth-0 axioms carry entropy ~0.01, it cut the patient's
+            own findings first.
+
+        Contradiction-penalised nodes are no longer silently deleted either.
+        Soft-pruning is documented as "penalise, do not delete, so alternative
+        hypotheses stay alive in the synthesis layer" — they are now listed
+        last and explicitly labelled as disputed.
 
         Args:
-            graph:  The BeliefGraph containing gathered evidence.
-            top_k:  Max number of high-entropy clean nodes to pass to the LLM.
+            graph:     The BeliefGraph containing gathered evidence.
+            top_k:     Max number of exploration claims passed to the LLM.
+            vignette:  Raw (or axiom-enriched) clinical presentation.
 
         Returns:
-            A list of the top 3 most likely specific clinical diagnoses.
+            A list of up to 3 specific clinical diagnoses, most likely first.
         """
         logger.info("[NodeExpander] Synthesizing final differential diagnosis...")
 
-        # Identify contradiction-flagged node IDs so we can exclude them.
-        contradiction_ids: set[str] = set()
-        for edge in graph.edges:
-            if getattr(edge, 'contradiction_flag', False):
-                # In BFS, we exclude both parent and child.
-                # In ApiroTraversal, we ONLY exclude the node if it has a contradiction penalty.
-                # So we check if the nodes have contradiction_penalty.
-                # If neither node has a contradiction_penalty set (which means we are in BFS/non-pruning mode),
-                # we exclude both.
-                # If they do have contradiction_penalty, we rely on the contradiction_penalty check instead of contradiction_ids.
-                has_penalty = any(
-                    getattr(graph.nodes[nid], 'contradiction_penalty', 0.0) > 0.0 
-                    for nid in (edge.child_id, edge.parent_id) if nid in graph.nodes
-                )
-                if not has_penalty:
-                    contradiction_ids.add(edge.child_id)
-                    contradiction_ids.add(edge.parent_id)
+        anchors: list[Node]   = []   # depth 0, affirmed
+        ruled_out: list[Node] = []   # depth 0, negated
+        explored: list[Node]  = []   # depth >= 1, clean
+        disputed: list[Node]  = []   # depth >= 1, contradiction-penalised
 
-        # Collect only clean, high-signal nodes.
-        clean_nodes = []
         for n in graph.nodes.values():
+            claim_l = n.claim.lower()
+            is_negated = (
+                "denies" in claim_l
+                or claim_l.startswith("the patient has no ")
+                or getattr(n, "polarity", "") == "negated"
+            )
+            if n.depth == 0:
+                (ruled_out if is_negated else anchors).append(n)
+                continue
             if n.is_rabbit_hole:
-                continue
-            if n.id in contradiction_ids:
-                continue
-            if getattr(n, 'contradiction_penalty', 0.0) > 0.0:
-                continue
-            clean_nodes.append(n)
+                continue          # known dead-end
+            if is_negated:
+                ruled_out.append(n)
+            elif getattr(n, "contradiction_penalty", 0.0) > 0.0:
+                disputed.append(n)
+            else:
+                explored.append(n)
 
-        # Sort by entropy descending — highest uncertainty = most diagnostically
-        # interesting — and cap at top_k.
-        clean_nodes.sort(key=lambda n: n.entropy_score or 0.0, reverse=True)
-        top_nodes = clean_nodes[:top_k]
+        # Rank exploration claims by diagnostic specificity: a claim compatible
+        # with one diagnosis narrows the differential, a claim compatible with
+        # ten does not. Deeper claims break ties — they are the payoff of the
+        # traversal rather than a first-hop restatement of the seed.
+        def specificity(n: Node) -> tuple:
+            h = n.entropy_score if n.entropy_score is not None else 0.693
+            return (round(h, 4), -n.depth)
+
+        explored.sort(key=specificity)
+        disputed.sort(key=specificity)
+
+        top_nodes = explored[:top_k]
+        if not top_nodes and not anchors:
+            logger.warning("[NodeExpander] Graph is empty — nothing to synthesize.")
+            return []
 
         logger.info(
-            f"[NodeExpander] Synthesis using {len(top_nodes)}/{graph.node_count()} nodes "
-            f"(excluded {graph.node_count() - len(top_nodes)} rabbit-holes/contradictions)."
+            f"[NodeExpander] Synthesis context: {len(anchors)} anchors, "
+            f"{len(top_nodes)}/{len(explored)} exploration claims, "
+            f"{len(ruled_out)} ruled-out, {len(disputed)} disputed."
         )
 
-        if not top_nodes:
-            logger.warning("[NodeExpander] No clean nodes available for synthesis — using all nodes.")
-            top_nodes = list(graph.nodes.values())[:top_k]
+        def _bullets(nodes, dedupe: set) -> str:
+            out = []
+            for n in nodes:
+                claim = n.claim.strip()
+                key = claim.lower()
+                if key in dedupe:
+                    continue
+                dedupe.add(key)
+                out.append(f"  - {claim}")
+            return "\n".join(out)
 
-        # Remove duplicate claims while preserving entropy-rank order.
         seen: set[str] = set()
-        unique_claims: list[str] = []
-        for n in top_nodes:
-            if n.claim not in seen:
-                unique_claims.append(n.claim)
-                seen.add(n.claim)
+        anchors_text   = _bullets(anchors, seen)
+        evidence_text  = _bullets(top_nodes, seen)
+        disputed_text  = _bullets(disputed[:5], seen)
+        ruled_out_text = _bullets(ruled_out, seen)
 
-        # Collect negated/ruled-out findings separately to guide the synthesis
-        ruled_out = []
-        for n in graph.nodes.values():
-            if "denies" in n.claim.lower() or getattr(n, "polarity", "") == "negated":
-                clean_claim = n.claim.strip()
-                if clean_claim not in ruled_out:
-                    ruled_out.append(clean_claim)
+        sections = ["You are Apiro, a precise clinical differential-diagnosis engine.\n"]
+        sections.append(
+            "Your task: identify the single underlying disease that best explains this"
+            " patient, and give the top 3 candidate diagnoses ranked by likelihood.\n"
+        )
 
-        ruled_out_text = ""
-        if ruled_out:
-            ruled_out_text = "=== RULED-OUT/NEGATED FINDINGS (Do NOT contradict these) ===\n" + "\n".join(f"  - {claim}" for claim in ruled_out) + "\n\n"
+        clean_vignette = self._sanitize_vignette(vignette)
+        if clean_vignette:
+            sections.append(f"=== PATIENT PRESENTATION ===\n{clean_vignette}\n")
+        if anchors_text:
+            sections.append(
+                "=== CONFIRMED FINDINGS (deterministically extracted — treat as ground truth) ===\n"
+                f"{anchors_text}\n"
+            )
+        if ruled_out_text:
+            sections.append(
+                "=== RULED-OUT / NEGATED FINDINGS (a diagnosis requiring these is wrong) ===\n"
+                f"{ruled_out_text}\n"
+            )
+        if evidence_text:
+            sections.append(
+                "=== REASONING TRACE (claims the engine derived, most specific first) ===\n"
+                f"{evidence_text}\n"
+            )
+        if disputed_text:
+            sections.append(
+                "=== DISPUTED CLAIMS (contradicted other evidence — weigh down, do not ignore) ===\n"
+                f"{disputed_text}\n"
+            )
 
-        evidence_text = "\n".join(f"  - {claim}" for claim in unique_claims)
-
-        prompt = (
-            "You are Apiro, a precise clinical differential-diagnosis engine.\n\n"
-            "Your task: given the following high-signal clinical evidence (pre-filtered to remove"
-            " known dead-ends and contradictions) and ruled-out findings, generate the top 3 most likely specific"
-            " clinical diagnoses.\n\n"
-            f"{ruled_out_text}"
-            "=== HIGH-SIGNAL GATHERED EVIDENCE ===\n"
-            f"{evidence_text}\n\n"
+        sections.append(
             "=== STRICT RULES ===\n"
-            "1. Output exactly 3 diagnoses, one per line.\n"
-            "2. Provide only the specific disease name (e.g., 'Type 1 autoimmune pancreatitis')."
-            " Do not include preamble, numbering, explanations, or mechanism.\n"
-            "3. Rank them from most likely to least likely.\n\n"
+            "1. Output exactly 3 diagnoses, one per line, most likely first.\n"
+            "2. Give only the specific disease name (e.g. 'Type 1 autoimmune pancreatitis')."
+            " No preamble, numbering, explanation, or mechanism.\n"
+            "3. Name the specific underlying primary disease, not a syndrome or a symptom"
+            " (e.g. prefer 'Pheochromocytoma' over 'Hypertensive crisis').\n"
+            "4. Every diagnosis must be compatible with ALL confirmed findings above.\n\n"
             "=== OUTPUT (3 lines only) ==="
         )
 
+        prompt = "\n".join(sections)
+
         raw_output = self._call_llm(prompt)
-        diagnoses = self._parse_hypotheses(raw_output)
+        diagnoses = self._parse_hypotheses(raw_output, limit=3)
 
         logger.info(f"[NodeExpander] Synthesis complete: {diagnoses}")
         return diagnoses
