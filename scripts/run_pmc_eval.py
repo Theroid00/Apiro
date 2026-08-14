@@ -392,29 +392,11 @@ def run_evaluation(real_components: bool):
         
         if real_components:
             logger.info("  Extracting deterministic clinical axioms...")
+            from apiro.axioms.seeding import axioms_to_seed_nodes, enrich_vignette
             axioms = axiom_extractor.extract(vignette)
-            enriched_vignette = vignette + "\n\n[Deterministic Clinical Findings]\n"
-            for ax in axioms:
-                enriched_vignette += f"- {ax.text}\n"
-                
-                # Weight-aware and polarity-aware entropy anchoring
-                base_entropy = 0.01 + (1.0 - getattr(ax, "weight", 0.5)) * 0.15
-                if getattr(ax, "polarity", "affirmed") == "negated":
-                    entropy = max(0.4, base_entropy + 0.3)
-                elif getattr(ax, "polarity", "affirmed") == "historical":
-                    entropy = max(0.3, base_entropy + 0.2)
-                else:
-                    entropy = base_entropy
-                    
-                seeds.append(Node(
-                    id=ax.id,
-                    claim=ax.text,
-                    entropy_score=round(entropy, 4),
-                    domain=ax.domain,
-                    depth=0
-                ))
+            seeds.extend(axioms_to_seed_nodes(axioms))
             logger.info(f"  Extracted {len(axioms)} axioms and anchored them to the graph.")
-            vignette_to_pass = enriched_vignette
+            vignette_to_pass = enrich_vignette(vignette, axioms)
         else:
             vignette_to_pass = vignette
             

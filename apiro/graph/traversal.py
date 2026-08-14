@@ -152,6 +152,14 @@ class ApiroTraversal:
         start_time = time.time()
         self._traversal_log = []
 
+        # ── Anchor the frontier to this patient ───────────────────────────────
+        # Entropy alone measures how many diagnoses a claim is compatible with,
+        # which is a property of the sentence and not of the patient. Anchoring
+        # makes the exploration frontier chase uncertainty about THIS case.
+        anchor_text = vignette or "\n".join(s.claim for s in seed_nodes)
+        if hasattr(graph, "set_case_anchor"):
+            graph.set_case_anchor(anchor_text)
+
         # ── Seed the graph ────────────────────────────────────────────────────
         for seed in seed_nodes:
             graph.add_node(seed)

@@ -77,6 +77,14 @@ MAX_EXPLORATION_EXPANSIONS = 24
 # top MAX_SEED_NODES are kept.
 MAX_SEED_NODES = 20
 
+# Relevance weighting of the exploration frontier (see
+# BeliefGraph.set_case_anchor). Exploration priority becomes
+#     H * (RELEVANCE_FLOOR + (1 - RELEVANCE_FLOOR) * cos(claim, case))
+# so a claim unrelated to this patient retains RELEVANCE_FLOOR of its raw
+# entropy priority and a claim about this patient retains all of it.
+# 1.0 disables relevance weighting entirely (pure entropy-first).
+RELEVANCE_FLOOR = 0.4
+
 # RAG retrieval
 RAG_DOMAIN_FILTER   = True            # filter ChromaDB by node.domain when True
 

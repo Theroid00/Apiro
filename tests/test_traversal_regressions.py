@@ -380,3 +380,84 @@ class TestAxiomSelection:
         from apiro.axioms.extractor import AxiomExtractor
         axioms = [self._axiom(f"s{i}", "symptom", 0.3) for i in range(40)]
         assert len(AxiomExtractor._select(axioms, max_axioms=None)) == 40
+
+
+# ── Case-relevance weighted frontier ──────────────────────────────────────────
+
+class TestRelevanceFrontier:
+    def _graph(self):
+        g = BeliefGraph()
+        g.add_node(Node(id="on_topic", claim="Aquaporin-4 antibody positivity supports neuromyelitis optica.",
+                        domain="lab", entropy_score=0.55, depth=1))
+        g.add_node(Node(id="off_topic", claim="Statin therapy reduces cardiovascular mortality in diabetics.",
+                        domain="pharmacology", entropy_score=0.60, depth=1))
+        return g
+
+    def test_pure_entropy_order_without_an_anchor(self):
+        """Unanchored graphs keep the original entropy-first contract."""
+        g = self._graph()
+        assert g.get_frontier(depth_aware=True)[0].id == "off_topic"
+
+    def test_anchor_promotes_the_case_relevant_claim(self):
+        g = self._graph()
+        g.set_case_anchor(
+            "34F with bilateral vision loss, painful eye movements and longitudinally "
+            "extensive transverse myelitis on spinal MRI."
+        )
+        if g._case_embedding is None:
+            pytest.skip("sentence-transformers unavailable")
+        assert g.get_frontier(depth_aware=True)[0].id == "on_topic"
+
+    def test_empty_anchor_is_ignored(self):
+        g = self._graph()
+        g.set_case_anchor("")
+        assert g._case_embedding is None
+
+    def test_seed_ties_break_on_axiom_weight(self):
+        g = BeliefGraph()
+        g.add_node(Node(id="weak", claim="fatigue", domain="symptom", entropy_score=0.01,
+                        depth=0, metadata={"axiom_weight": 0.1}))
+        g.add_node(Node(id="strong", claim="Roth spots", domain="symptom", entropy_score=0.01,
+                        depth=0, metadata={"axiom_weight": 0.92}))
+        assert g.get_frontier(depth_aware=True)[0].id == "strong"
+
+
+# ── Seeding is shared and never produces an empty frontier ────────────────────
+
+class TestSeeding:
+    class _NullExtractor:
+        def extract(self, vignette, **kwargs):
+            return []
+
+    def test_fallback_seed_when_extraction_finds_nothing(self):
+        """
+        An empty axiom list produced an empty frontier: the traversal stopped
+        immediately with no_frontier and synthesised from an empty graph.
+        """
+        from apiro.axioms.seeding import build_seeds
+        seeds, axioms, enriched = build_seeds("Patient feels unwell.", self._NullExtractor())
+        assert len(seeds) == 1
+        assert seeds[0].depth == 0
+        assert "Patient feels unwell." in seeds[0].claim
+        assert axioms == []
+
+    def test_negated_axioms_are_not_seeded_as_absolute_certainty(self):
+        """
+        The CLI and web app hard-coded entropy 0.01 for every axiom, so a
+        denied finding anchored the frontier as hard as a lab value.
+        """
+        from apiro.axioms.models import ClinicalAxiom
+        from apiro.axioms.seeding import seed_entropy
+        affirmed = ClinicalAxiom(id="a", text="t", domain="lab", polarity="affirmed",
+                                 value=1.0, unit="x", weight=0.8)
+        negated = ClinicalAxiom(id="b", text="t", domain="symptom", polarity="negated",
+                                value=None, unit=None, weight=0.8)
+        assert seed_entropy(affirmed) < 0.1
+        assert seed_entropy(negated) >= 0.4
+
+    def test_seed_nodes_carry_axiom_weight_into_the_frontier(self):
+        from apiro.axioms.models import ClinicalAxiom
+        from apiro.axioms.seeding import axioms_to_seed_nodes
+        ax = ClinicalAxiom(id="a", text="Roth spots", domain="symptom", polarity="affirmed",
+                           value=None, unit=None, weight=0.92)
+        assert axioms_to_seed_nodes([ax])[0].metadata["axiom_weight"] == 0.92
