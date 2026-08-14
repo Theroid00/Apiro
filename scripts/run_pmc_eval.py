@@ -31,7 +31,7 @@ from apiro.graph.traversal import ApiroTraversal
 from apiro.axioms.extractor import AxiomExtractor
 from apiro.config import SATURATION_EXPLORATION_ONLY
 
-def run_evaluation(real_components: bool):
+def run_evaluation(real_components: bool, limit: int | None = None, out_path: str | None = None):
     # Load distractor cases
     cases_path = PROJECT_ROOT / "data" / "pmc_cases.json"
     with open(cases_path) as f:
@@ -330,7 +330,13 @@ def run_evaluation(real_components: bool):
 
     results = []
 
-    for case in cases[:5]:
+    # The case count used to be hard-coded to 5, so the "accuracy" figures in
+    # the project log were computed over an arbitrary slice of the dataset with
+    # no way to widen it.
+    selected = cases if limit is None else cases[:limit]
+    logger.info(f"Evaluating {len(selected)}/{len(cases)} cases.")
+
+    for case in selected:
         case_id = case["case_id"]
         vignette = case["vignette"]
         target = case["target_diagnosis"]
@@ -447,7 +453,22 @@ def run_evaluation(real_components: bool):
             "apiro": {
                 "success": apiro_success,
                 "output": apiro_output
-            }
+            },
+            # Traversal diagnostics. Without these there is no way to tell a
+            # wrong answer apart from an engine that never ran: before the
+            # saturation fix every case stopped after ~5 seed expansions and
+            # the summary table looked exactly the same.
+            "traversal": {
+                "stop_reason":     traversal_res.stop_reason,
+                "total_nodes":     traversal_res.total_nodes,
+                "total_edges":     traversal_res.total_edges,
+                "seed_nodes":      sum(1 for n in graph.nodes.values() if n.depth == 0),
+                "explored_nodes":  graph.count_expansions(min_depth=1),
+                "max_depth_reached": max((n.depth for n in graph.nodes.values()), default=0),
+                "rabbit_holes":    traversal_res.rabbit_hole_count,
+                "contradictions":  traversal_res.contradiction_count,
+                "duration_seconds": traversal_res.duration_seconds,
+            },
         })
 
     # Summary Table
@@ -460,20 +481,61 @@ def run_evaluation(real_components: bool):
     apiro_wins = sum(1 for r in results if r["apiro"]["success"])
     
     for r in results:
+        t = r["traversal"]
         print(f"Case {r['case_id']}: {r['description']}")
         print(f"  Target Diagnosis : {r['target']}")
         print(f"  Bare LLM Success : {'[PASS]' if r['bare_llm']['success'] else '[FAIL] (Hallucinated distractor)'}")
         print(f"  RAG Success      : {'[PASS]' if r['rag']['success'] else '[FAIL] (Hallucinated distractor)'}")
         print(f"  Apiro Success    : {'[PASS]' if r['apiro']['success'] else '[FAIL]'}")
+        print(f"  Apiro Traversal  : stop={t['stop_reason']} nodes={t['total_nodes']} "
+              f"(seeds={t['seed_nodes']}, explored={t['explored_nodes']}, "
+              f"max_depth={t['max_depth_reached']}) {t['duration_seconds']}s")
         print("-" * 65)
-        
-    print(f"Bare LLM Total Success: {bare_wins}/{len(results)} ({bare_wins/len(results)*100:.1f}%)")
-    print(f"RAG Baseline Success  : {rag_wins}/{len(results)} ({rag_wins/len(results)*100:.1f}%)")
-    print(f"Apiro Total Success   : {apiro_wins}/{len(results)} ({apiro_wins/len(results)*100:.1f}%)")
+
+    n = len(results) or 1
+    print(f"Bare LLM Total Success: {bare_wins}/{len(results)} ({bare_wins/n*100:.1f}%)")
+    print(f"RAG Baseline Success  : {rag_wins}/{len(results)} ({rag_wins/n*100:.1f}%)")
+    print(f"Apiro Total Success   : {apiro_wins}/{len(results)} ({apiro_wins/n*100:.1f}%)")
+
+    # Head-to-head against the baseline Apiro is meant to beat.
+    apiro_only = sum(1 for r in results if r["apiro"]["success"] and not r["bare_llm"]["success"])
+    bare_only  = sum(1 for r in results if r["bare_llm"]["success"] and not r["apiro"]["success"])
+    print("-" * 65)
+    print(f"Apiro wins where bare LLM fails : {apiro_only}")
+    print(f"Bare LLM wins where Apiro fails : {bare_only}")
+
+    stop_reasons: dict[str, int] = {}
+    explored = []
+    for r in results:
+        stop_reasons[r["traversal"]["stop_reason"]] = stop_reasons.get(r["traversal"]["stop_reason"], 0) + 1
+        explored.append(r["traversal"]["explored_nodes"])
+    print(f"Stop reasons                    : {stop_reasons}")
+    if explored:
+        print(f"Exploration expansions per case : "
+              f"min={min(explored)} mean={sum(explored)/len(explored):.1f} max={max(explored)}")
     print("=" * 65 + "\n")
+
+    if out_path:
+        out = Path(out_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with open(out, "w") as f:
+            json.dump({
+                "mode": "real" if real_components else "mock",
+                "n_cases": len(results),
+                "bare_llm_accuracy": bare_wins / n,
+                "rag_accuracy": rag_wins / n,
+                "apiro_accuracy": apiro_wins / n,
+                "stop_reasons": stop_reasons,
+                "results": results,
+            }, f, indent=2)
+        print(f"Detailed results written to {out}\n")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run distractor-resilience evaluation")
     parser.add_argument("--real", action="store_true", help="Use real components (Ollama + ChromaDB)")
+    parser.add_argument("--limit", type=int, default=None,
+                        help="Evaluate only the first N cases (default: all).")
+    parser.add_argument("--out", type=str, default=None,
+                        help="Write detailed per-case results to this JSON path.")
     args = parser.parse_args()
-    run_evaluation(args.real)
+    run_evaluation(args.real, limit=args.limit, out_path=args.out)
