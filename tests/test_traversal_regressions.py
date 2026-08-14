@@ -188,3 +188,55 @@ class TestHypothesisParsing:
         llm = _RecordingLLM()
         parsed = _expander(llm)._parse_hypotheses("Hypotheses:\nAlpha claim\nBeta claim")
         assert parsed == ["Alpha claim", "Beta claim"]
+
+
+# ── Deterministic contradiction guardrail ─────────────────────────────────────
+
+class TestContradictionGuardrail:
+    def _detector(self):
+        from apiro.graph.contradiction import ContradictionDetector
+        return ContradictionDetector()
+
+    def test_fast_filter_score_clears_the_pruning_threshold(self):
+        """
+        The fast filter used to emit exactly CONTRADICTION_THRESHOLD_EF and
+        every caller tested `score > threshold`, so deterministic keyword
+        contradictions could never prune anything.
+        """
+        from apiro.config import CONTRADICTION_THRESHOLD_EF
+        from apiro.graph.contradiction import FAST_FILTER_CONTRADICTION_SCORE
+        assert FAST_FILTER_CONTRADICTION_SCORE > CONTRADICTION_THRESHOLD_EF
+
+    def test_hyperkalemia_vs_hypokalemia_is_a_contradiction(self):
+        r = self._detector()._fast_filter(
+            "The patient has hyperkalemia with potassium 6.1.",
+            "Hypokalemia is causing the patient's potassium wasting.",
+            negation_detected=False,
+        )
+        assert r is not None and r.label == "contradiction"
+
+    def test_substring_false_positive_does_not_fire(self):
+        """'low' must not match inside 'blood flow'; 'high' not inside 'highly'."""
+        r = self._detector()._fast_filter(
+            "Coronary blood flow is reduced during the ischemic cascade.",
+            "Elevated coronary perfusion is highly protective in ischemic cascade.",
+            negation_detected=False,
+        )
+        assert r is None or r.label != "contradiction"
+
+    def test_left_does_not_match_inside_cleft(self):
+        det = self._detector()
+        assert det._contains_term("cleft palate repair", "left") is False
+        assert det._contains_term("left-sided weakness", "left") is True
+
+    def test_check_batch_preserves_order_and_length(self):
+        det = self._detector()
+        pairs = [
+            ("The patient has hyperkalemia with potassium 6.1.",
+             "Hypokalemia explains the potassium level."),
+            ("Ultrasound shows gallstones.", "The femur radiograph is unremarkable."),
+        ]
+        results = det.check_batch(pairs)
+        assert len(results) == len(pairs)
+        assert results[0].label == "contradiction"
+        assert results[1].label == "neutral"

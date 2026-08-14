@@ -315,7 +315,10 @@ class ApiroTraversal:
             if batch_pairs:
                 results = self.contradiction.check_batch(batch_pairs)
                 for (new_node, existing), result in zip(batch_meta, results):
-                    if result.label == "contradiction" and result.score > CONTRADICTION_THRESHOLD_EF:
+                    # `>=`, not `>`: the deterministic fast filter emits a fixed
+                    # confidence, and a strict comparison against an identical
+                    # threshold silently discarded every keyword contradiction.
+                    if result.label == "contradiction" and result.score >= CONTRADICTION_THRESHOLD_EF:
                         # Find the edge and flag it
                         for edge in graph.edges:
                             if edge.parent_id == new_node.parent_id and edge.child_id == new_node.id:

@@ -41,6 +41,16 @@ logger = logging.getLogger(__name__)
 
 _CACHE_MAX = 4096
 
+# Confidence assigned to a deterministic (keyword/negation) contradiction.
+# This MUST sit strictly above CONTRADICTION_THRESHOLD_EF. It used to be
+# exactly 0.92, and every consumer tests `score > 0.92`, so no keyword
+# contradiction could ever fire: the deterministic half of the guardrail —
+# the entire point of the Hybrid Apiro design — was dead code.
+FAST_FILTER_CONTRADICTION_SCORE = 0.95
+
+# Max concurrent LLM-judge calls issued by check_batch().
+_BATCH_WORKERS = 8
+
 _RAW_SEED_SUFFIX = re.compile(
     r"[—\-–?]\s*(symptom|lab|vital|imaging|history|medication|procedure)\s*$",
     re.IGNORECASE,
@@ -229,9 +239,78 @@ class ContradictionDetector:
         return result
 
     def check_batch(self, pairs: list[tuple[str, str]]) -> list[NLIResult]:
-        return [self.check(a, b) for a, b in pairs]
+        """
+        Check many pairs at once.
+
+        Stage 1 (fast filter + cache) is resolved inline; only the pairs that
+        genuinely need the LLM judge are dispatched, and those run concurrently.
+        Previously this was a plain list comprehension, so a batch of 40 pairs
+        that escalated 5 of them paid 5 sequential round-trips to Ollama on the
+        critical path of every expansion.
+        """
+        if not pairs:
+            return []
+
+        results: list[Optional[NLIResult]] = [None] * len(pairs)
+        pending: list[int] = []
+
+        for i, (a, b) in enumerate(pairs):
+            key = self._cache_key(a, b)
+            if key in self._cache:
+                self._cache_hits += 1
+                results[i] = self._cache[key]
+                continue
+            negation = self._has_negation(a) or self._has_negation(b)
+            fast = self._fast_filter(a, b, negation)
+            if fast is not None:
+                self._cache_misses += 1
+                self._store_cache(key, fast)
+                results[i] = fast
+            elif not self._shares_medical_entities(a, b):
+                # Different topics entirely — cannot be a true contradiction.
+                self._cache_misses += 1
+                neutral = NLIResult(label="neutral", score=0.9, negation_detected=negation)
+                self._store_cache(key, neutral)
+                results[i] = neutral
+            else:
+                pending.append(i)
+
+        if pending:
+            import concurrent.futures
+
+            def _judge(idx: int) -> tuple[int, NLIResult]:
+                a, b = pairs[idx]
+                negation = self._has_negation(a) or self._has_negation(b)
+                return idx, self._llm_judge(a, b, negation)
+
+            workers = min(_BATCH_WORKERS, len(pending))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+                for idx, result in pool.map(_judge, pending):
+                    self._cache_misses += 1
+                    self._store_cache(self._cache_key(*pairs[idx]), result)
+                    results[idx] = result
+
+        # Length and order must mirror `pairs` exactly — callers zip the result
+        # back against their own (new_node, existing) metadata list.
+        return [
+            r if r is not None else NLIResult(label="neutral", score=0.5, negation_detected=False)
+            for r in results
+        ]
 
     # ── Stage 1: Fast filter ──────────────────────────────────────────────────
+
+    @staticmethod
+    def _contains_term(text_lower: str, term: str) -> bool:
+        """
+        Whole-word/phrase containment.
+
+        Plain `term in text` matched inside unrelated words and produced
+        spurious contradictions: "low" fires on "blood flow" and "allow",
+        "high" on "highly", "left" on "cleft", "mg" on "mg/dL". Since a
+        fast-filter hit now carries enough score to soft-prune a node, the
+        match has to respect word boundaries.
+        """
+        return re.search(rf"(?<![a-z]){re.escape(term)}(?![a-z])", text_lower) is not None
 
     def _fast_filter(
         self, claim_a: str, claim_b: str, negation_detected: bool
@@ -244,10 +323,10 @@ class ContradictionDetector:
 
         # Check antonym keyword pairs
         for set_pos, set_neg in _ANTONYM_PAIRS:
-            a_pos = any(kw in a for kw in set_pos)
-            b_pos = any(kw in b for kw in set_pos)
-            a_neg = any(kw in a for kw in set_neg)
-            b_neg = any(kw in b for kw in set_neg)
+            a_pos = any(self._contains_term(a, kw) for kw in set_pos)
+            b_pos = any(self._contains_term(b, kw) for kw in set_pos)
+            a_neg = any(self._contains_term(a, kw) for kw in set_neg)
+            b_neg = any(self._contains_term(b, kw) for kw in set_neg)
 
             # One claim positive, the other negative on the same dimension
             if (a_pos and b_neg) or (a_neg and b_pos):
@@ -256,7 +335,7 @@ class ContradictionDetector:
                 if self._shares_medical_entities(claim_a, claim_b):
                     return NLIResult(
                         label="contradiction",
-                        score=0.92,
+                        score=FAST_FILTER_CONTRADICTION_SCORE,
                         negation_detected=negation_detected,
                     )
 
