@@ -48,36 +48,73 @@ class RabbitHoleDetector:
         self.events: list[RabbitHoleEvent] = []
 
 
+    def ancestor_entropies(self, graph: BeliefGraph, node: Node) -> list[float]:
+        """
+        Entropy values along this node's own lineage, root first.
+
+        A rabbit hole is a property of a *reasoning path*, not of the engine's
+        global mood, so the reversal must be measured on the chain of claims
+        that actually produced this node.
+        """
+        chain: list[float] = []
+        seen: set[str] = set()
+        cur: Node | None = node
+        while cur is not None and cur.id not in seen:
+            seen.add(cur.id)
+            h = cur.entropy_score if cur.entropy_score is not None else 0.0
+            chain.append(h)
+            parent_id = getattr(cur, "parent_id", None)
+            cur = graph.nodes.get(parent_id) if parent_id else None
+        chain.reverse()
+        return chain
+
+    @staticmethod
+    def _reversal(series: list[float]) -> bool:
+        """
+        True when the series is rising overall AND still rising at the end.
+
+        Condition 2 blocks completed blips:
+          [0.5, 0.52, 0.4] → slope negative OR last pair falls → no fire.
+          [0.6, 0.5, 0.8]  → slope positive AND last pair rises → FIRES.
+        """
+        if len(series) < 2:
+            return False
+        x = np.arange(len(series), dtype=float)
+        slope = float(np.polyfit(x, series, 1)[0])
+        if slope <= 0.0:
+            return False
+        return series[-1] > series[-2]
+
     def check(self, graph: BeliefGraph, current_node: Node) -> bool:
         """
         Return True if this node is a rabbit hole candidate.
         Does NOT mutate the node — call flag_rabbit_hole() to do that.
 
-        Fires when BOTH conditions hold in the reversal window:
-          1. Overall entropy trend > 0 (slope of window is positive, i.e. rising).
-          2. The most recent step is still rising (last pair increases).
+        Detection is path-local: the entropy curve along this node's ancestor
+        chain must have reversed (declining, then rising again).
 
-        Condition 2 blocks completed blips:
-          [0.5, 0.52, 0.4] → overall slope negative OR last pair falls → no fire.
-          [0.6, 0.5, 0.8]  → slope positive AND last pair rises → FIRES.
+        This replaces a graph-global check that read the last N expansions
+        anywhere in the graph. Because the entropy-first frontier hands this
+        detector the highest-entropy node at depth >= 1, and a rising global
+        trend is exactly what a fresh batch of open questions looks like, the
+        global version systematically flagged the single most informative node
+        on the frontier and permanently removed it from both the traversal and
+        the final synthesis — regardless of whether that node's own reasoning
+        path had gone anywhere bad.
+
+        Falls back to the global window when the node has no lineage in the
+        graph (detached nodes, as constructed in the unit tests).
         """
         if current_node.depth < self.min_depth:
             return False
 
-        trend  = graph.get_entropy_trend(self.reversal_window)
+        chain = self.ancestor_entropies(graph, current_node)
+        if len(chain) >= 3:
+            return self._reversal(chain[-self.reversal_window:])
+
+        # No usable lineage — fall back to the global expansion window.
         recent = graph.get_recent_entropies(self.reversal_window)
-
-        if len(recent) < 2:
-            return False
-
-        # The overall trend must be positive (entropy rising on average)
-        if trend <= 0.0:
-            return False
-
-        # The most recent step must still be rising — rules out completed blips
-        # e.g. [0.5, 0.52, 0.4]: last pair (0.52 -> 0.4) falls → not a real reversal
-        last_pair_rising = recent[-1] > recent[-2]
-        return last_pair_rising
+        return self._reversal(recent)
 
     def flag_rabbit_hole(self, node: Node, graph: BeliefGraph) -> None:
         """

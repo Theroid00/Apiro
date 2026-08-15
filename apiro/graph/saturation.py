@@ -29,10 +29,26 @@ class SaturationDetector:
         theta: float = DEFAULT_THETA,
         window: int = SATURATION_WINDOW,
         max_variance: float = SATURATION_MAX_VARIANCE,
+        exploration_only: bool = False,
+        min_expansions: int | None = None,
     ):
-        self.theta        = theta
-        self.window       = window
-        self.max_variance = max_variance
+        """
+        Args:
+            exploration_only: when True, only expansions of depth >= 1 nodes are
+                counted. Deterministic depth-0 axiom seeds are injected with a
+                fixed near-zero entropy (0.01), so including them makes the
+                window read "mean 0.01, variance 0.0, trend 0.0" and fires
+                saturation after the first `window` seeds are expanded — before
+                a single hypothesis has ever been explored. See
+                docs/IMPROVEMENTS.md ("Premature saturation").
+            min_expansions: minimum number of (filtered) expansions required
+                before saturation may fire at all. Defaults to `window`.
+        """
+        self.theta            = theta
+        self.window           = window
+        self.max_variance     = max_variance
+        self.exploration_only = exploration_only
+        self.min_expansions   = min_expansions if min_expansions is not None else window
 
     def is_saturated(self, graph: BeliefGraph) -> bool:
         """Return True if all 3 saturation conditions hold."""
@@ -52,10 +68,12 @@ class SaturationDetector:
             conditions:   {low_entropy, low_variance, non_rising}
           }
         """
-        recent = graph.get_recent_entropies(self.window)
+        min_depth = 1 if self.exploration_only else None
+        recent = graph.get_recent_entropies(self.window, min_depth=min_depth)
         n = len(recent)
+        n_total = graph.count_expansions(min_depth=min_depth)
 
-        if n < self.window:
+        if n < self.window or n_total < self.min_expansions:
             return {
                 "saturated":   False,
                 "avg_entropy": None,
@@ -68,7 +86,7 @@ class SaturationDetector:
 
         avg_entropy = float(np.mean(recent))
         variance    = float(np.var(recent))
-        trend       = graph.get_entropy_trend(self.window)
+        trend       = graph.get_entropy_trend(self.window, min_depth=min_depth)
 
         low_entropy  = avg_entropy  < self.theta
         low_variance = variance     < self.max_variance

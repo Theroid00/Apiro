@@ -1049,19 +1049,8 @@ async def run_investigation_stream(req: InvestigationRequest):
                 )
                 return
             graph = BeliefGraph()
-            from apiro.graph.node import Node
-            axioms = axiom_extractor.extract(req.findings)
-            seeds = []
-            enriched_vignette = req.findings + "\n\n[Deterministic Clinical Findings]\n"
-            for ax in axioms:
-                enriched_vignette += f"- {ax.text}\n"
-                seeds.append(Node(
-                    id=ax.id,
-                    claim=ax.text,
-                    entropy_score=0.01,
-                    domain=ax.domain,
-                    depth=0
-                ))
+            from apiro.axioms.seeding import build_seeds
+            seeds, axioms, enriched_vignette = build_seeds(req.findings, axiom_extractor)
             traversal.run(
                 seed_nodes=seeds,
                 vignette=enriched_vignette,
@@ -1107,19 +1096,8 @@ def run_investigation(req: InvestigationRequest):
 
     t0 = time.time()
     try:
-        from apiro.graph.node import Node
-        axioms = axiom_extractor.extract(req.findings)
-        seeds = []
-        enriched_vignette = req.findings + "\n\n[Deterministic Clinical Findings]\n"
-        for ax in axioms:
-            enriched_vignette += f"- {ax.text}\n"
-            seeds.append(Node(
-                id=ax.id,
-                claim=ax.text,
-                entropy_score=0.01,
-                domain=ax.domain,
-                depth=0
-            ))
+        from apiro.axioms.seeding import build_seeds
+        seeds, axioms, enriched_vignette = build_seeds(req.findings, axiom_extractor)
         if not seeds:
             raise HTTPException(status_code=400, detail="Could not parse any valid findings")
 

@@ -30,7 +30,11 @@ def build_components():
     from apiro.graph.rabbit_hole import RabbitHoleDetector
     from apiro.graph.contradiction import ContradictionDetector
     from apiro.graph.traversal import ApiroTraversal
-    from apiro.config import OLLAMA_BASE_URL, PRIMARY_MODEL
+    from apiro.config import (
+        OLLAMA_BASE_URL,
+        PRIMARY_MODEL,
+        SATURATION_EXPLORATION_ONLY,
+    )
 
     try:
         r = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
@@ -54,7 +58,12 @@ def build_components():
             query_texts = query_texts or []
             text = query_texts[0] if query_texts else ""
             results = self._emb.query(text, n_results=n_results, where=where)
-            return {"documents": [[r["text"] for r in results]]}
+            # Distances are passed through so the expander can discard chunks
+            # that are merely the nearest neighbours rather than real evidence.
+            return {
+                "documents": [[r["text"] for r in results]],
+                "distances": [[r.get("distance") for r in results]],
+            }
 
     chroma_adapter = _ChromaAdapter(embedder)
     entropy_engine = EntropyEngine(model=PRIMARY_MODEL, ollama_url=OLLAMA_BASE_URL)
@@ -98,7 +107,9 @@ def build_components():
         llm_client=llm_client,
         contradiction_detector=contradiction,
     )
-    saturation = SaturationDetector()
+    # exploration_only: deterministic depth-0 axiom seeds carry a fixed entropy
+    # and must not be allowed to trigger saturation (see config comments).
+    saturation = SaturationDetector(exploration_only=SATURATION_EXPLORATION_ONLY)
     rabbit_hole = RabbitHoleDetector()
     
     traversal = ApiroTraversal(
@@ -119,8 +130,14 @@ def print_report(result, elapsed: float) -> None:
     if result.stop_reason:
         print(f"  Stop reason:            {result.stop_reason}")
 
-    print("\n  [ PATIENT CONTEXT ]")
-    print(f"  {result.patient_context.summary()}")
+    # NOTE: `result` is a TraversalResult. It has never carried
+    # `patient_context` or `ranked_hypotheses` — those belong to the
+    # hypothesis-testing engine that was purged in commit 8a001c7 — so this
+    # report raised AttributeError at the end of every CLI run.
+    print("\n  [ GRAPH ]")
+    print(f"  nodes={result.total_nodes}  edges={result.total_edges}  "
+          f"rabbit_holes={result.rabbit_hole_count}  "
+          f"contradictions={result.contradiction_count}")
 
     print("\n  [ TOP DIFFERENTIAL DIAGNOSES ]")
     if not result.synthesis:
@@ -129,10 +146,13 @@ def print_report(result, elapsed: float) -> None:
         for i, dx in enumerate(result.synthesis, 1):
             print(f"  {i}. {dx}")
 
-    if result.ranked_hypotheses:
-        print("\n  [ EVIDENCE SCORING DETAILS ]")
-        for r in result.ranked_hypotheses[:5]:
-            print(f"  - {r.hypothesis[:60]:60s} | Rank: {r.rank} | Score: {r.final_score:.2f} | Matched: {len(r.matched_findings)}")
+    graph = getattr(result, "graph", None)
+    if graph is not None:
+        anchors = [n for n in graph.nodes.values() if n.depth == 0]
+        if anchors:
+            print("\n  [ DETERMINISTIC ANCHORS ]")
+            for n in anchors[:10]:
+                print(f"  - {n.claim[:70]}")
 
     print("\n+" + "-" * 58 + "+\n")
 
@@ -197,19 +217,9 @@ def main():
 
     # Extract deterministic axioms and seed the graph
     print("[*] Extracting deterministic clinical axioms...")
-    axioms = axiom_extractor.extract(raw_findings)
-    seeds = []
-    enriched_vignette = raw_findings + "\n\n[Deterministic Clinical Findings]\n"
-    for ax in axioms:
-        enriched_vignette += f"- {ax.text}\n"
-        seeds.append(Node(
-            id=ax.id,
-            claim=ax.text,
-            entropy_score=0.01,
-            domain=ax.domain,
-            depth=0
-        ))
-    print(f"[+] Extracted {len(axioms)} axioms and anchored them to the graph.\n")
+    from apiro.axioms.seeding import build_seeds
+    seeds, axioms, enriched_vignette = build_seeds(raw_findings, axiom_extractor)
+    print(f"[+] Extracted {len(axioms)} axioms and anchored {len(seeds)} of them to the graph.\n")
 
     result = traversal.run(
         seed_nodes=seeds,

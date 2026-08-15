@@ -222,6 +222,34 @@ Here is the commit-by-commit record of the Apiro codebase:
     -   **`3ed67d9` (Jul 15)**: docs: add Deterministic Clinical Anchoring (Axiom & NER Extraction) section to README.md.
     -   **`36e0df4` (Jul 15)**: docs: add generate_pmc_cases.py and repair_corpus.py to codebase layout in README.md.
 
+### Phase 10: The Accuracy Audit (`feature/apiro-accuracy-fixes`, August 2026)
+*   **The Rationale**: Hybrid Apiro was mechanically complete but still only scored 30–40% — around or below a bare zero-shot LLM on the same 8B model. A full static audit of the engine was run to find out why, on the assumption that the architecture was sound and the implementation was not.
+*   **The Finding**: it was not one bug, it was a chain of four, each of which independently prevented the design from doing what the documentation describes:
+    1.  **Saturation fired on the engine's own seed nodes.** Axioms are seeded at a fixed entropy of ~0.01 and the depth-aware frontier expands all seeds first, so the saturation window filled with identical 0.01 values — mean below theta, zero variance, flat trend, all three conditions true. Every case with ≥ 5 axioms halted after five seed expansions, *before a single generated hypothesis was explored*. The "~28 s per case" in Phase 8 was the cost of not traversing.
+    2.  **The final synthesis never saw the patient.** Nodes were ranked by entropy *descending* and truncated at 15. Entropy in this engine is differential breadth, so that selects the vaguest claims in the graph — and because axioms carry entropy ~0.01, the patient's own confirmed findings sorted last and were always cut. The vignette was never passed either, so the bare-LLM baseline read the whole case and Apiro read fragments.
+    3.  **The deterministic guardrail could not fire.** The fast filter returned exactly 0.92 and every consumer tested `score > 0.92`. No keyword or negation contradiction ever crossed the threshold — the mechanism the entire Hybrid Apiro thesis rests on was dead code.
+    4.  **Soft-pruning eliminated live differentials.** The penalty applied to any contradicting pair. Competing differentials contradict each other by construction, so each detected pair removed one alternative — chosen by entropy, not evidence — which is precisely the failure soft-pruning was introduced to prevent in Apiro 1.0.
+*   **Also fixed**: rabbit-hole detection was graph-global and therefore flagged the highest-entropy (most informative) frontier node whenever exploration got interesting; a single deep node aborted the whole traversal at `max_depth`; `[Expansion failed...]` placeholders were scored at maximum entropy and expanded ahead of real hypotheses; RAG injected nearest-neighbour chunks under "use ONLY what is stated here"; NER produced duplicate and non-clinical anchors; the lab parser discarded "Hemoglobin of 9.5 g/dL" because "of" was captured into the name; negation leaked across sentence boundaries; and the CLI crashed on every run reading fields of the purged HT engine.
+*   **The Upgrade**: `BeliefGraph.set_case_anchor()` makes exploration priority `H × relevance(claim, case)`, so the frontier chases uncertainty *about this patient* rather than generic uncertainty — the breadth signal is a property of the sentence, not of the case.
+*   **Verification**: 45 stub-only regression tests in `tests/test_traversal_regressions.py`, no Ollama/ChromaDB/model downloads required. Full audit with per-finding rationale in `docs/IMPROVEMENTS.md`.
+*   **Status**: not yet benchmarked — the audit was performed on a machine without Ollama or ChromaDB. Expect longer per-case runtime, since the engine now performs the traversal it previously skipped; `MAX_EXPLORATION_EXPANSIONS` is the wall-clock knob.
+
+### Phase 11: Concept Normalization & Clinical NIAH Benchmark (August 2026)
+*   **The Rationale**: Clinical differential diagnosis involves morphological, histological, and synonym variants that exact-match evaluators incorrectly mark as false negatives (e.g. *Colorectal mucinous adenocarcinoma* vs *Colon adenocarcinoma*). Furthermore, realistic clinical reasoning requires stress-testing against long adversarial contexts (2k–16k tokens) with buried diagnostic needles and distractor comorbidities.
+*   **The Build (`feature/concept-normalization-and-eval`)**:
+    1.  **4-Tier Concept Normalization Evaluator (`apiro/eval/evaluator.py`)**: Implemented exact matching, medical concept dictionary grouping (30+ canonical groups), LLM-as-a-judge, and SentenceTransformer embedding cosine fallback.
+    2.  **5-Family Clinical NIAH Suite (`scripts/build_niah_cases.py`, `scripts/run_niah_eval.py`)**: Generated adversarial cases for `single_needle`, `contradiction_needle`, `multi_needle`, `red_herring`, and `negation_trap`.
+    3.  **Synthesis Etiology Grounding (`apiro/graph/expander.py`)**: Implemented 4-step node partitioning and acute primary etiology ranking.
+*   **The Results**:
+    -   **C-NIAH Benchmark ($N=25$)**: Apiro scored **68.0%** (17/25) overall vs **40.0%** (10/25) for Standard RAG (+28% lift) and **56.0%** (14/25) for the Bare LLM. On Contradiction Needles, Apiro scored **88.9%** (8/9) (vs RAG 44.4%, 4/9), on Multi-Needles scored **75.0%** (3/4) (vs RAG 25.0%, 1/4), and on 8k deep haystacks scored **100%** (5/5).
+    -   **PMC 10-Case Evaluation ($N=10$)**: Apiro scored **20.0%** (Bare LLM 20%, RAG 40%), achieving the sole win on Case 4 (Colon Adenocarcinoma) by successfully rejecting the Crohn's distractor via NLI contradiction pruning.
+
+### Phase 12: Systems Performance & Vector Caching (`feature/performance-and-cleanup`, August 2026)
+*   **The Rationale**: Live BFS graph traversal performs repeated query and token operations across candidate paths. We needed sub-millisecond pre-filtering and query caching.
+*   **The Build**:
+    1.  **Embedder LRU Cache (`apiro/corpus/embedder.py`)**: Added `_encode_cache` and `_query_cache` with 4096-entry eviction and automatic invalidation on corpus mutation.
+    2.  **Memoized NLI Pre-Filter (`apiro/graph/contradiction.py`)**: Added `@functools.lru_cache(maxsize=8192)` to claim tokenization and implemented $\mathcal{O}(1)$ frozenset `isdisjoint` short-circuiting.
+
 ---
 
 ## 📊 Summary of Evaluation Benchmarks
@@ -231,4 +259,6 @@ Here is the commit-by-commit record of the Apiro codebase:
 | **Apiro 1.0 (Entropy)** | `distractor_cases.json` | ~50% (Path Efficiency) | Mimics human curiosity but extremely heavy. GPU memory leaks and O(N^2) contradiction bottlenecks. |
 | **Apiro 1.5 (HT)** | `pmc_cases.json` | High / Workable | Extremely fast, no memory issues. However, strayed from the detective goal into a "glorified RAG." |
 | **HADCE** | `pmc_cases.json` | 20% | Flawless math, but too pessimistic. Small models cannot survive the rigid Contradiction Gauntlet. |
-| **Hybrid Apiro** | `pmc_cases.json` | 30% - 40% | Mechanically flawless. Constant soft-pruning of hallucinations. Average runtime optimized down to ~28s using parallel execution and batched GPU tensor checks. |
+| **Hybrid Apiro (Pre-Audit)**| `pmc_cases.json` | 30% - 40% | Average runtime optimized down to ~28s using parallel execution and batched GPU tensor checks. |
+| **Hybrid Apiro (Audited)** | `pmc_cases.json` ($N=10$) | 20% (Real Ollama) | Correctly solved Case 4 (Colon cancer) by rejecting Crohn's distractor via NLI contradiction. |
+| **Hybrid Apiro (C-NIAH)** | `niah_cases.json` ($N=25$) | **68.0%** 🏆 | **+28.0% over RAG (40.0%)**. 88.9% on Contradiction Needles, 75.0% on Multi-Needles, 100% on 8k deep haystacks. |

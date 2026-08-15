@@ -16,6 +16,7 @@ import numpy as np
 
 from apiro.graph.node import Node
 from apiro.graph.edge import Edge
+from apiro.config import GRAPH_MAX_DEPTH, GRAPH_MAX_NODES, RELEVANCE_FLOOR
 
 
 class BudgetExceededError(Exception):
@@ -32,7 +33,7 @@ class BeliefGraph:
     picks `frontier[0]` (highest uncertainty) to expand next.
     """
 
-    def __init__(self, max_depth: int = 6, max_nodes: int = 150):
+    def __init__(self, max_depth: int = GRAPH_MAX_DEPTH, max_nodes: int = GRAPH_MAX_NODES):
         self._graph: nx.DiGraph   = nx.DiGraph()
         self.nodes:  dict[str, Node] = {}   # id → Node
         self.edges:  list[Edge]      = []
@@ -43,6 +44,11 @@ class BeliefGraph:
         # Semantic matching caches
         self._embedder = None
         self._embeddings: dict[str, np.ndarray] = {}  # node_id -> embedding
+        # Case anchor: embedding of this patient's presentation, used to keep
+        # the entropy-first frontier chasing uncertainty that is relevant to
+        # THIS patient rather than uncertainty in the abstract.
+        self._case_embedding: Optional[np.ndarray] = None
+        self._relevance: dict[str, float] = {}       # node_id -> [0, 1]
 
     # ------------------------------------------------------------------
     # Mutation
@@ -92,6 +98,50 @@ class BeliefGraph:
     # Queries
     # ------------------------------------------------------------------
 
+    def set_case_anchor(self, text: str) -> None:
+        """
+        Register the patient's presentation as the relevance anchor.
+
+        The entropy signal in this engine is *differential breadth*: how many
+        diagnoses a claim is compatible with, measured on the claim alone. That
+        number is a property of the sentence, not of the patient — so a pure
+        entropy-first frontier prefers the vaguest available claim ("chest pain
+        has many causes", 0.693) over the sharpest one ("aquaporin-4 antibodies
+        indicate NMOSD", 0.10), and the engine spends its budget widening the
+        differential instead of resolving it.
+
+        With an anchor set, exploration priority becomes uncertainty *about
+        this patient*: entropy scaled by how close the claim sits to the case.
+        Without one the frontier falls back to raw entropy, so this is opt-in
+        and never changes behaviour for callers that do not use it.
+        """
+        if not text or not text.strip():
+            return
+        try:
+            embedder = self._get_embedder()
+            self._case_embedding = embedder.encode(text.strip()[:4000], normalize_embeddings=True)
+            self._relevance.clear()
+        except Exception:
+            # Embedding is best-effort: a missing model must not break traversal.
+            self._case_embedding = None
+
+    def relevance_of(self, node: Node) -> Optional[float]:
+        """Cosine similarity of a node's claim to the case anchor, in [0, 1]."""
+        if self._case_embedding is None:
+            return None
+        if node.id in self._relevance:
+            return self._relevance[node.id]
+        try:
+            emb = self._embeddings.get(node.id)
+            if emb is None:
+                emb = self._get_embedder().encode(node.claim, normalize_embeddings=True)
+                self._embeddings[node.id] = emb
+            score = max(0.0, min(1.0, float(np.dot(self._case_embedding, emb))))
+        except Exception:
+            return None
+        self._relevance[node.id] = score
+        return score
+
     def get_frontier(self, depth_aware: bool = False) -> list[Node]:
         """
         Return all unresolved, non-rabbit-hole nodes sorted by score.
@@ -102,15 +152,25 @@ class BeliefGraph:
                          If True, uses depth-aware scoring for the entropy-first traversal:
                            - Depth 0 (seeds): score = 2.0 - entropy, guaranteeing all seeds
                              are expanded before any derived child node (starvation-proof).
-                           - Depth >= 1 (derived): score = entropy (chase uncertainty/differentials)
+                             Ties (all axioms share a fixed entropy) break on the
+                             axiom's diagnostic weight, so the sharpest anchor
+                             expands first.
+                           - Depth >= 1 (derived): score = entropy, scaled by relevance to
+                             the case anchor when one has been set (see set_case_anchor).
         """
         candidates = [n for n in self.nodes.values() if not n.resolved and not n.is_rabbit_hole]
 
         if depth_aware:
             def score(n: Node) -> float:
                 h = n.entropy_score if n.entropy_score is not None else 0.5
-                # Depth 0: always prioritize seed nodes to prevent starvation
-                base_score = (2.0 - h) if n.depth == 0 else h
+                if n.depth == 0:
+                    # Depth 0: always prioritize seed nodes to prevent starvation
+                    base_score = 2.0 - h + 0.1 * float(n.metadata.get("axiom_weight", 0.0))
+                else:
+                    base_score = h
+                    rel = self.relevance_of(n)
+                    if rel is not None:
+                        base_score *= (RELEVANCE_FLOOR + (1.0 - RELEVANCE_FLOOR) * rel)
                 return base_score - getattr(n, "contradiction_penalty", 0.0)
         else:
             def score(n: Node) -> float:
@@ -119,24 +179,45 @@ class BeliefGraph:
 
         return sorted(candidates, key=score, reverse=True)
 
-    def get_entropy_trend(self, window: int = 5) -> float:
+    def get_entropy_trend(self, window: int = 5, min_depth: int | None = None) -> float:
         """
         Linear trend coefficient of entropy over the last `window` expansions.
         Positive = entropy rising (rabbit hole risk).
         Negative = entropy declining (converging toward saturation).
         Returns 0.0 if fewer than 2 expansions have occurred.
+
+        Args:
+            min_depth: when given, only expansions of nodes at this depth or
+                       deeper are considered. Use min_depth=1 to measure the
+                       *exploration* trend and ignore deterministic depth-0
+                       seed anchors (whose entropy is a fixed constant and
+                       therefore carries no convergence signal).
         """
-        log = self._expansion_log[-window:]
-        if len(log) < 2:
+        entropies = self.get_recent_entropies(window, min_depth=min_depth)
+        if len(entropies) < 2:
             return 0.0
-        entropies = [e["entropy"] for e in log]
         x = np.arange(len(entropies), dtype=float)
         slope = float(np.polyfit(x, entropies, 1)[0])
         return round(slope, 9)
 
-    def get_recent_entropies(self, window: int = 5) -> list[float]:
-        """Return entropy values from the last `window` expanded nodes."""
-        return [e["entropy"] for e in self._expansion_log[-window:]]
+    def get_recent_entropies(self, window: int = 5, min_depth: int | None = None) -> list[float]:
+        """
+        Return entropy values from the last `window` expanded nodes.
+
+        Args:
+            min_depth: when given, expansions of nodes shallower than this are
+                       filtered out *before* the window is applied.
+        """
+        log = self._expansion_log
+        if min_depth is not None:
+            log = [e for e in log if (e.get("depth") or 0) >= min_depth]
+        return [e["entropy"] for e in log[-window:]]
+
+    def count_expansions(self, min_depth: int | None = None) -> int:
+        """Number of nodes expanded so far, optionally filtered by minimum depth."""
+        if min_depth is None:
+            return len(self._expansion_log)
+        return sum(1 for e in self._expansion_log if (e.get("depth") or 0) >= min_depth)
 
     def get_contradiction_edges(self) -> list[Edge]:
         """Return all edges that were flagged as contradictions."""
@@ -164,17 +245,41 @@ class BeliefGraph:
             self._embedder = globals()["_SHARED_EMBEDDER"]
         return self._embedder
 
-    def find_semantic_match(self, claim: str, threshold: float = 0.92) -> Optional[Node]:
+    def ancestors_of(self, node_id: str) -> set[str]:
+        """All transitive parents of a node, following Node.parent_id links."""
+        chain: set[str] = set()
+        cur = self.nodes.get(node_id)
+        while cur is not None:
+            parent_id = getattr(cur, "parent_id", None)
+            if not parent_id or parent_id in chain:
+                break
+            chain.add(parent_id)
+            cur = self.nodes.get(parent_id)
+        return chain
+
+    def find_semantic_match(
+        self,
+        claim: str,
+        threshold: float = 0.92,
+        exclude_ids: set[str] | None = None,
+    ) -> Optional[Node]:
         """
         Find an existing node in the graph with a semantically equivalent claim.
         Returns the Node if one exists above the similarity threshold, else None.
+
+        Args:
+            exclude_ids: node IDs that must not be considered a match. Callers
+                pass the expanding node and its ancestors: merging a child into
+                its own parent creates a self-loop and silently discards the
+                expansion, and merging a generated hypothesis into a depth-0
+                axiom destroys the hypothesis outright.
         """
         if not self.nodes:
             return None
-            
+
         embedder = self._get_embedder()
         new_emb = embedder.encode(claim, normalize_embeddings=True)
-        
+
         # Ensure all existing nodes are embedded
         unembedded = [n for n in self.nodes.values() if n.id not in self._embeddings]
         if unembedded:
@@ -182,20 +287,24 @@ class BeliefGraph:
             embs = embedder.encode(texts, normalize_embeddings=True)
             for n, emb in zip(unembedded, embs):
                 self._embeddings[n.id] = emb
-                
+
+        excluded = exclude_ids or set()
+
         # Find highest cosine similarity
         best_match = None
         best_score = -1.0
-        
+
         for n_id, emb in self._embeddings.items():
+            if n_id in excluded or n_id not in self.nodes:
+                continue
             score = np.dot(new_emb, emb)
             if score > best_score:
                 best_score = score
                 best_match = self.nodes[n_id]
-                
+
         if best_match and best_score >= threshold:
             return best_match
-            
+
         return None
 
     # ------------------------------------------------------------------

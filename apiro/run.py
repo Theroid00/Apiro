@@ -3,6 +3,10 @@ import sys
 import logging
 from pathlib import Path
 
+# `requests` was only imported inside generate(), so generate_with_logprobs()
+# raised NameError the moment anything called it.
+import requests
+
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("run")
@@ -16,7 +20,6 @@ class OllamaLLMClient:
         self.model = model
 
     def generate(self, prompt: str) -> str:
-        import requests
         resp = requests.post(
             f"{self.url}/api/generate",
             json={"model": self.model, "prompt": prompt, "stream": False, "options": {"temperature": 0.2, "num_predict": 180}},

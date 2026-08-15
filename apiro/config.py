@@ -41,6 +41,14 @@ RAG_TOP_K      = 6    # chunks retrieved per query
 # mode (LLM-only, no corpus constraint) so rare-disease nodes still expand
 # meaningfully instead of recycling the same thin context.
 RAG_MIN_CHUNKS_FOR_GROUNDING = 2
+# Maximum cosine distance for a retrieved chunk to count as evidence.
+# ChromaDB always returns the top-k nearest neighbours, however far away they
+# are, so a rare-disease query still comes back with 6 confidently-formatted
+# chunks about something else — which the expander then injects under
+# "use ONLY what is stated here". Chunks beyond this distance are discarded,
+# and if too few survive the expander falls back to parametric mode.
+# Set to None to disable distance filtering.
+RAG_MAX_DISTANCE = 0.65
 
 # ---------------------------------------------------------------------------
 # Corpus chunking
@@ -55,6 +63,35 @@ MAX_TRAVERSAL_DEPTH = 8
 MAX_NODES_PER_RUN   = 30              # hard cap on nodes expanded per traversal run
 FRONTIER_SORT       = "entropy_desc"   # always expand highest-entropy node first
 N_CHILD_HYPOTHESES  = 3                # child nodes generated per expansion
+
+# BeliefGraph construction defaults. These were previously hard-coded in the
+# BeliefGraph constructor and unreachable from config.
+GRAPH_MAX_NODES = 200
+GRAPH_MAX_DEPTH = 6
+
+# Runtime bound on the *exploration* half of a run (depth >= 1 expansions).
+# Seed expansions are deterministic and cheap to justify; exploration
+# expansions each cost one generation call plus N_CHILD_HYPOTHESES entropy
+# calls, so this is the knob that decides wall-clock per case.
+# NOTE: before the saturation fix, runs halted after ~5 seed expansions and
+# never reached this bound. Lower it if per-case latency matters more than
+# depth of reasoning.
+MAX_EXPLORATION_EXPANSIONS = 24
+
+# Cap on how many deterministic axioms are seeded into the graph. Biomedical
+# NER over a long vignette routinely yields 40+ entities, many of them
+# duplicates or non-clinical; seeding all of them floods the graph budget and
+# the prompt before any reasoning happens. Axioms are ranked by weight and the
+# top MAX_SEED_NODES are kept.
+MAX_SEED_NODES = 20
+
+# Relevance weighting of the exploration frontier (see
+# BeliefGraph.set_case_anchor). Exploration priority becomes
+#     H * (RELEVANCE_FLOOR + (1 - RELEVANCE_FLOOR) * cos(claim, case))
+# so a claim unrelated to this patient retains RELEVANCE_FLOOR of its raw
+# entropy priority and a claim about this patient retains all of it.
+# 1.0 disables relevance weighting entirely (pure entropy-first).
+RELEVANCE_FLOOR = 0.4
 
 # RAG retrieval
 RAG_DOMAIN_FILTER   = True            # filter ChromaDB by node.domain when True
@@ -114,6 +151,15 @@ VITAL_THRESHOLDS: dict[str, tuple[float, float]] = {
 # inherently uncertain — a higher bar prevents premature stopping.
 SATURATION_WINDOW       = 5      # look back at last N expanded nodes
 SATURATION_MAX_VARIANCE = 0.04   # entropy variance threshold
+# Depth-0 seed nodes are deterministic axioms injected with a fixed near-zero
+# entropy (~0.01). Counting them in the saturation window makes the engine
+# "converge" the moment the first SATURATION_WINDOW seeds are expanded — i.e.
+# before any hypothesis has ever been generated. Saturation must therefore only
+# look at exploration (depth >= 1) expansions.
+SATURATION_EXPLORATION_ONLY = True
+# Hard warm-up floor: never declare saturation before this many depth >= 1
+# nodes have been expanded, regardless of how flat the entropy curve looks.
+SATURATION_MIN_EXPLORATION = 8
 # Guard: do NOT declare saturation when the mean RAG retrieval depth
 # (chunks returned) across the window is below this value. Consistently
 # sparse retrieval means the corpus is dry, not that the engine converged.

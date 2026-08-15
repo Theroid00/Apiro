@@ -40,6 +40,7 @@ from apiro.config import (
     CONTRADICTION_THRESHOLD,
     RAG_TOP_K,
     RAG_MIN_CHUNKS_FOR_GROUNDING,
+    RAG_MAX_DISTANCE,
 )
 
 logger = logging.getLogger(__name__)
@@ -281,18 +282,48 @@ class NodeExpander:
         llm_client,
         collection_name: str = "medical_knowledge",
         contradiction_detector=None,
+        inline_contradiction_check: bool = False,
     ):
         self.entropy_engine = entropy_engine
         self.chroma_client = chroma_client
         self.llm_client = llm_client
         self.collection_name = collection_name
         self.contradiction_detector = contradiction_detector
+        # ApiroTraversal owns the contradiction pass and runs it batched over
+        # the same node set. Set True only when driving the expander directly
+        # without a traversal.
+        self.inline_contradiction_check = inline_contradiction_check
         self._node_counter = 0
 
     def _generate_node_id(self, parent_id: str, index: int) -> str:
         """Deterministic child ID: {parent_id}_c{index}"""
         self._node_counter += 1
         return f"{parent_id}_c{index}"
+
+    # Sentence scaffolding added by the axiom extractor. It is there so the NLI
+    # detector sees grammatical claims, but it is dead weight in a vector query:
+    # every seed embeds partly as "the patient presents with the clinical
+    # finding of", which pulls all seeds toward each other and away from the
+    # textbook passage that actually describes the finding.
+    _SEED_PREFIXES = (
+        "the patient presents with the clinical finding of ",
+        "the patient has a lab result or vital sign showing ",
+        "the patient has a lab result showing ",
+        "the patient has a documented diagnosis of ",
+        "the patient denies the clinical finding of ",
+        "the patient has a history of ",
+        "the patient has undergone ",
+        "the patient is on ",
+    )
+
+    @classmethod
+    def _retrieval_query(cls, claim: str) -> str:
+        """Strip forged-sentence scaffolding before querying the vector store."""
+        lowered = claim.lower()
+        for prefix in cls._SEED_PREFIXES:
+            if lowered.startswith(prefix):
+                return claim[len(prefix):].rstrip(". ").strip() or claim
+        return claim
 
     def _retrieve_context(
         self,
@@ -319,24 +350,43 @@ class NodeExpander:
             if db_domain in allowed_domains:
                 where = {"medical_domain": db_domain}
 
+        query_text = self._retrieval_query(claim)
+
         chunks: list[str] = []
+        distances: list[float] = []
         try:
             try:
                 result = self.chroma_client.query(
-                    query_texts=[claim],
+                    query_texts=[query_text],
                     n_results=n_results,
                     where=where,
                 )
             except TypeError:
                 result = self.chroma_client.query(
                     collection_name=self.collection_name,
-                    query_texts=[claim],
+                    query_texts=[query_text],
                     n_results=n_results,
                 )
             docs = result.get("documents", [[]])
             chunks = docs[0] if docs else []
+            dists = result.get("distances") or []
+            distances = dists[0] if dists else []
         except Exception as e:
             logger.warning(f"[NodeExpander] ChromaDB query failed: {e}. Continuing without context.")
+
+        # Drop chunks that are merely the nearest neighbours rather than actual
+        # evidence. A vector store always returns top-k; without this the
+        # expander hands the LLM six off-topic passages labelled
+        # "use ONLY what is stated here" and steers it away from a rare
+        # diagnosis it would otherwise have reached from parametric knowledge.
+        if RAG_MAX_DISTANCE is not None and distances and len(distances) == len(chunks):
+            kept = [c for c, d in zip(chunks, distances) if d is not None and d <= RAG_MAX_DISTANCE]
+            if len(kept) != len(chunks):
+                logger.info(
+                    f"[NodeExpander] Dropped {len(chunks) - len(kept)}/{len(chunks)} retrieved "
+                    f"chunks beyond distance {RAG_MAX_DISTANCE} for '{query_text[:50]}'."
+                )
+            chunks = kept
 
         is_grounded = len(chunks) >= RAG_MIN_CHUNKS_FOR_GROUNDING
         if not is_grounded:
@@ -467,30 +517,43 @@ class NodeExpander:
         re.IGNORECASE,
     )
 
-    def _parse_hypotheses(self, llm_output: str) -> list[str]:
+    def _parse_hypotheses(self, llm_output: str, limit: int = 3, pad: bool = False) -> list[str]:
         """
-        Parse the LLM's output into exactly 3 hypothesis strings.
-        Defensive: strips preamble headers, numbering, drops empty lines,
-        pads if fewer than 3 returned.
+        Parse the LLM's output into up to `limit` hypothesis strings.
+
+        Defensive: strips preamble headers and numbering, drops empty lines.
+
+        `pad` is False by default. Padding used to inject synthetic
+        "[Expansion failed for: ...]" strings, which then entered the graph as
+        real nodes: the entropy engine scores anything starting with "[" at
+        ln(2), the maximum, so these placeholders sorted straight to the top of
+        the depth>=1 frontier and got expanded ahead of genuine hypotheses,
+        burning the node budget on nothing. An expansion that yields two usable
+        hypotheses should return two.
         """
         lines = llm_output.strip().split("\n")
         hypotheses = []
         for line in lines:
-            clean = re.sub(r"^[\d]+[\.)] \s*|^[-*•]\s*", "", line.strip())
+            clean = re.sub(r"^\s*\d+\s*[\.)]\s*|^\s*[-*•]\s*", "", line.strip())
+            clean = clean.strip()
             if not clean:
                 continue
             # Skip preamble/header lines that are not actual clinical claims
             if self._PREAMBLE_RE.match(clean):
                 continue
+            # Skip degenerate fragments (bare punctuation, stray markdown fences)
+            if len(clean) < 4 or clean.startswith("```"):
+                continue
             hypotheses.append(clean)
 
-        if len(hypotheses) > 3:
-            hypotheses = hypotheses[:3]
+        if len(hypotheses) > limit:
+            hypotheses = hypotheses[:limit]
 
-        while len(hypotheses) < 3:
-            hypotheses.append(
-                f"[Expansion failed for: {hypotheses[0][:40] if hypotheses else 'unknown'}]"
-            )
+        if pad:
+            while len(hypotheses) < limit:
+                hypotheses.append(
+                    f"[Expansion failed for: {hypotheses[0][:40] if hypotheses else 'unknown'}]"
+                )
 
         return hypotheses
 
@@ -562,8 +625,14 @@ class NodeExpander:
 
             domain = classify_domain(hypothesis, embedder=getattr(self.chroma_client, '_emb', None))
 
-            # Step 5b: Semantic DAG Merging
-            match = graph.find_semantic_match(hypothesis)
+            # Step 5b: Semantic DAG Merging.
+            # The expanding node, its ancestors, and every depth-0 axiom are
+            # excluded. Merging into an ancestor makes a cycle and throws the
+            # expansion away; merging into an axiom replaces a new hypothesis
+            # with a restatement of a fact the engine already had.
+            exclude = {node.id} | graph.ancestors_of(node.id)
+            exclude |= {n.id for n in graph.nodes.values() if n.depth == 0}
+            match = graph.find_semantic_match(hypothesis, exclude_ids=exclude)
             if match:
                 logger.info(
                     f"[NodeExpander] Semantic match: merging '{hypothesis[:40]}' "
@@ -592,12 +661,17 @@ class NodeExpander:
             # Step 5d: Create the edge
             edge = Edge(parent_id=node.id, child_id=child_id)
 
-            if self.contradiction_detector:
+            # Step 5e: Optional inline contradiction pass.
+            # OFF by default: ApiroTraversal runs the same comparison over the
+            # same node set immediately after expand() returns, batched. Doing
+            # it here as well doubled the LLM-judge calls (the expensive stage
+            # of the two-stage detector) for a flag the traversal recomputes.
+            if self.contradiction_detector and self.inline_contradiction_check:
                 for existing in list(graph.nodes.values()):
                     if not self.contradiction_detector.should_check(hypothesis, existing.claim):
                         continue
                     result = self.contradiction_detector.check(hypothesis, existing.claim)
-                    if result.label == "contradiction" and result.score > CONTRADICTION_THRESHOLD:
+                    if result.label == "contradiction" and result.score >= CONTRADICTION_THRESHOLD:
                         edge.contradiction_flag = True
                         logger.info(
                             f"[NodeExpander] Contradiction flagged: "
@@ -610,13 +684,16 @@ class NodeExpander:
             # add_node() may silently drop the node if it exceeds max_depth or
             # max_nodes budget. Only add the edge if the node was actually accepted.
             graph.add_node(child_node)
-            if child_id in graph.nodes:
-                graph.add_edge(edge)
-            else:
+            if child_id not in graph.nodes:
+                # Rejected by the graph (past max_depth). Returning it anyway
+                # made the traversal contradiction-check and log a node that
+                # does not exist, and let phantom nodes reach the caller.
                 logger.debug(
-                    f"[NodeExpander] Node '{child_id}' dropped by graph "
-                    f"(depth={child_node.depth} or budget exceeded) — skipping edge."
+                    f"[NodeExpander] Node '{child_id}' rejected by graph "
+                    f"(depth={child_node.depth} exceeds max_depth) — dropping."
                 )
+                continue
+            graph.add_edge(edge)
             new_nodes.append(child_node)
             logger.debug(
                 f"  → Child {i}: '{hypothesis[:60]}' "
@@ -626,109 +703,164 @@ class NodeExpander:
         return new_nodes
 
 
-    def synthesize_differential(self, graph, top_k: int = 15) -> list[str]:
+    def synthesize_differential(self, graph, top_k: int = 15, vignette: str = None) -> list[str]:
         """
         Synthesize a final differential diagnosis from the belief graph.
 
-        Only high-signal nodes are passed to the LLM:
-          - Rabbit-hole nodes are excluded (they are known dead-ends).
-          - Contradiction-flagged nodes are excluded (actively disputed claims).
-          - The remaining nodes are sorted by entropy descending and capped at
-            top_k (default 15) so the synthesizer sees the most informationally
-            rich, unresolved claims — not a dump of every node including noise.
+        Four-step architecture:
+
+          1. Partition nodes into confirmed findings (depth-0 anchors /
+             ruled-out), viable hypotheses (depth >= 1, clean), and
+             contradicted hypotheses (contradiction_penalty > 0).
+          2. Build a CONTRADICTED-HYPOTHESES section that weighs these down
+             *softly* — a non-zero contradiction penalty is a disagreement
+             signal, NOT a proof of impossibility. Soft-pruning is documented
+             as "penalise, do not delete, so alternative hypotheses stay alive
+             in the synthesis layer." Only genuine depth-0 negations are hard
+             constraints.
+          3. Build the confirmed-findings grounding section, instructing the
+             model to prefer a single unifying primary etiology over restating
+             a symptom complex or a chronic risk factor.
+          4. Assemble the prompt, call the LLM, parse up to 3 diagnoses.
 
         Args:
-            graph:  The BeliefGraph containing gathered evidence.
-            top_k:  Max number of high-entropy clean nodes to pass to the LLM.
+            graph:     The BeliefGraph containing gathered evidence.
+            top_k:     Max number of exploration claims passed to the LLM.
+            vignette:  Raw (or axiom-enriched) clinical presentation.
 
         Returns:
-            A list of the top 3 most likely specific clinical diagnoses.
+            A list of up to 3 specific clinical diagnoses, most likely first.
         """
         logger.info("[NodeExpander] Synthesizing final differential diagnosis...")
 
-        # Identify contradiction-flagged node IDs so we can exclude them.
-        contradiction_ids: set[str] = set()
-        for edge in graph.edges:
-            if getattr(edge, 'contradiction_flag', False):
-                # In BFS, we exclude both parent and child.
-                # In ApiroTraversal, we ONLY exclude the node if it has a contradiction penalty.
-                # So we check if the nodes have contradiction_penalty.
-                # If neither node has a contradiction_penalty set (which means we are in BFS/non-pruning mode),
-                # we exclude both.
-                # If they do have contradiction_penalty, we rely on the contradiction_penalty check instead of contradiction_ids.
-                has_penalty = any(
-                    getattr(graph.nodes[nid], 'contradiction_penalty', 0.0) > 0.0 
-                    for nid in (edge.child_id, edge.parent_id) if nid in graph.nodes
-                )
-                if not has_penalty:
-                    contradiction_ids.add(edge.child_id)
-                    contradiction_ids.add(edge.parent_id)
+        # --- Step 1: partition -------------------------------------------------
+        anchors: list[Node]      = []   # depth 0, affirmed  -> ground truth
+        ruled_out: list[Node]    = []   # negated            -> hard constraint
+        explored: list[Node]     = []   # depth >= 1, clean  -> viable hypotheses
+        contradicted: list[Node] = []   # depth >= 1, penalised -> soft down-weight
 
-        # Collect only clean, high-signal nodes.
-        clean_nodes = []
         for n in graph.nodes.values():
+            claim_l = n.claim.lower()
+            is_negated = (
+                "denies" in claim_l
+                or claim_l.startswith("the patient has no ")
+                or getattr(n, "polarity", "") == "negated"
+            )
+            if n.depth == 0:
+                (ruled_out if is_negated else anchors).append(n)
+                continue
             if n.is_rabbit_hole:
-                continue
-            if n.id in contradiction_ids:
-                continue
-            if getattr(n, 'contradiction_penalty', 0.0) > 0.0:
-                continue
-            clean_nodes.append(n)
+                continue          # known dead-end
+            if is_negated:
+                ruled_out.append(n)
+            elif getattr(n, "contradiction_penalty", 0.0) > 0.0:
+                contradicted.append(n)
+            else:
+                explored.append(n)
 
-        # Sort by entropy descending — highest uncertainty = most diagnostically
-        # interesting — and cap at top_k.
-        clean_nodes.sort(key=lambda n: n.entropy_score or 0.0, reverse=True)
-        top_nodes = clean_nodes[:top_k]
+        # Rank exploration claims by diagnostic specificity: a claim compatible
+        # with one diagnosis narrows the differential, a claim compatible with
+        # ten does not. Deeper claims break ties.
+        def specificity(n: Node) -> tuple:
+            h = n.entropy_score if n.entropy_score is not None else 0.693
+            return (round(h, 4), -n.depth)
+
+        explored.sort(key=specificity)
+        contradicted.sort(key=specificity)
+
+        top_nodes = explored[:top_k]
+        if not top_nodes and not anchors:
+            logger.warning("[NodeExpander] Graph is empty — nothing to synthesize.")
+            return []
 
         logger.info(
-            f"[NodeExpander] Synthesis using {len(top_nodes)}/{graph.node_count()} nodes "
-            f"(excluded {graph.node_count() - len(top_nodes)} rabbit-holes/contradictions)."
+            f"[NodeExpander] Synthesis context: {len(anchors)} anchors, "
+            f"{len(top_nodes)}/{len(explored)} exploration claims, "
+            f"{len(ruled_out)} ruled-out, {len(contradicted)} contradicted."
         )
 
-        if not top_nodes:
-            logger.warning("[NodeExpander] No clean nodes available for synthesis — using all nodes.")
-            top_nodes = list(graph.nodes.values())[:top_k]
+        def _bullets(nodes, dedupe: set) -> str:
+            out = []
+            for n in nodes:
+                claim = n.claim.strip()
+                key = claim.lower()
+                if key in dedupe:
+                    continue
+                dedupe.add(key)
+                out.append(f"  - {claim}")
+            return "\n".join(out)
 
-        # Remove duplicate claims while preserving entropy-rank order.
         seen: set[str] = set()
-        unique_claims: list[str] = []
-        for n in top_nodes:
-            if n.claim not in seen:
-                unique_claims.append(n.claim)
-                seen.add(n.claim)
+        anchors_text      = _bullets(anchors, seen)
+        evidence_text     = _bullets(top_nodes, seen)
+        contradicted_text = _bullets(contradicted[:5], seen)
+        ruled_out_text    = _bullets(ruled_out, seen)
 
-        # Collect negated/ruled-out findings separately to guide the synthesis
-        ruled_out = []
-        for n in graph.nodes.values():
-            if "denies" in n.claim.lower() or getattr(n, "polarity", "") == "negated":
-                clean_claim = n.claim.strip()
-                if clean_claim not in ruled_out:
-                    ruled_out.append(clean_claim)
+        # --- Steps 2 & 3: assemble prompt -------------------------------------
+        sections = ["You are Apiro, a precise clinical differential-diagnosis engine.\n"]
+        sections.append(
+            "Your task: identify the single underlying disease that best explains this"
+            " patient, and give the top 3 candidate diagnoses ranked by likelihood.\n"
+        )
 
-        ruled_out_text = ""
-        if ruled_out:
-            ruled_out_text = "=== RULED-OUT/NEGATED FINDINGS (Do NOT contradict these) ===\n" + "\n".join(f"  - {claim}" for claim in ruled_out) + "\n\n"
+        clean_vignette = self._sanitize_vignette(vignette)
+        if clean_vignette:
+            sections.append(f"=== PATIENT PRESENTATION ===\n{clean_vignette}\n")
 
-        evidence_text = "\n".join(f"  - {claim}" for claim in unique_claims)
+        # Step 3: confirmed objective findings grounding, with etiology-ranking rule.
+        if anchors_text:
+            sections.append(
+                "=== CONFIRMED OBJECTIVE FINDINGS (deterministically extracted — treat as"
+                " ground truth) ===\n"
+                f"{anchors_text}\n"
+                "When ranking candidate diagnoses, prefer a single unifying PRIMARY"
+                " underlying etiology that explains the objective findings over a"
+                " secondary symptom complex or a non-specific chronic history (e.g. name"
+                " the primary disease driving an acute deterioration rather than merely"
+                " restating a chronic risk factor or the presenting symptom).\n"
+            )
 
-        prompt = (
-            "You are Apiro, a precise clinical differential-diagnosis engine.\n\n"
-            "Your task: given the following high-signal clinical evidence (pre-filtered to remove"
-            " known dead-ends and contradictions) and ruled-out findings, generate the top 3 most likely specific"
-            " clinical diagnoses.\n\n"
-            f"{ruled_out_text}"
-            "=== HIGH-SIGNAL GATHERED EVIDENCE ===\n"
-            f"{evidence_text}\n\n"
+        # Hard constraint: depth-0 negations genuinely exclude diagnoses.
+        if ruled_out_text:
+            sections.append(
+                "=== RULED-OUT / NEGATED FINDINGS (a diagnosis requiring these is wrong) ===\n"
+                f"{ruled_out_text}\n"
+            )
+
+        if evidence_text:
+            sections.append(
+                "=== REASONING TRACE (claims the engine derived, most specific first) ===\n"
+                f"{evidence_text}\n"
+            )
+
+        # Step 2: contradicted hypotheses — SOFT down-weight, not a hard ban.
+        if contradicted_text:
+            sections.append(
+                "=== CONTRADICTED HYPOTHESES (evidence disagreed — weigh down heavily) ===\n"
+                f"{contradicted_text}\n"
+                "These claims conflicted with other evidence in the graph. This is a"
+                " down-weighting signal, NOT a proof of impossibility: only propose one"
+                " of these as the primary diagnosis if it explains the CONFIRMED objective"
+                " findings better than any non-contradicted alternative.\n"
+            )
+
+        sections.append(
             "=== STRICT RULES ===\n"
-            "1. Output exactly 3 diagnoses, one per line.\n"
-            "2. Provide only the specific disease name (e.g., 'Type 1 autoimmune pancreatitis')."
-            " Do not include preamble, numbering, explanations, or mechanism.\n"
-            "3. Rank them from most likely to least likely.\n\n"
+            "1. Output exactly 3 diagnoses, one per line, most likely first.\n"
+            "2. Give only the specific disease name (e.g. 'Type 1 autoimmune pancreatitis')."
+            " No preamble, numbering, explanation, or mechanism.\n"
+            "3. Name the specific underlying primary disease, not a syndrome or a symptom"
+            " (e.g. prefer 'Pheochromocytoma' over 'Hypertensive crisis').\n"
+            "4. Every diagnosis must be compatible with ALL confirmed and ruled-out"
+            " findings above.\n\n"
             "=== OUTPUT (3 lines only) ==="
         )
 
+        prompt = "\n".join(sections)
+
+        # --- Step 4: call + parse ---------------------------------------------
         raw_output = self._call_llm(prompt)
-        diagnoses = self._parse_hypotheses(raw_output)
+        diagnoses = self._parse_hypotheses(raw_output, limit=3)
 
         logger.info(f"[NodeExpander] Synthesis complete: {diagnoses}")
         return diagnoses

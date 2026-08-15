@@ -25,7 +25,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from apiro.config import CONTRADICTION_THRESHOLD_EF, CONTRADICTION_PENALTY
+from apiro.config import (
+    CONTRADICTION_THRESHOLD_EF,
+    CONTRADICTION_PENALTY,
+    SATURATION_MIN_EXPLORATION,
+    MAX_EXPLORATION_EXPANSIONS,
+)
 from apiro.graph.belief_graph import BudgetExceededError
 from apiro.graph.critic import CriticEngine
 
@@ -147,6 +152,14 @@ class ApiroTraversal:
         start_time = time.time()
         self._traversal_log = []
 
+        # ── Anchor the frontier to this patient ───────────────────────────────
+        # Entropy alone measures how many diagnoses a claim is compatible with,
+        # which is a property of the sentence and not of the patient. Anchoring
+        # makes the exploration frontier chase uncertainty about THIS case.
+        anchor_text = vignette or "\n".join(s.claim for s in seed_nodes)
+        if hasattr(graph, "set_case_anchor"):
+            graph.set_case_anchor(anchor_text)
+
         # ── Seed the graph ────────────────────────────────────────────────────
         for seed in seed_nodes:
             graph.add_node(seed)
@@ -167,8 +180,34 @@ class ApiroTraversal:
         while True:
             iteration += 1
 
+            # Number of *exploration* expansions so far (depth >= 1). Seed
+            # expansions are excluded: they are deterministic anchors, not
+            # evidence that the engine has learned anything.
+            n_explored = graph.count_expansions(min_depth=1)
+
+            # ── Stop condition -1: Exploration budget ─────────────────────────
+            # Bounds wall-clock per case. Each exploration expansion costs one
+            # generation call plus N_CHILD_HYPOTHESES entropy calls.
+            if n_explored >= MAX_EXPLORATION_EXPANSIONS:
+                stop_reason = "exploration_budget"
+                logger.info(
+                    f"[Traversal] Exploration budget reached "
+                    f"({n_explored}/{MAX_EXPLORATION_EXPANSIONS} expansions)."
+                )
+                self._log({
+                    "event":       "exploration_budget_reached",
+                    "iteration":   iteration,
+                    "expansions":  n_explored,
+                })
+                break
+
             # ── Stop condition 0: Global Critic Halting ───────────────────────
-            if iteration >= 10 and iteration % 5 == 0 and self.critic.evaluate_halting(graph, vignette=vignette):
+            if (
+                n_explored >= SATURATION_MIN_EXPLORATION
+                and iteration >= 10
+                and iteration % 5 == 0
+                and self.critic.evaluate_halting(graph, vignette=vignette)
+            ):
                 stop_reason = "critic_halt"
                 logger.info(f"[Traversal] Global Critic approved halting at iteration {iteration}.")
                 self._log({
@@ -178,7 +217,11 @@ class ApiroTraversal:
                 break
 
             # ── Stop condition 1: Saturation ─────────────────────────────────
-            if self.saturation.is_saturated(graph):
+            # Warm-up guard: saturation is only meaningful once the engine has
+            # actually explored. Without this, a run seeded with N >= window
+            # deterministic axioms (all at entropy 0.01) "saturates" on its own
+            # seed nodes and halts before generating a single hypothesis.
+            if n_explored >= SATURATION_MIN_EXPLORATION and self.saturation.is_saturated(graph):
                 status = self.saturation.get_status(graph)
                 stop_reason = "saturation"
                 logger.info(
@@ -207,13 +250,21 @@ class ApiroTraversal:
                 break
 
             # ── Stop condition 2: Max depth ───────────────────────────────────
-            if frontier[0].depth >= max_depth:
+            # Only nodes that are still allowed to expand are eligible. The old
+            # code halted the entire run whenever the *top-scoring* node was at
+            # max depth, discarding an otherwise healthy frontier of shallower
+            # nodes — a single deep node could end the traversal outright.
+            expandable = [n for n in frontier if n.depth < max_depth]
+            if not expandable:
                 stop_reason = "max_depth"
-                logger.info(f"[Traversal] Max depth {max_depth} reached.")
+                logger.info(
+                    f"[Traversal] Max depth {max_depth} reached — "
+                    f"{len(frontier)} frontier node(s) all at or beyond the limit."
+                )
                 break
 
             # ── Pick best node ────────────────────────────────────────────────
-            node = frontier[0]
+            node = expandable[0]
 
             # ── Stop condition 3: Rabbit hole check ──────────────────────────
             # If the top node is a rabbit hole, flag it and restart the loop.
@@ -254,10 +305,17 @@ class ApiroTraversal:
                 break
             graph.mark_resolved(node.id)
 
-            # ── Contradiction check: new nodes vs ALL existing nodes ───────────
-            # Collect all pairs that pass the domain gate first, then run a
-            # single batched NLI forward pass instead of one GPU call per pair.
-            existing_nodes = list(graph.nodes.values())
+            # ── Contradiction check ───────────────────────────────────────────
+            # Compared against: every deterministic anchor (the point of the
+            # hybrid design) and every already-expanded claim. Unresolved
+            # siblings are skipped — three hypotheses generated from one prompt
+            # are competing alternatives by construction, and checking them
+            # against each other just manufactures "contradictions" between
+            # differentials that are supposed to coexist.
+            existing_nodes = [
+                n for n in graph.nodes.values()
+                if n.depth == 0 or n.resolved
+            ]
 
             batch_pairs:   list[tuple[str, str]]      = []
             batch_meta:    list[tuple[object, object]] = []  # (new_node, existing)
@@ -289,7 +347,10 @@ class ApiroTraversal:
             if batch_pairs:
                 results = self.contradiction.check_batch(batch_pairs)
                 for (new_node, existing), result in zip(batch_meta, results):
-                    if result.label == "contradiction" and result.score > CONTRADICTION_THRESHOLD_EF:
+                    # `>=`, not `>`: the deterministic fast filter emits a fixed
+                    # confidence, and a strict comparison against an identical
+                    # threshold silently discarded every keyword contradiction.
+                    if result.label == "contradiction" and result.score >= CONTRADICTION_THRESHOLD_EF:
                         # Find the edge and flag it
                         for edge in graph.edges:
                             if edge.parent_id == new_node.parent_id and edge.child_id == new_node.id:
@@ -308,28 +369,37 @@ class ApiroTraversal:
                         )
 
                         # ── Contradiction-informed soft-pruning ───────────────
-                        # Seed nodes (depth 0) are ground truth and must never be penalized.
-                        # If a hypothesis contradicts ground truth, the hypothesis is penalized.
+                        # The penalty exists to kill hypotheses that contradict
+                        # the patient's deterministic facts. It is applied ONLY
+                        # when one side is a depth-0 anchor.
+                        #
+                        # It used to fire on any contradicting pair, penalising
+                        # the deeper or higher-entropy node. Two competing
+                        # differentials contradict each other by definition, so
+                        # that rule silently eliminated one live alternative per
+                        # detected pair — chosen by entropy, not by evidence —
+                        # and directly contradicts the documented soft-pruning
+                        # intent of keeping alternatives alive for synthesis.
                         if new_node.depth == 0 and existing.depth == 0:
-                            # Both are ground truth, do not penalize either
+                            # Two deterministic facts disagree. That is a data
+                            # problem, not a hypothesis to prune.
+                            logger.warning(
+                                f"[Traversal] Two anchors contradict: "
+                                f"'{new_node.claim[:40]}' vs '{existing.claim[:40]}'"
+                            )
                             continue
                         elif new_node.depth == 0:
                             weaker = existing
                         elif existing.depth == 0:
                             weaker = new_node
                         else:
-                            # Penalize the deeper (more speculative/derived) node
-                            if new_node.depth != existing.depth:
-                                weaker = new_node if new_node.depth > existing.depth else existing
-                            else:
-                                # Depths are equal: penalize the more uncertain (higher entropy) node
-                                new_h      = new_node.entropy_score  or 0.0
-                                existing_h = existing.entropy_score  or 0.0
-                                weaker = new_node if new_h >= existing_h else existing
+                            # Hypothesis vs hypothesis: recorded on the edge and
+                            # in the log, but not penalised.
+                            continue
 
                         weaker.contradiction_penalty = CONTRADICTION_PENALTY
                         logger.info(
-                            f"[Traversal] Soft-pruned weaker contradicting node: "
+                            f"[Traversal] Soft-pruned hypothesis contradicting a deterministic anchor: "
                             f"'{weaker.claim[:50]}' (entropy={weaker.entropy_score:.3f}, penalty={CONTRADICTION_PENALTY})"
                         )
 
@@ -338,7 +408,14 @@ class ApiroTraversal:
         duration = round(time.time() - start_time, 2)
 
         # ── Synthesize differential ───────────────────────────────────────────
-        synthesis = self.expander.synthesize_differential(graph)
+        # The vignette is passed through: the bare-LLM baseline reads the whole
+        # case, so the synthesizer must too — otherwise Apiro argues its final
+        # answer from graph fragments alone.
+        try:
+            synthesis = self.expander.synthesize_differential(graph, vignette=vignette)
+        except TypeError:
+            # Back-compat with expanders whose signature predates `vignette`.
+            synthesis = self.expander.synthesize_differential(graph)
 
         self._log({
             "event":            "traversal_complete",
