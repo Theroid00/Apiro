@@ -707,30 +707,21 @@ class NodeExpander:
         """
         Synthesize a final differential diagnosis from the belief graph.
 
-        The synthesizer is given three tiers of context, in this order:
+        Four-step architecture:
 
-          1. The patient's presentation (the vignette).
-          2. Every confirmed depth-0 anchor — the deterministic axioms. These
-             ARE the patient's facts; a differential written without them is
-             guesswork.
-          3. Exploration claims (depth >= 1), ranked by *diagnostic specificity*.
-
-        Two bugs are fixed here, both of which handed the win to a plain
-        zero-shot LLM:
-
-          - The vignette was never passed in, so the bare-LLM baseline saw the
-            whole case and Apiro saw only disembodied graph claims.
-          - Nodes were ranked by entropy DESCENDING and truncated at top_k.
-            Entropy in this engine is differential breadth (how many diagnoses
-            a finding is compatible with), so descending order fed the LLM the
-            15 *vaguest* claims in the graph and cut every specific one — and,
-            because depth-0 axioms carry entropy ~0.01, it cut the patient's
-            own findings first.
-
-        Contradiction-penalised nodes are no longer silently deleted either.
-        Soft-pruning is documented as "penalise, do not delete, so alternative
-        hypotheses stay alive in the synthesis layer" — they are now listed
-        last and explicitly labelled as disputed.
+          1. Partition nodes into confirmed findings (depth-0 anchors /
+             ruled-out), viable hypotheses (depth >= 1, clean), and
+             contradicted hypotheses (contradiction_penalty > 0).
+          2. Build a CONTRADICTED-HYPOTHESES section that weighs these down
+             *softly* — a non-zero contradiction penalty is a disagreement
+             signal, NOT a proof of impossibility. Soft-pruning is documented
+             as "penalise, do not delete, so alternative hypotheses stay alive
+             in the synthesis layer." Only genuine depth-0 negations are hard
+             constraints.
+          3. Build the confirmed-findings grounding section, instructing the
+             model to prefer a single unifying primary etiology over restating
+             a symptom complex or a chronic risk factor.
+          4. Assemble the prompt, call the LLM, parse up to 3 diagnoses.
 
         Args:
             graph:     The BeliefGraph containing gathered evidence.
@@ -742,10 +733,11 @@ class NodeExpander:
         """
         logger.info("[NodeExpander] Synthesizing final differential diagnosis...")
 
-        anchors: list[Node]   = []   # depth 0, affirmed
-        ruled_out: list[Node] = []   # depth 0, negated
-        explored: list[Node]  = []   # depth >= 1, clean
-        disputed: list[Node]  = []   # depth >= 1, contradiction-penalised
+        # --- Step 1: partition -------------------------------------------------
+        anchors: list[Node]      = []   # depth 0, affirmed  -> ground truth
+        ruled_out: list[Node]    = []   # negated            -> hard constraint
+        explored: list[Node]     = []   # depth >= 1, clean  -> viable hypotheses
+        contradicted: list[Node] = []   # depth >= 1, penalised -> soft down-weight
 
         for n in graph.nodes.values():
             claim_l = n.claim.lower()
@@ -762,20 +754,19 @@ class NodeExpander:
             if is_negated:
                 ruled_out.append(n)
             elif getattr(n, "contradiction_penalty", 0.0) > 0.0:
-                disputed.append(n)
+                contradicted.append(n)
             else:
                 explored.append(n)
 
         # Rank exploration claims by diagnostic specificity: a claim compatible
         # with one diagnosis narrows the differential, a claim compatible with
-        # ten does not. Deeper claims break ties — they are the payoff of the
-        # traversal rather than a first-hop restatement of the seed.
+        # ten does not. Deeper claims break ties.
         def specificity(n: Node) -> tuple:
             h = n.entropy_score if n.entropy_score is not None else 0.693
             return (round(h, 4), -n.depth)
 
         explored.sort(key=specificity)
-        disputed.sort(key=specificity)
+        contradicted.sort(key=specificity)
 
         top_nodes = explored[:top_k]
         if not top_nodes and not anchors:
@@ -785,7 +776,7 @@ class NodeExpander:
         logger.info(
             f"[NodeExpander] Synthesis context: {len(anchors)} anchors, "
             f"{len(top_nodes)}/{len(explored)} exploration claims, "
-            f"{len(ruled_out)} ruled-out, {len(disputed)} disputed."
+            f"{len(ruled_out)} ruled-out, {len(contradicted)} contradicted."
         )
 
         def _bullets(nodes, dedupe: set) -> str:
@@ -800,11 +791,12 @@ class NodeExpander:
             return "\n".join(out)
 
         seen: set[str] = set()
-        anchors_text   = _bullets(anchors, seen)
-        evidence_text  = _bullets(top_nodes, seen)
-        disputed_text  = _bullets(disputed[:5], seen)
-        ruled_out_text = _bullets(ruled_out, seen)
+        anchors_text      = _bullets(anchors, seen)
+        evidence_text     = _bullets(top_nodes, seen)
+        contradicted_text = _bullets(contradicted[:5], seen)
+        ruled_out_text    = _bullets(ruled_out, seen)
 
+        # --- Steps 2 & 3: assemble prompt -------------------------------------
         sections = ["You are Apiro, a precise clinical differential-diagnosis engine.\n"]
         sections.append(
             "Your task: identify the single underlying disease that best explains this"
@@ -814,25 +806,42 @@ class NodeExpander:
         clean_vignette = self._sanitize_vignette(vignette)
         if clean_vignette:
             sections.append(f"=== PATIENT PRESENTATION ===\n{clean_vignette}\n")
+
+        # Step 3: confirmed objective findings grounding, with etiology-ranking rule.
         if anchors_text:
             sections.append(
-                "=== CONFIRMED FINDINGS (deterministically extracted — treat as ground truth) ===\n"
+                "=== CONFIRMED OBJECTIVE FINDINGS (deterministically extracted — treat as"
+                " ground truth) ===\n"
                 f"{anchors_text}\n"
+                "When ranking candidate diagnoses, prefer a single unifying PRIMARY"
+                " underlying etiology that explains the objective findings over a"
+                " secondary symptom complex or a non-specific chronic history (e.g. name"
+                " the primary disease driving an acute deterioration rather than merely"
+                " restating a chronic risk factor or the presenting symptom).\n"
             )
+
+        # Hard constraint: depth-0 negations genuinely exclude diagnoses.
         if ruled_out_text:
             sections.append(
                 "=== RULED-OUT / NEGATED FINDINGS (a diagnosis requiring these is wrong) ===\n"
                 f"{ruled_out_text}\n"
             )
+
         if evidence_text:
             sections.append(
                 "=== REASONING TRACE (claims the engine derived, most specific first) ===\n"
                 f"{evidence_text}\n"
             )
-        if disputed_text:
+
+        # Step 2: contradicted hypotheses — SOFT down-weight, not a hard ban.
+        if contradicted_text:
             sections.append(
-                "=== DISPUTED CLAIMS (contradicted other evidence — weigh down, do not ignore) ===\n"
-                f"{disputed_text}\n"
+                "=== CONTRADICTED HYPOTHESES (evidence disagreed — weigh down heavily) ===\n"
+                f"{contradicted_text}\n"
+                "These claims conflicted with other evidence in the graph. This is a"
+                " down-weighting signal, NOT a proof of impossibility: only propose one"
+                " of these as the primary diagnosis if it explains the CONFIRMED objective"
+                " findings better than any non-contradicted alternative.\n"
             )
 
         sections.append(
@@ -842,12 +851,14 @@ class NodeExpander:
             " No preamble, numbering, explanation, or mechanism.\n"
             "3. Name the specific underlying primary disease, not a syndrome or a symptom"
             " (e.g. prefer 'Pheochromocytoma' over 'Hypertensive crisis').\n"
-            "4. Every diagnosis must be compatible with ALL confirmed findings above.\n\n"
+            "4. Every diagnosis must be compatible with ALL confirmed and ruled-out"
+            " findings above.\n\n"
             "=== OUTPUT (3 lines only) ==="
         )
 
         prompt = "\n".join(sections)
 
+        # --- Step 4: call + parse ---------------------------------------------
         raw_output = self._call_llm(prompt)
         diagnoses = self._parse_hypotheses(raw_output, limit=3)
 
