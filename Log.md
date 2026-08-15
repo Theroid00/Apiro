@@ -234,6 +234,22 @@ Here is the commit-by-commit record of the Apiro codebase:
 *   **Verification**: 45 stub-only regression tests in `tests/test_traversal_regressions.py`, no Ollama/ChromaDB/model downloads required. Full audit with per-finding rationale in `docs/IMPROVEMENTS.md`.
 *   **Status**: not yet benchmarked — the audit was performed on a machine without Ollama or ChromaDB. Expect longer per-case runtime, since the engine now performs the traversal it previously skipped; `MAX_EXPLORATION_EXPANSIONS` is the wall-clock knob.
 
+### Phase 11: Concept Normalization & Clinical NIAH Benchmark (August 2026)
+*   **The Rationale**: Clinical differential diagnosis involves morphological, histological, and synonym variants that exact-match evaluators incorrectly mark as false negatives (e.g. *Colorectal mucinous adenocarcinoma* vs *Colon adenocarcinoma*). Furthermore, realistic clinical reasoning requires stress-testing against long adversarial contexts (2k–16k tokens) with buried diagnostic needles and distractor comorbidities.
+*   **The Build (`feature/concept-normalization-and-eval`)**:
+    1.  **4-Tier Concept Normalization Evaluator (`apiro/eval/evaluator.py`)**: Implemented exact matching, medical concept dictionary grouping (30+ canonical groups), LLM-as-a-judge, and SentenceTransformer embedding cosine fallback.
+    2.  **5-Family Clinical NIAH Suite (`scripts/build_niah_cases.py`, `scripts/run_niah_eval.py`)**: Generated adversarial cases for `single_needle`, `contradiction_needle`, `multi_needle`, `red_herring`, and `negation_trap`.
+    3.  **Synthesis Etiology Grounding (`apiro/graph/expander.py`)**: Implemented 4-step node partitioning and acute primary etiology ranking.
+*   **The Results**:
+    -   **C-NIAH Benchmark ($N=25$)**: Apiro scored **68.0%** overall vs **40.0%** for Standard RAG (+28% lift). On Contradiction Needles, Apiro scored **88.9%** (vs RAG 44.4%), and on Multi-Needles scored **75.0%** (vs RAG 25.0%).
+    -   **PMC 10-Case Evaluation**: Apiro scored **20.0%** (2/10), achieving the sole win on Case 4 by successfully soft-pruning the Crohn's distractor to diagnose Colon Adenocarcinoma.
+
+### Phase 12: Systems Performance & Vector Caching (`feature/performance-and-cleanup`, August 2026)
+*   **The Rationale**: Live BFS graph traversal performs repeated query and token operations across candidate paths. We needed sub-millisecond pre-filtering and query caching.
+*   **The Build**:
+    1.  **Embedder LRU Cache (`apiro/corpus/embedder.py`)**: Added `_encode_cache` and `_query_cache` with 4096-entry eviction and automatic invalidation on corpus mutation.
+    2.  **Memoized NLI Pre-Filter (`apiro/graph/contradiction.py`)**: Added `@functools.lru_cache(maxsize=8192)` to claim tokenization and implemented $\mathcal{O}(1)$ frozenset `isdisjoint` short-circuiting.
+
 ---
 
 ## 📊 Summary of Evaluation Benchmarks
@@ -243,4 +259,6 @@ Here is the commit-by-commit record of the Apiro codebase:
 | **Apiro 1.0 (Entropy)** | `distractor_cases.json` | ~50% (Path Efficiency) | Mimics human curiosity but extremely heavy. GPU memory leaks and O(N^2) contradiction bottlenecks. |
 | **Apiro 1.5 (HT)** | `pmc_cases.json` | High / Workable | Extremely fast, no memory issues. However, strayed from the detective goal into a "glorified RAG." |
 | **HADCE** | `pmc_cases.json` | 20% | Flawless math, but too pessimistic. Small models cannot survive the rigid Contradiction Gauntlet. |
-| **Hybrid Apiro** | `pmc_cases.json` | 30% - 40% | Mechanically flawless. Constant soft-pruning of hallucinations. Average runtime optimized down to ~28s using parallel execution and batched GPU tensor checks. |
+| **Hybrid Apiro (Pre-Audit)**| `pmc_cases.json` | 30% - 40% | Average runtime optimized down to ~28s using parallel execution and batched GPU tensor checks. |
+| **Hybrid Apiro (Audited)** | `pmc_cases.json` ($N=10$) | 20% (Real Ollama) | Correctly solved Case 4 (Colon cancer) by rejecting Crohn's distractor via NLI contradiction. |
+| **Hybrid Apiro (C-NIAH)** | `niah_cases.json` ($N=25$) | **68.0%** 🏆 | **+28.0% over RAG (40.0%)**. 88.9% on Contradiction Needles, 75.0% on Multi-Needles, 100% on 8k deep haystacks. |
