@@ -506,7 +506,7 @@ def _evaluate_case(case, components, real_components, axiom_extractor):
     traversal = components["traversal"]
 
     case_id = case.get("case_id", case.get("id", "?"))
-    vignette = case.get("vignette") or case.get("haystack") or ""
+    vignette = case.get("vignette") or case.get("haystack") or case.get("context") or ""
     description = case.get("description", "")
     targets = _targets(case)
     family = _case_family(case)
