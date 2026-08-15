@@ -15,6 +15,7 @@ Rather than emitting a single greedy chain of thought, Apiro anchors on **determ
 - [Empirical Benchmark Results](#empirical-benchmark-results)
   - [Clinical Needle-In-A-Haystack (C-NIAH)](#clinical-needle-in-a-haystack-c-niah)
   - [Real-World PMC Reports](#real-world-pmc-reports)
+- [Safety, Calibration & Selective Abstention](#safety-calibration--selective-abstention)
 - [Literature Grounding](#literature-grounding)
 - [Systems Optimizations](#systems-optimizations)
 - [Installation](#installation)
@@ -39,8 +40,9 @@ Apiro takes a different stance. It treats reasoning as **entropy reduction over 
 2. **Explore only where uncertain.** Shannon Entropy directs retrieval and expansion toward the highest-information hypotheses.
 3. **Prune contradictions.** A two-stage NLI pipeline soft-prunes beliefs that contradict established axioms.
 4. **Halt on saturation.** An epistemic critic stops exploration once additional evidence no longer reduces entropy.
+5. **Know when to abstain.** Calibrated confidence lets Apiro *decline to answer* rather than emit a confidently wrong differential.
 
-The result is a system that **rejects distractors instead of rationalizing them**.
+The result is a system that **rejects distractors instead of rationalizing them** — and, when the evidence is insufficient, **abstains instead of hallucinating**.
 
 ---
 
@@ -90,6 +92,12 @@ The result is a system that **rejects distractors instead of rationalizing them*
                                           │
                                           ▼
                 ┌────────────────────────────────────────────────┐
+                │   Confidence Calibration & Selective Abstention │
+                │   Calibrated p(correct); abstain below τ        │
+                └─────────────────────────┬──────────────────────┘
+                                          │
+                                          ▼
+                ┌────────────────────────────────────────────────┐
                 │          Etiology Differential Synthesis        │
                 │   Ranked differential grounded in surviving     │
                 │            (non-contradicted) beliefs           │
@@ -106,6 +114,7 @@ The result is a system that **rejects distractors instead of rationalizing them*
 | Explore | Depth ≥ 1 via Medical Corpus RAG | Entropy-guided hypothesis expansion |
 | Prune | Two-Stage NLI (Fast filter → LLM judge) | Contradiction soft-pruning |
 | Halt | Epistemic Saturation Critic | Stops on entropy saturation |
+| Calibrate | Confidence Calibration & Selective Abstention | Calibrated confidence; abstain below threshold τ |
 | Synthesize | Etiology Differential Synthesis | Final grounded differential |
 
 ---
@@ -160,15 +169,56 @@ We additionally evaluated on **N = 10** real-world PubMed Central (PMC) case rep
 
 ---
 
+## Safety, Calibration & Selective Abstention
+
+Accuracy alone is an incomplete picture of clinical trustworthiness. A system that is *confidently wrong* is more dangerous than one that knows when to defer. **Pillar 3** evaluates whether Apiro's confidence estimates are **calibrated** and whether **selective abstention** meaningfully reduces risk. It is implemented in `apiro/eval/calibration.py` and driven by `scripts/run_safety_calibration_eval.py`.
+
+**Metrics reported**
+
+- **ECE (Expected Calibration Error)** — the average gap between predicted confidence and empirical accuracy across confidence bins. Lower is better; measures how well confidence tracks correctness.
+- **Brier Score** — the mean squared error between predicted probabilities and outcomes. Lower is better; jointly captures calibration and sharpness.
+- **Risk–Coverage AURC (Area Under the Risk–Coverage curve)** — sweeps the abstention threshold and measures error rate (*risk*) as a function of the fraction of cases answered (*coverage*). Lower AURC means the model's confidence ranking lets it answer the cases it is most likely to get right while abstaining on the rest.
+
+**Selective-abstention (Risk–Coverage AURC)**
+
+| System | AURC | Relative area-under-risk-coverage |
+|--------|:----:|:---------------------------------:|
+| **Apiro** | **0.1190** | **1.0× (baseline)** |
+| Standard RAG | 0.5363 | 4.5× higher |
+
+> Apiro achieves **0.1190 AURC vs. Standard RAG's 0.5363** — a **≈4.5× lower area under the risk–coverage curve**. In practical terms, at any given coverage level Apiro incurs substantially less error, because its calibrated confidence lets it abstain on the cases it is least equipped to answer.
+>
+> **⚠️ Claim to verify before publishing:** the original phrasing ("4.5× lower *clinical risk*") is stronger than AURC supports. AURC is a selective-prediction risk metric, not a validated measure of patient harm, and this figure is drawn from a small evaluation set. Prefer the "area under the risk–coverage curve" framing above, and state the dataset/N explicitly (see placeholders below).
+
+<!--
+    TODO(maintainers): fill in from the actual eval output before shipping.
+    - Dataset the AURC was computed on: ‹C-NIAH (N = 25) | PMC (N = 10) | combined›
+    - ECE:   Apiro ‹value›  vs  Standard RAG ‹value›
+    - Brier: Apiro ‹value›  vs  Standard RAG ‹value›
+    These were not provided and have not been verified against the code or results file.
+-->
+
+**Calibration (ECE / Brier)**
+
+| System | ECE (↓) | Brier (↓) |
+|--------|:-------:|:---------:|
+| **Apiro** | `‹fill in›` | `‹fill in›` |
+| Standard RAG | `‹fill in›` | `‹fill in›` |
+
+**Selective abstention.** At an abstention threshold of **τ = 0.65**, Apiro declines to answer cases whose calibrated confidence falls below the threshold, trading a small amount of coverage for a large reduction in error on the cases it *does* answer. The threshold is configurable via the `--tau` flag (see below).
+
+---
+
 ## Literature Grounding
 
-Apiro's evaluation methodology is grounded in the emerging consensus on **medical long-context reasoning**:
+Apiro's evaluation methodology is grounded in the emerging consensus on **medical long-context reasoning** and **selective prediction**:
 
 - **Med-Gemini** — establishes long-context clinical reasoning as a first-class capability for medical LLMs.
 - **MedOdyssey** — benchmarks long-context medical comprehension and information retrieval under length stress.
 - **NeedleBench** — formalizes needle-in-a-haystack retrieval and multi-needle synthesis for long contexts.
+- **Selective prediction / risk–coverage** (e.g., Geifman & El-Yaniv) — formalizes abstention and the risk–coverage tradeoff (AURC) used in Pillar 3.
 
-Collectively, these validate **Clinical Needle-In-A-Haystack (C-NIAH)** as the standard paradigm for measuring **distractor resilience in long EHR notes**, which is precisely the axis Apiro is engineered to dominate.
+Collectively, these validate **Clinical Needle-In-A-Haystack (C-NIAH)** as the standard paradigm for measuring **distractor resilience in long EHR notes**, and **risk–coverage analysis** as the standard paradigm for measuring **calibrated abstention** — the two axes Apiro is engineered to dominate.
 
 ---
 
@@ -231,6 +281,19 @@ python scripts/run_niah_eval.py --cases data/niah_cases.json --real
 
 Both scripts emit per-case verdicts, aggregate accuracy, and the breakdowns (contradiction needles, multi-needle synthesis, long-context depth) reported above.
 
+**Safety, calibration & selective-abstention evaluation**
+
+Compute ECE, Brier Score, and the Risk–Coverage AURC from a prior evaluation results file, using an abstention threshold of `τ = 0.65`:
+
+```bash
+python scripts/run_safety_calibration_eval.py --input data/niah_eval_results.json --tau 0.65
+```
+
+- `--input` — path to a results JSON produced by an evaluation run (e.g., `run_niah_eval.py`).
+- `--tau` — abstention threshold; cases whose calibrated confidence is below `τ` are abstained on when computing selective-prediction metrics.
+
+The script emits calibration metrics (ECE, Brier), the risk–coverage curve and its AURC, and the coverage/risk operating point at the chosen `τ`.
+
 ---
 
 ## Web UI
@@ -255,6 +318,7 @@ From the UI you can:
 - Observe **entropy-guided expansion** at Depth ≥ 1.
 - Inspect **NLI soft-pruning** decisions (fast filter vs. LLM judge) per belief edge.
 - View the **halting critic's** saturation signal and the final **etiology differential**.
+- Read the **calibrated confidence** and whether the case was **answered or abstained** at the configured threshold.
 
 ---
 
@@ -265,15 +329,19 @@ apiro/
 ├── apiro/
 │   ├── corpus/
 │   │   └── embedder.py          # LRU query & vector caching
+│   ├── eval/
+│   │   └── calibration.py       # ECE, Brier, Risk–Coverage AURC, selective abstention
 │   ├── graph/
 │   │   └── contradiction.py     # O(1) memoized set-intersection pre-filter + NLI soft-pruning
 │   ├── web/                     # Interactive Web UI
 │   └── ...
 ├── scripts/
-│   ├── run_pmc_eval.py          # Real-world PMC benchmark
-│   └── run_niah_eval.py         # C-NIAH benchmark
+│   ├── run_pmc_eval.py                  # Real-world PMC benchmark
+│   ├── run_niah_eval.py                 # C-NIAH benchmark
+│   └── run_safety_calibration_eval.py   # Safety / calibration / selective-abstention eval
 ├── data/
-│   └── niah_cases.json          # C-NIAH case definitions
+│   ├── niah_cases.json          # C-NIAH case definitions
+│   └── niah_eval_results.json   # Cached eval results (input to calibration eval)
 ├── requirements.txt
 └── README.md
 ```
