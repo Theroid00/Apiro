@@ -1,6 +1,6 @@
 """
-graph/contradiction.py (Signal Rewrite v2)
-------------------------------------------
+graph/contradiction.py (Signal Rewrite v2 — perf pass)
+------------------------------------------------------
 Detects logical contradictions between two clinical claims using a two-stage
 fast-filter + LLM judge.
 
@@ -23,6 +23,15 @@ RESULT:
     share the same drug, body part, or disease entity but differ in assertion).
     Total LLM calls for contradiction: ~5 instead of ~90 per iteration.
 
+PERFORMANCE NOTES (this pass):
+    - Keyword extraction is memoized with a module-level functools.lru_cache
+      (maxsize=8192) returning a frozenset. In a BFS batch the same claim text
+      is compared against dozens of neighbors, so this collapses N regex+set
+      builds per claim into a single cached one.
+    - _shares_medical_entities now does a direct frozenset intersection using
+      the cached keyword sets (with an isdisjoint fast path).
+    - _cache_key uses direct integer tuple ordering for a cheap, stable key.
+
 INTERFACE:
     Identical to the original ContradictionDetector. No callers need changes.
 """
@@ -30,6 +39,7 @@ INTERFACE:
 import re
 import logging
 import time
+import functools
 from dataclasses import dataclass
 from typing import Literal, Optional
 
@@ -78,8 +88,6 @@ NEGEX_PATTERNS = re.compile(
 
 # Pairs of antonym keywords. If claim_a has a word from set A and claim_b has
 # the corresponding word from set B (or vice versa), they are likely contradictory.
-# Pairs of antonym keywords. If claim_a has a word from set A and claim_b has
-# the corresponding word from set B (or vice versa), they are likely contradictory.
 _ANTONYM_PAIRS: list[tuple[set, set]] = [
     ({"indicated", "safe", "beneficial", "recommended", "first-line"},
      {"contraindicated", "avoid", "dangerous", "do not use", "prohibited"}),
@@ -111,6 +119,12 @@ _CLINICAL_STOPWORDS = {
     "values", "result-old"
 }
 
+# Medical abbreviations that survive the length filter in keyword extraction.
+_ABBREVIATIONS = {"gist", "tsh", "acs", "pe", "bp", "egf", "crp", "nmo", "ms", "achr", "mg"}
+
+# Precompiled word tokenizer for keyword extraction (avoids recompiling per call).
+_KEYWORD_TOKENIZER = re.compile(r"\b[a-zA-Z\-]{2,}\b")
+
 CONTRADICTION_JUDGE_PROMPT = """\
 You are a clinical logician. Given two clinical findings about the same patient, determine if they logically EXCLUDE each other.
 
@@ -125,6 +139,25 @@ Rules:
 - Do NOT answer NO just because the findings are from different organ systems.
 
 Answer with YES or NO only."""
+
+
+@functools.lru_cache(maxsize=8192)
+def _get_keywords(text: str) -> frozenset[str]:
+    """
+    Extract the set of medical entity keywords from a claim.
+
+    Memoized: in BFS batches the same claim text is compared against many
+    neighbors, so caching collapses repeated regex + set allocations into a
+    single computation per distinct claim. Returns a frozenset so the result
+    is immutable and hashable (safe to share across callers and to cache).
+    """
+    kws: set[str] = set()
+    for w in _KEYWORD_TOKENIZER.findall(text.lower()):
+        if w in _ABBREVIATIONS:
+            kws.add(w)
+        elif len(w) >= 4 and w not in _CLINICAL_STOPWORDS:
+            kws.add(w)
+    return frozenset(kws)
 
 
 @dataclass
@@ -189,7 +222,10 @@ class ContradictionDetector:
         return bool(NEGEX_PATTERNS.search(text))
 
     def _cache_key(self, claim_a: str, claim_b: str) -> tuple[int, int]:
-        ha, hb = hash(claim_a), hash(claim_b)
+        # Fast integer tuple ordering: hash once, order the two ints so the
+        # pair is symmetric (check(a, b) and check(b, a) share a slot).
+        ha = hash(claim_a)
+        hb = hash(claim_b)
         return (ha, hb) if ha <= hb else (hb, ha)
 
     def cache_info(self) -> dict:
@@ -346,23 +382,14 @@ class ContradictionDetector:
     def _shares_medical_entities(cls, claim_a: str, claim_b: str) -> bool:
         """
         True if the two claims share at least one medical entity keyword.
-        Uses generic word-overlap logic excluding clinical and English stopwords.
-        """
-        ABBREVIATIONS = {"gist", "tsh", "acs", "pe", "bp", "egf", "crp", "nmo", "ms", "achr", "mg"}
-        
-        def get_keywords(text: str) -> set[str]:
-            words = re.findall(r"\b[a-zA-Z\-]{2,}\b", text.lower())
-            kws = set()
-            for w in words:
-                if w in ABBREVIATIONS:
-                    kws.add(w)
-                elif len(w) >= 4 and w not in _CLINICAL_STOPWORDS:
-                    kws.add(w)
-            return kws
 
-        kws_a = get_keywords(claim_a)
-        kws_b = get_keywords(claim_b)
-        return bool(kws_a & kws_b)
+        Uses the memoized _get_keywords helper and a direct frozenset
+        intersection. `isdisjoint` short-circuits on the first shared keyword
+        and avoids materializing the full intersection set.
+        """
+        kws_a = _get_keywords(claim_a)
+        kws_b = _get_keywords(claim_b)
+        return not kws_a.isdisjoint(kws_b)
 
     # ── Stage 2: LLM judge ────────────────────────────────────────────────────
 
