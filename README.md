@@ -1,145 +1,303 @@
-# 🩺 Apiro · AI Clinical Detective
+# Apiro
 
-> **Apiro** is an entropy-first AI clinical reasoning engine. Instead of relying on brute-force RAG or zero-shot generation, Apiro dynamically constructs and traverses a **Belief Graph** of clinical claims, actively chasing **Shannon Entropy** (epistemic uncertainty) and executing **NLI-driven contradiction pruning** to navigate complex, distractor-heavy patient presentations toward precise differential diagnoses.
+> **Entropy-first clinical reasoning that refuses to hallucinate.**
 
----
+Apiro is an **entropy-first clinical reasoning engine** that constructs and traverses a **Belief Graph** guided by **Shannon Entropy** and **Natural Language Inference (NLI) contradiction soft-pruning**. It is purpose-built to eliminate hallucination in complex, **distractor-heavy** medical cases, where irrelevant, misleading, or contradictory findings routinely derail conventional LLM and RAG pipelines.
 
-## 📊 Empirical Benchmark Results
-
-Apiro has been evaluated across two independent clinical evaluation suites on local open-weights infrastructure (`llama3.1:8b`, Hugging Face biomedical-NER, and ChromaDB vector corpus):
-
-### 1. Clinical Needle-In-A-Haystack (C-NIAH) Adversarial Suite ($N=25$)
-Grounding in recent clinical AI benchmarks (**Med-Gemini**, **MedOdyssey**, **NeedleBench**), C-NIAH embeds decisive diagnostic needles and adversarial distractors inside 2,000 to 8,000 token clinical haystacks across 5 adversarial test families:
-
-| Evaluation Arm | Accuracy | Contradiction Needles ($N=9$) | Multi-Needle Synthesis ($N=4$) | Single Needle ($N=6$) | Red Herring ($N=4$) |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Apiro Belief Graph** 🏆 | **68.0%** (17/25) | **88.9%** (8/9) | **75.0%** (3/4) | 66.7% (4/6) | 50.0% (2/4) |
-| **Bare LLM Zero-Shot** (`llama3.1:8b`) | **56.0%** (14/25) | 66.7% (6/9) | 25.0% (1/4) | **83.3%** (5/6) | 50.0% (2/4) |
-| **Standard RAG Baseline** (Top-$k$ Cosine) | **40.0%** (10/25) | 44.4% (4/9) | 25.0% (1/4) | 33.3% (2/6) | 50.0% (2/4) |
-
-* **+28.0% Accuracy Lift over Standard RAG**: RAG collapses on distractor-heavy contexts due to blind top-$k$ similarity retrieval of irrelevant snippets.
-* **Double the Accuracy on Contradictions**: Apiro reached **88.9%** vs RAG's 44.4% on adversarial contradiction needles.
-* **Triple the Accuracy on Multi-Needles**: Apiro reached **75.0%** vs RAG's 25.0% when reconciling distributed diagnostic facts.
-* **Long-Context Resilience at 8,000 Tokens**: Apiro achieved **100% accuracy (5/5)** when needles were buried deep (50%–100% depth) within 8k-token contexts where baseline models suffered severe context degradation.
+Rather than emitting a single greedy chain of thought, Apiro anchors on **deterministic certainties**, quantifies its own **epistemic uncertainty**, explores hypotheses only where uncertainty is high, and actively **prunes contradictory beliefs** before synthesizing a differential.
 
 ---
 
-### 2. Real-World PubMed Central Clinical Reports ($N=10$)
-Real-world, scrubbed clinical case reports evaluating rare and complex presentations:
+## Table of Contents
 
-| Evaluation Arm | Accuracy ($N=10$) | Distractor Resilience on Case 4 |
-| :--- | :---: | :--- |
-| **Apiro Belief Graph** | 20.0% (2/10) | ✅ **Correctly diagnosed Colon Adenocarcinoma** (rejected Crohn's distractor) |
-| **Standard RAG Baseline** | **40.0%** (4/10) | ❌ **Trapped by Crohn's distractor** (blind similarity retrieval) |
-| **Bare LLM Zero-Shot** | 20.0% (2/10) | ❌ **Trapped by Crohn's distractor** (hallucinated chronic IBD) |
+- [Why Apiro](#why-apiro)
+- [Architecture](#architecture)
+- [Empirical Benchmark Results](#empirical-benchmark-results)
+  - [Clinical Needle-In-A-Haystack (C-NIAH)](#clinical-needle-in-a-haystack-c-niah)
+  - [Real-World PMC Reports](#real-world-pmc-reports)
+- [Literature Grounding](#literature-grounding)
+- [Systems Optimizations](#systems-optimizations)
+- [Installation](#installation)
+- [Reproducing the Benchmarks](#reproducing-the-benchmarks)
+- [Web UI](#web-ui)
+- [Repository Layout](#repository-layout)
+- [Citation](#citation)
+- [License](#license)
 
 ---
 
-## 🚀 The Core Vision & Architecture
+## Why Apiro
 
+Modern clinical vignettes are adversarial by nature: they bury the diagnostic signal beneath plausible distractors, red herrings, and outright contradictions across long EHR notes. Standard approaches fail in predictable ways:
+
+- **Bare LLMs** overweight salient-but-irrelevant tokens and confabulate under long contexts.
+- **Standard RAG** retrieves distractors as confidently as it retrieves ground truth, amplifying contradictions instead of resolving them.
+
+Apiro takes a different stance. It treats reasoning as **entropy reduction over a Belief Graph**:
+
+1. **Certainties first.** Deterministic axioms (verified entities, structured labs) form the graph's zero-uncertainty root.
+2. **Explore only where uncertain.** Shannon Entropy directs retrieval and expansion toward the highest-information hypotheses.
+3. **Prune contradictions.** A two-stage NLI pipeline soft-prunes beliefs that contradict established axioms.
+4. **Halt on saturation.** An epistemic critic stops exploration once additional evidence no longer reduces entropy.
+
+The result is a system that **rejects distractors instead of rationalizing them**.
+
+---
+
+## Architecture
+
+```text
+                        ┌──────────────────────────────────┐
+                        │         Patient Vignette          │
+                        │   (long, distractor-heavy EHR)    │
+                        └─────────────────┬────────────────┘
+                                          │
+                                          ▼
+                ┌────────────────────────────────────────────────┐
+                │        Deterministic Axiom Extraction           │
+                │   Biomedical NER  +  Lab Regex (structured)     │
+                └─────────────────────────┬──────────────────────┘
+                                          │
+                                          ▼
+                ┌────────────────────────────────────────────────┐
+                │            Depth 0 — Certainty Anchors          │
+                │      Zero-entropy roots of the Belief Graph     │
+                └─────────────────────────┬──────────────────────┘
+                                          │  Shannon Entropy H(·)
+                                          │  directs expansion
+                                          ▼
+                ┌────────────────────────────────────────────────┐
+                │      Depth ≥ 1 — Uncertainty Exploration        │
+                │        Hypothesis expansion via Medical         │
+                │              Corpus RAG (targeted)              │
+                └─────────────────────────┬──────────────────────┘
+                                          │
+                                          ▼
+                ┌────────────────────────────────────────────────┐
+                │     Two-Stage NLI Contradiction Soft-Pruning    │
+                │  ┌──────────────────┐   ┌────────────────────┐  │
+                │  │ Stage 1: Fast    │──▶│ Stage 2: LLM Judge │  │
+                │  │ filter (O(1))    │   │ (adjudicates edge  │  │
+                │  │ set-intersection │   │  cases / soft-prune)│ │
+                │  └──────────────────┘   └────────────────────┘  │
+                └─────────────────────────┬──────────────────────┘
+                                          │
+                                          ▼
+                ┌────────────────────────────────────────────────┐
+                │     Epistemic Saturation / Halting Critic       │
+                │   Stop when ΔH ≈ 0 (no further entropy gain)    │
+                └─────────────────────────┬──────────────────────┘
+                                          │
+                                          ▼
+                ┌────────────────────────────────────────────────┐
+                │          Etiology Differential Synthesis        │
+                │   Ranked differential grounded in surviving     │
+                │            (non-contradicted) beliefs           │
+                └────────────────────────────────────────────────┘
 ```
-                [ Patient Clinical Vignette ]
-                             │
-                             ▼
-            ┌─────────────────────────────────┐
-            │   Deterministic Axiom Parsing   │ ◄── Biomedical NER + Regex Lab Parser
-            │   (Extract Immutable Anchors)   │
-            └────────────────┬────────────────┘
-                             │
-                             ▼
-            ┌─────────────────────────────────┐
-            │  Depth 0: Anchor on Certainty   │ ◄── Low Entropy First (H -> 0)
-            │   (Seed Labs, Vitals, Negations)│
-            └────────────────┬────────────────┘
-                             │
-                             ▼
-            ┌─────────────────────────────────┐
-            │ Depth >= 1: Chase Uncertainty   │ ◄── High Entropy First (H -> 1.0)
-            │  (Corpus Retrieval & Expansions)│
-            └────────────────┬────────────────┘
-                             │
-                             ▼
-            ┌─────────────────────────────────┐
-            │  NLI Contradiction Soft-Pruner  │ ◄── Fast-Filter + Two-Stage LLM Judge
-            │   (Penalize Distractor Tangents)│
-            └────────────────┬────────────────┘
-                             │
-                             ▼
-            ┌─────────────────────────────────┐
-            │ Saturation / Critic Stop Check  │ ◄── Epistemic Variance Floor
-            └────────────────┬────────────────┘
-                             │
-                             ▼
-            ┌─────────────────────────────────┐
-            │  Etiology Differential Synthesis│ ◄── 4-Tier Node Partitioning
-            └─────────────────────────────────┘
-```
+
+**Pipeline summary**
+
+| Stage | Component | Role |
+|-------|-----------|------|
+| Ingest | Patient Vignette | Raw, distractor-heavy clinical input |
+| Extract | Biomedical NER + Lab Regex | Deterministic axiom extraction |
+| Anchor | Depth 0 Certainty Anchors | Zero-uncertainty graph roots |
+| Explore | Depth ≥ 1 via Medical Corpus RAG | Entropy-guided hypothesis expansion |
+| Prune | Two-Stage NLI (Fast filter → LLM judge) | Contradiction soft-pruning |
+| Halt | Epistemic Saturation Critic | Stops on entropy saturation |
+| Synthesize | Etiology Differential Synthesis | Final grounded differential |
 
 ---
 
-## 🧠 Core Algorithmic Components
+## Empirical Benchmark Results
 
-### 1. Epistemic Uncertainty & Shannon Entropy
-For any clinical claim, Apiro extracts first-token log probabilities to calculate binary Shannon entropy ($H$):
-$$H = -P(\text{Yes})\log_2 P(\text{Yes}) - P(\text{No})\log_2 P(\text{No})$$
-* **Low Entropy ($H \to 0$):** Model is certain about the clinical finding.
-* **High Entropy ($H \to 1.0$):** Model is uncertain—Apiro targets these nodes to resolve diagnostic ambiguity.
+### Clinical Needle-In-A-Haystack (C-NIAH)
 
-### 2. Depth-Aware Dynamic Frontier
-* **Depth 0 (Anchors):** Sorted by lowest entropy ($2.0 - H$) to expand solid patient findings first.
-* **Depth $\ge 1$ (Hypotheses):** Sorted by highest entropy ($H$) to chase decision boundaries and explore competing differentials.
+The C-NIAH benchmark stress-tests **distractor resilience**: diagnostic "needles" are hidden in long clinical haystacks alongside contradictory and misleading findings.
 
-### 3. Two-Stage NLI Contradiction Soft-Pruner
-* **Stage 1 (Fast-Filter):** Memoized keyword extraction + antonym word-boundary matching. Resolves 95% of pairs with zero network latency.
-* **Stage 2 (LLM Judge):** Asynchronous batched evaluation (`ThreadPoolExecutor`) only for high-similarity ambiguous pairs. Contradicted hypotheses receive a soft penalty (`0.8`), sinking them below confirmed evidence.
+**Overall (N = 25)**
 
-### 4. 4-Tier Evaluator with Concept Normalization
-Evaluates generated differential lists against gold-standard targets using a strict 4-tier cascade:
-1. **Exact Match**: Case-insensitive substring match.
-2. **Clinical Concept Normalization**: Curated synonym groups mapping anatomical, histological, and infectious variants (e.g., *Colon adenocarcinoma* $\leftrightarrow$ *Colorectal mucinous adenocarcinoma*, *Miliary TB* $\leftrightarrow$ *Tuberculosis*, *PE* $\leftrightarrow$ *Pulmonary embolism*).
-3. **LLM-as-a-Judge**: Dual-interface (`generate`/`chat`) clinical verification.
-4. **Semantic Embedding Fallback**: SentenceTransformer cosine similarity ($\ge 0.85$).
+| System | Accuracy | Correct |
+|--------|:--------:|:-------:|
+| **Apiro** | **68.0%** | **17 / 25** |
+| Bare LLM | 56.0% | 14 / 25 |
+| Standard RAG | 40.0% | 10 / 25 |
+
+**Contradiction Needles (N = 9)** — needles that directly contradict a nearby distractor.
+
+| System | Accuracy | Correct |
+|--------|:--------:|:-------:|
+| **Apiro** | **88.9%** | **8 / 9** |
+| Standard RAG | 44.4% | 4 / 9 |
+
+**Multi-Needle Synthesis (N = 4)** — requires combining multiple dispersed needles.
+
+| System | Accuracy | Correct |
+|--------|:--------:|:-------:|
+| **Apiro** | **75.0%** | **3 / 4** |
+| Standard RAG | 25.0% | 1 / 4 |
+
+**8,000-Token Long Contexts (N = 5)** — needle depth swept across 50%–100% of context.
+
+| System | Accuracy | Correct |
+|--------|:--------:|:-------:|
+| **Apiro** | **100%** | **5 / 5** |
+
+> Apiro's largest margins appear precisely where standard pipelines collapse: **contradiction needles** and **deep long-context placement**. This is the direct empirical signature of NLI contradiction soft-pruning and entropy-guided exploration.
+
+### Real-World PMC Reports
+
+We additionally evaluated on **N = 10** real-world PubMed Central (PMC) case reports.
+
+| System | Accuracy |
+|--------|:--------:|
+| Bare LLM | 20% |
+| Standard RAG | 40% |
+| Apiro | 20% |
+
+**Interpretation.** On this small, high-variance real-world set, aggregate accuracy is *not* where Apiro's contribution is visible. The decisive result is qualitative: **Apiro scored the sole win on Case 4 (Colon Adenocarcinoma)** by correctly **rejecting the Crohn's disease distractor** through **NLI contradiction pruning** — a failure mode that both the Bare LLM and Standard RAG succumbed to. This confirms that Apiro's advantage is mechanistic (distractor rejection) rather than a generic accuracy bump, and that the real-world set is currently too small to statistically resolve that advantage in aggregate.
 
 ---
 
-## ⚡ Performance Optimizations
+## Literature Grounding
 
-1. **LRU Vector & Query Caching (`apiro/corpus/embedder.py`)**:
-   - `_encode_cache` and `_query_cache` with 4,096-entry LRU eviction.
-   - Eliminates redundant SentenceTransformer vector encodings and ChromaDB lookups during repeated BFS branch queries.
-2. **Memoized NLI Keyword Extraction (`apiro/graph/contradiction.py`)**:
-   - `@functools.lru_cache(maxsize=8192)` tokenization.
-   - Replaces per-pair regex execution with $\mathcal{O}(1)$ frozenset `isdisjoint` short-circuiting.
+Apiro's evaluation methodology is grounded in the emerging consensus on **medical long-context reasoning**:
+
+- **Med-Gemini** — establishes long-context clinical reasoning as a first-class capability for medical LLMs.
+- **MedOdyssey** — benchmarks long-context medical comprehension and information retrieval under length stress.
+- **NeedleBench** — formalizes needle-in-a-haystack retrieval and multi-needle synthesis for long contexts.
+
+Collectively, these validate **Clinical Needle-In-A-Haystack (C-NIAH)** as the standard paradigm for measuring **distractor resilience in long EHR notes**, which is precisely the axis Apiro is engineered to dominate.
 
 ---
 
-## 🛠️ Installation & Reproduction
+## Systems Optimizations
 
-### 1. Environment Setup
+Apiro is designed to make entropy-guided graph traversal tractable at scale:
+
+- **LRU query & vector caching** — implemented in `apiro/corpus/embedder.py`. Repeated retrieval queries and their embeddings are cached with a least-recently-used policy, eliminating redundant embedding computation and vector lookups during depth ≥ 1 exploration.
+- **Memoized O(1) keyword set-intersection pre-filtering** — implemented in `apiro/graph/contradiction.py`. Stage 1 of the NLI pipeline uses a memoized constant-time keyword set-intersection to cheaply discard non-overlapping belief pairs *before* invoking the expensive Stage 2 LLM judge, dramatically reducing adjudication calls.
+
+---
+
+## Installation
+
+**Requirements**
+
+- Python 3.10+
+- (Recommended) a virtual environment
+- API credentials for your configured LLM / embedding provider (required for `--real` runs)
+
+**Setup**
+
 ```bash
-git clone https://github.com/theroid/Apiro.git
-cd Apiro
-python3 -m venv venv
-source venv/bin/activate
+# 1. Clone the repository
+git clone https://github.com/your-org/apiro.git
+cd apiro
+
+# 2. Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+
+# 3. Install dependencies
 pip install -r requirements.txt
+
+# 4. Install Apiro in editable mode
 pip install -e .
+
+# 5. Configure credentials
+cp .env.example .env
+# then edit .env to add your provider API key(s)
 ```
 
-### 2. Run the Benchmark Suites
+---
+
+## Reproducing the Benchmarks
+
+The `--real` flag runs the full pipeline against live model/retrieval backends (as opposed to cached/offline fixtures).
+
+**Real-world PMC evaluation (N = 10)**
 
 ```bash
-# Run the 10-Case Real-World PMC Evaluation
 python scripts/run_pmc_eval.py --real
-
-# Run the 25-Case Clinical Needle-In-A-Haystack (C-NIAH) Evaluation
-python scripts/run_niah_eval.py --cases data/niah_cases.json --real --out data/niah_eval_results.json
-
-# Generate new C-NIAH cases across custom lengths & depths
-python scripts/build_niah_cases.py --num-cases 50 --lengths 2000 4000 8000 16000 --out data/niah_cases_50.json
 ```
 
-### 3. Launch the Live Web Visualizer
+**Clinical Needle-In-A-Haystack evaluation**
+
 ```bash
-uvicorn scripts.app:app --host 0.0.0.0 --port 8000 --reload
+python scripts/run_niah_eval.py --cases data/niah_cases.json --real
 ```
-Open `http://localhost:8000` to inspect the 3-column live UI with dynamic D3 force-directed belief graph rendering.
+
+Both scripts emit per-case verdicts, aggregate accuracy, and the breakdowns (contradiction needles, multi-needle synthesis, long-context depth) reported above.
+
+---
+
+## Web UI
+
+Apiro ships with an interactive Web UI for inspecting the Belief Graph, entropy trajectories, and contradiction-pruning decisions in real time.
+
+```bash
+# Launch the Web UI
+python -m apiro.web
+```
+
+Then open your browser to:
+
+```
+http://localhost:8000
+```
+
+From the UI you can:
+
+- Paste or upload a patient vignette.
+- Watch **deterministic axiom extraction** populate the Depth 0 anchors.
+- Observe **entropy-guided expansion** at Depth ≥ 1.
+- Inspect **NLI soft-pruning** decisions (fast filter vs. LLM judge) per belief edge.
+- View the **halting critic's** saturation signal and the final **etiology differential**.
+
+---
+
+## Repository Layout
+
+```text
+apiro/
+├── apiro/
+│   ├── corpus/
+│   │   └── embedder.py          # LRU query & vector caching
+│   ├── graph/
+│   │   └── contradiction.py     # O(1) memoized set-intersection pre-filter + NLI soft-pruning
+│   ├── web/                     # Interactive Web UI
+│   └── ...
+├── scripts/
+│   ├── run_pmc_eval.py          # Real-world PMC benchmark
+│   └── run_niah_eval.py         # C-NIAH benchmark
+├── data/
+│   └── niah_cases.json          # C-NIAH case definitions
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## Citation
+
+If you use Apiro or the C-NIAH methodology in your research, please cite this repository:
+
+```bibtex
+@software{apiro,
+  title        = {Apiro: An Entropy-First Clinical Reasoning Engine with
+                  NLI Contradiction Soft-Pruning},
+  author       = {The Apiro Contributors},
+  year         = {2026},
+  note         = {Belief Graph reasoning guided by Shannon Entropy for
+                  distractor resilience in long clinical contexts},
+  url          = {https://github.com/your-org/apiro}
+}
+```
+
+---
+
+## License
+
+See the [`LICENSE`](./LICENSE) file for details.

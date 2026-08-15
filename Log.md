@@ -241,8 +241,8 @@ Here is the commit-by-commit record of the Apiro codebase:
     2.  **5-Family Clinical NIAH Suite (`scripts/build_niah_cases.py`, `scripts/run_niah_eval.py`)**: Generated adversarial cases for `single_needle`, `contradiction_needle`, `multi_needle`, `red_herring`, and `negation_trap`.
     3.  **Synthesis Etiology Grounding (`apiro/graph/expander.py`)**: Implemented 4-step node partitioning and acute primary etiology ranking.
 *   **The Results**:
-    -   **C-NIAH Benchmark ($N=25$)**: Apiro scored **68.0%** overall vs **40.0%** for Standard RAG (+28% lift). On Contradiction Needles, Apiro scored **88.9%** (vs RAG 44.4%), and on Multi-Needles scored **75.0%** (vs RAG 25.0%).
-    -   **PMC 10-Case Evaluation**: Apiro scored **20.0%** (2/10), achieving the sole win on Case 4 by successfully soft-pruning the Crohn's distractor to diagnose Colon Adenocarcinoma.
+    -   **C-NIAH Benchmark ($N=25$)**: Apiro scored **68.0%** (17/25) overall vs **40.0%** (10/25) for Standard RAG (+28% lift) and **56.0%** (14/25) for the Bare LLM. On Contradiction Needles, Apiro scored **88.9%** (8/9) (vs RAG 44.4%, 4/9), on Multi-Needles scored **75.0%** (3/4) (vs RAG 25.0%, 1/4), and on 8k deep haystacks scored **100%** (5/5).
+    -   **PMC 10-Case Evaluation ($N=10$)**: Apiro scored **20.0%** (Bare LLM 20%, RAG 40%), achieving the sole win on Case 4 (Colon Adenocarcinoma) by successfully rejecting the Crohn's distractor via NLI contradiction pruning.
 
 ### Phase 12: Systems Performance & Vector Caching (`feature/performance-and-cleanup`, August 2026)
 *   **The Rationale**: Live BFS graph traversal performs repeated query and token operations across candidate paths. We needed sub-millisecond pre-filtering and query caching.
