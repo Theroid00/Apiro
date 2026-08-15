@@ -98,6 +98,10 @@ class Embedder:
             f"Upsert is idempotent — safe to re-run."
         )
 
+    def encode(self, texts, **kwargs):
+        """Forward encoding calls to the underlying SentenceTransformer model."""
+        return self._model.encode(texts, **kwargs)
+
     # ------------------------------------------------------------------
     # Ingestion
     # ------------------------------------------------------------------
