@@ -368,4 +368,4 @@ If you use Apiro or the C-NIAH methodology in your research, please cite this re
 
 ## License
 
-See the [`LICENSE`](./LICENSE) file for details.
+This project is licensed under the **Apache License 2.0** — see the [`LICENSE`](./LICENSE) file for details.
