@@ -157,6 +157,146 @@ NEEDLE_BANK: Dict[str, Dict[str, List[str]]] = {
             "Symptoms were accompanied by diaphoresis, nausea, and a sense of impending doom.",
         ],
     },
+    "subarachnoid_hemorrhage": {
+        "structured": [
+            "Non-contrast head CT shows hyperdense blood layering in the basal cisterns and sylvian fissure.",
+            "Lumbar puncture returns xanthochromic CSF with 45,000 RBC/uL that does not clear across four tubes.",
+        ],
+        "prose": [
+            "The patient describes an abrupt thunderclap headache reaching maximal intensity within seconds.",
+            "Headache onset occurred during exertion and was followed by brief loss of consciousness and vomiting.",
+        ],
+    },
+    "aortic_dissection": {
+        "structured": [
+            "CT angiography of the chest demonstrates an intimal flap in the descending thoracic aorta.",
+            "Systolic blood pressure differs by 28 mmHg between the right and left arms.",
+        ],
+        "prose": [
+            "The patient describes abrupt tearing interscapular pain that was maximal at onset and radiates to the back.",
+            "A new early diastolic murmur and asymmetric radial pulses were documented on examination.",
+        ],
+    },
+    "acute_pancreatitis": {
+        "structured": [
+            "Serum lipase 1,840 U/L, more than eight times the upper limit of normal.",
+            "Contrast CT of the abdomen shows peripancreatic fat stranding and an oedematous pancreas.",
+        ],
+        "prose": [
+            "The patient reports severe constant epigastric pain boring through to the back, eased by sitting forward.",
+            "Symptoms began hours after a heavy alcohol binge and are accompanied by persistent vomiting.",
+        ],
+    },
+    "adrenal_crisis": {
+        "structured": [
+            "Random serum cortisol 2.1 ug/dL with ACTH 890 pg/mL during documented hypotension.",
+            "Sodium 122 mEq/L with potassium 6.0 mEq/L and a normal anion gap.",
+        ],
+        "prose": [
+            "Hyperpigmentation of the palmar creases and buccal mucosa was noted, with hypotension refractory to fluids.",
+            "The patient stopped long-term prednisolone abruptly one week before this presentation.",
+        ],
+    },
+    "pheochromocytoma": {
+        "structured": [
+            "Plasma free metanephrines 4.8 nmol/L, more than four times the upper reference limit.",
+            "Abdominal MRI shows a 4.2 cm right adrenal mass with marked T2 hyperintensity.",
+        ],
+        "prose": [
+            "The patient describes paroxysms of pounding headache, drenching sweats and palpitations lasting minutes.",
+            "Blood pressure swung from 210/120 to 90/60 mmHg within the same episode.",
+        ],
+    },
+    "giant_cell_arteritis": {
+        "structured": [
+            "ESR 96 mm/hr with CRP 84 mg/L in a patient over 50.",
+            "Temporal artery ultrasound demonstrates a non-compressible halo sign.",
+        ],
+        "prose": [
+            "The patient reports new unilateral temporal headache with scalp tenderness on combing her hair.",
+            "Jaw claudication develops after a few minutes of chewing and resolves with rest.",
+        ],
+    },
+    "guillain_barre_syndrome": {
+        "structured": [
+            "CSF protein 1.9 g/L with only 2 white cells/uL — albuminocytological dissociation.",
+            "Nerve conduction studies show prolonged F-wave latencies and partial motor conduction block.",
+        ],
+        "prose": [
+            "Symmetric ascending weakness began in the feet and progressed proximally over four days.",
+            "Deep tendon reflexes are absent throughout, two weeks after a diarrhoeal illness.",
+        ],
+    },
+    "tension_pneumothorax": {
+        "structured": [
+            "Chest radiograph shows tracheal deviation away from a large right-sided pneumothorax.",
+            "Oxygen saturation 82% on 15 L/min with systolic blood pressure 78 mmHg.",
+        ],
+        "prose": [
+            "Breath sounds are absent on the right with hyperresonance to percussion and distended neck veins.",
+            "The patient became acutely dyspnoeic and hypotensive shortly after central line placement.",
+        ],
+    },
+    "septic_arthritis": {
+        "structured": [
+            "Synovial fluid aspirate: 78,000 WBC/uL with 92% neutrophils and no crystals.",
+            "Gram stain of joint aspirate shows gram-positive cocci in clusters.",
+        ],
+        "prose": [
+            "The knee is hot, swollen and exquisitely painful through the smallest arc of passive movement.",
+            "Fever and a single acutely inflamed joint developed over 24 hours in a patient who injects drugs.",
+        ],
+    },
+    "acute_cholangitis": {
+        "structured": [
+            "Total bilirubin 6.8 mg/dL with ALP 480 U/L and a common bile duct of 12 mm on ultrasound.",
+            "Blood cultures grew Escherichia coli in both aerobic bottles within 12 hours.",
+        ],
+        "prose": [
+            "Right upper quadrant pain, jaundice and rigors are all present together — Charcot's triad.",
+            "The patient became confused and hypotensive, having had gallstones documented previously.",
+        ],
+    },
+    "salicylate_toxicity": {
+        "structured": [
+            "Arterial blood gas: pH 7.47, pCO2 22 mmHg, bicarbonate 15 mEq/L — mixed respiratory alkalosis and metabolic acidosis.",
+            "Serum salicylate concentration 62 mg/dL six hours after ingestion.",
+        ],
+        "prose": [
+            "The patient reports tinnitus and reduced hearing with deep rapid breathing and marked diaphoresis.",
+            "An empty bottle of aspirin was found beside the patient, who is agitated and febrile.",
+        ],
+    },
+    "acute_mesenteric_ischemia": {
+        "structured": [
+            "Serum lactate 7.4 mmol/L with a CT angiogram showing an abrupt cut-off of the superior mesenteric artery.",
+            "White cell count 22,000/uL with a base deficit of -11.",
+        ],
+        "prose": [
+            "Abdominal pain is severe and constant yet the abdomen is soft with minimal tenderness — pain out of proportion to examination.",
+            "The patient is in atrial fibrillation and not anticoagulated, with sudden onset of pain after eating.",
+        ],
+    },
+    "carbon_monoxide_poisoning": {
+        "structured": [
+            "Carboxyhaemoglobin 24% on co-oximetry despite a normal pulse oximetry reading of 98%.",
+            "Arterial blood gas shows a normal pO2 with a metabolic acidosis and lactate 5.1 mmol/L.",
+        ],
+        "prose": [
+            "Headache, nausea and confusion affected the whole household simultaneously during a cold snap.",
+            "Symptoms improve when the patient leaves the house and recur on returning, with a faulty boiler reported.",
+        ],
+    },
+    "thyroid_storm": {
+        "structured": [
+            "TSH < 0.01 mIU/L with free T4 of 6.2 ng/dL and free T3 markedly elevated.",
+            "Temperature 40.1 C with heart rate 168 in atrial fibrillation.",
+        ],
+        "prose": [
+            "The patient is agitated and delirious with a fine tremor, lid lag and a diffusely enlarged tender thyroid.",
+            "Symptoms escalated abruptly following an intercurrent infection in known untreated Graves disease.",
+        ],
+    },
 }
 
 # For contradiction cases: an "obvious but wrong" diagnosis that superficially
@@ -198,6 +338,90 @@ CONTRADICTION_BANK: Dict[str, List[Dict[str, str]]] = {
             "contradiction": "However, dynamic ST elevation with a rising troponin trend is inconsistent with a musculoskeletal cause.",
         }
     ],
+    "subarachnoid_hemorrhage": [
+        {
+            "wrong_diagnosis": "migraine",
+            "contradiction": "However, the headache reached maximal intensity within seconds and the CSF is xanthochromic, which is inconsistent with migraine.",
+        }
+    ],
+    "aortic_dissection": [
+        {
+            "wrong_diagnosis": "acute myocardial infarction",
+            "contradiction": "However, serial troponins are flat and the ECG shows no ischaemic change, while imaging demonstrates an intimal flap.",
+        }
+    ],
+    "acute_pancreatitis": [
+        {
+            "wrong_diagnosis": "peptic ulcer perforation",
+            "contradiction": "However, there is no free intraperitoneal air on erect imaging and lipase is over eight times normal.",
+        }
+    ],
+    "adrenal_crisis": [
+        {
+            "wrong_diagnosis": "septic shock",
+            "contradiction": "However, blood cultures are sterile and the patient remained hypotensive despite fluids and antibiotics, with a cortisol of 2.1 ug/dL.",
+        }
+    ],
+    "pheochromocytoma": [
+        {
+            "wrong_diagnosis": "panic disorder",
+            "contradiction": "However, plasma free metanephrines are more than four times normal and an adrenal mass is present, which a panic disorder cannot explain.",
+        }
+    ],
+    "giant_cell_arteritis": [
+        {
+            "wrong_diagnosis": "tension headache",
+            "contradiction": "However, the ESR is 96 mm/hr with jaw claudication, neither of which occurs in tension headache.",
+        }
+    ],
+    "guillain_barre_syndrome": [
+        {
+            "wrong_diagnosis": "transverse myelitis",
+            "contradiction": "However, reflexes are absent rather than brisk and there is no sensory level or sphincter disturbance.",
+        }
+    ],
+    "tension_pneumothorax": [
+        {
+            "wrong_diagnosis": "acute asthma exacerbation",
+            "contradiction": "However, breath sounds are unilaterally absent with tracheal deviation, which an asthma exacerbation does not produce.",
+        }
+    ],
+    "septic_arthritis": [
+        {
+            "wrong_diagnosis": "acute gout",
+            "contradiction": "However, no crystals were seen on polarised microscopy and the Gram stain shows organisms.",
+        }
+    ],
+    "acute_cholangitis": [
+        {
+            "wrong_diagnosis": "acute viral hepatitis",
+            "contradiction": "However, the picture is obstructive with a dilated common bile duct, and blood cultures are positive.",
+        }
+    ],
+    "salicylate_toxicity": [
+        {
+            "wrong_diagnosis": "diabetic ketoacidosis",
+            "contradiction": "However, serum glucose and ketones are normal and the salicylate concentration is 62 mg/dL.",
+        }
+    ],
+    "acute_mesenteric_ischemia": [
+        {
+            "wrong_diagnosis": "gastroenteritis",
+            "contradiction": "However, lactate is 7.4 mmol/L with an arterial cut-off on CT angiography, which gastroenteritis does not cause.",
+        }
+    ],
+    "carbon_monoxide_poisoning": [
+        {
+            "wrong_diagnosis": "viral illness",
+            "contradiction": "However, carboxyhaemoglobin is 24% and symptoms remit away from the home, which a viral illness does not explain.",
+        }
+    ],
+    "thyroid_storm": [
+        {
+            "wrong_diagnosis": "sepsis of unknown source",
+            "contradiction": "However, cultures are sterile and TSH is undetectable with a markedly elevated free T4.",
+        }
+    ],
 }
 
 # For red-herring cases: a loud chronic comorbidity that shares non-specific
@@ -221,6 +445,48 @@ RED_HERRING_BANK: Dict[str, List[str]] = {
     "acute_myocardial_infarction": [
         "The patient has chronic gastroesophageal reflux disease with recurrent burning chest discomfort noted repeatedly in the record.",
     ],
+    "subarachnoid_hemorrhage": [
+        "The patient has a fifteen-year history of episodic migraine with aura, extensively documented across many prior clinic letters.",
+    ],
+    "aortic_dissection": [
+        "The patient has long-standing stable angina on maximal medical therapy, which dominates the cardiology correspondence in the record.",
+    ],
+    "acute_pancreatitis": [
+        "The patient has chronic gastro-oesophageal reflux with recurrent epigastric burning treated with escalating doses of proton pump inhibitor for years.",
+    ],
+    "adrenal_crisis": [
+        "The patient has irritable bowel syndrome with recurrent nausea and abdominal discomfort recorded at almost every prior visit.",
+    ],
+    "pheochromocytoma": [
+        "The patient carries a long-standing diagnosis of generalised anxiety disorder with frequent documented palpitations and sweating during panic episodes.",
+    ],
+    "giant_cell_arteritis": [
+        "The patient has chronic cervical spondylosis with persistent occipital head and neck pain described at length in prior physiotherapy notes.",
+    ],
+    "guillain_barre_syndrome": [
+        "The patient has long-standing type 2 diabetes with an established distal sensory peripheral neuropathy noted at every annual review.",
+    ],
+    "tension_pneumothorax": [
+        "The patient has severe chronic obstructive pulmonary disease with baseline breathlessness that dominates the respiratory clinic record.",
+    ],
+    "septic_arthritis": [
+        "The patient has advanced osteoarthritis of both knees with chronic pain and swelling documented over more than a decade.",
+    ],
+    "acute_cholangitis": [
+        "The patient has known Gilbert syndrome with intermittently raised unconjugated bilirubin recorded on many previous blood panels.",
+    ],
+    "salicylate_toxicity": [
+        "The patient has chronic tinnitus attributed to noise-induced hearing loss and followed by audiology for several years.",
+    ],
+    "acute_mesenteric_ischemia": [
+        "The patient has diverticular disease with recurrent episodes of crampy abdominal pain documented across numerous admissions.",
+    ],
+    "carbon_monoxide_poisoning": [
+        "The patient has chronic tension-type headache treated with regular simple analgesia and reviewed repeatedly in primary care.",
+    ],
+    "thyroid_storm": [
+        "The patient has a long-standing anxiety disorder with documented tachycardia and heat intolerance during stressful periods.",
+    ],
 }
 
 # For multi-needle cases we require two co-occurring clues that jointly imply
@@ -235,6 +501,20 @@ NEGATION_SYMPTOMS: Dict[str, List[str]] = {
     "acute_appendicitis": ["diarrhea", "urinary symptoms"],
     "hyperkalemia": ["chest pain", "syncope"],
     "acute_myocardial_infarction": ["fever", "cough"],
+    "subarachnoid_hemorrhage": ["fever", "neck stiffness"],
+    "aortic_dissection": ["cough", "haemoptysis"],
+    "acute_pancreatitis": ["diarrhoea", "chest pain"],
+    "adrenal_crisis": ["chest pain", "haematemesis"],
+    "pheochromocytoma": ["chest pain", "syncope"],
+    "giant_cell_arteritis": ["visual loss", "neck stiffness"],
+    "guillain_barre_syndrome": ["back pain", "urinary retention"],
+    "tension_pneumothorax": ["fever", "productive cough"],
+    "septic_arthritis": ["rash", "morning stiffness"],
+    "acute_cholangitis": ["diarrhoea", "weight loss"],
+    "salicylate_toxicity": ["chest pain", "seizure activity"],
+    "acute_mesenteric_ischemia": ["fever", "rectal bleeding"],
+    "carbon_monoxide_poisoning": ["chest pain", "fever"],
+    "thyroid_storm": ["cough", "dysuria"],
 }
 
 # Questions posed per family (used to build the evaluation prompt/answer).
@@ -600,6 +880,39 @@ FAMILY_BUILDERS: Dict[str, Callable[..., NiahCase]] = {
 # ---------------------------------------------------------------------------
 
 
+def validate_banks() -> None:
+    """Every diagnosis must appear in all four content banks.
+
+    ``generate_cases`` wraps each builder in ``try/except`` so one bad combo
+    cannot abort a long run. That also means a diagnosis missing from
+    CONTRADICTION_BANK, RED_HERRING_BANK or NEGATION_SYMPTOMS raises KeyError
+    per combo and is silently skipped — the family quietly comes out smaller
+    than requested, with only a stderr line to show for it. Checking up front
+    turns that into an error at the point the mistake was made.
+    """
+    diagnoses = set(NEEDLE_BANK)
+    problems: List[str] = []
+    for name, bank in (
+        ("CONTRADICTION_BANK", CONTRADICTION_BANK),
+        ("RED_HERRING_BANK", RED_HERRING_BANK),
+        ("NEGATION_SYMPTOMS", NEGATION_SYMPTOMS),
+    ):
+        missing = diagnoses - set(bank)
+        extra = set(bank) - diagnoses
+        if missing:
+            problems.append(f"{name} is missing: {sorted(missing)}")
+        if extra:
+            problems.append(f"{name} has entries with no needle: {sorted(extra)}")
+    for dx, needles in NEEDLE_BANK.items():
+        for kind in ("structured", "prose"):
+            if not needles.get(kind):
+                problems.append(f"NEEDLE_BANK['{dx}'] has no '{kind}' needles")
+    if problems:
+        raise ValueError(
+            "Clinical content banks are inconsistent:\n  " + "\n  ".join(problems)
+        )
+
+
 def generate_cases(
     num_cases: int,
     lengths: List[int],
@@ -607,6 +920,7 @@ def generate_cases(
     families: List[str],
     seed: int,
 ) -> List[NiahCase]:
+    validate_banks()
     rng = random.Random(seed)
     counter = TokenCounter()
     diagnoses = list(NEEDLE_BANK.keys())
@@ -621,6 +935,20 @@ def generate_cases(
                 for diagnosis in diagnoses:
                     combos.append((family, length, depth, diagnosis))
     rng.shuffle(combos)
+
+    # Cases drawn from the same diagnosis share needles, distractors and
+    # phrasing, so they are not independent observations. McNemar and the
+    # bootstrap both assume independence, and will report an interval narrower
+    # than the evidence supports if this ratio gets large.
+    per_diagnosis = num_cases / max(1, len(diagnoses))
+    if per_diagnosis > 8:
+        print(
+            f"[warn] {num_cases} cases over {len(diagnoses)} diagnoses is "
+            f"~{per_diagnosis:.0f} per diagnosis. Cases sharing a diagnosis are "
+            f"near-duplicates, so significance computed over them will be "
+            f"overstated. Widen NEEDLE_BANK before scaling N further.",
+            file=sys.stderr,
+        )
 
     i = 0
     while len(cases) < num_cases:
@@ -640,10 +968,21 @@ def generate_cases(
 def summarize(cases: List[NiahCase]) -> Dict[str, object]:
     by_family: Dict[str, int] = {}
     by_length: Dict[str, int] = {}
+    by_diagnosis: Dict[str, int] = {}
     for c in cases:
         by_family[c.family] = by_family.get(c.family, 0) + 1
         by_length[str(c.target_tokens)] = by_length.get(str(c.target_tokens), 0) + 1
-    return {"total": len(cases), "by_family": by_family, "by_length": by_length}
+        by_diagnosis[c.diagnosis] = by_diagnosis.get(c.diagnosis, 0) + 1
+    return {
+        "total": len(cases),
+        "by_family": by_family,
+        "by_length": by_length,
+        # Effective sample size is bounded by this, not by `total`: cases
+        # sharing a diagnosis are near-duplicates.
+        "n_distinct_diagnoses": len(by_diagnosis),
+        "cases_per_diagnosis": round(len(cases) / max(1, len(by_diagnosis)), 2),
+        "by_diagnosis": by_diagnosis,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -754,7 +1093,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(
         f"Wrote {summary['total']} cases to {out_path}\n"
         f"  by_family: {summary['by_family']}\n"
-        f"  by_length: {summary['by_length']}"
+        f"  by_length: {summary['by_length']}\n"
+        f"  distinct diagnoses: {summary['n_distinct_diagnoses']} "
+        f"({summary['cases_per_diagnosis']} cases each)"
     )
     return 0
 

@@ -576,6 +576,9 @@ def _evaluate_case(case, components, real_components, axiom_extractor):
         "family": family,
         "length": length,
         "depth": depth,
+        # Carried through so the significance report can state the effective
+        # sample size. Cases sharing a diagnosis are near-duplicates.
+        "diagnosis": case.get("diagnosis", "unknown"),
         "target": _target_display(case),
         "targets": targets,
         "bare_llm": {"success": bare_success, "output": bare_output,
@@ -761,6 +764,21 @@ def _significance_table(results):
     }
     labels = {"apiro": "Apiro", "rag": "Standard RAG", "bare_llm": "Bare LLM"}
 
+    # Effective sample size. McNemar and the bootstrap both assume independent
+    # cases; cases built from the same diagnosis share needles, distractors and
+    # phrasing, so a p-value computed over many near-duplicates is narrower
+    # than the evidence supports.
+    diagnoses = {r.get("diagnosis", "unknown") for r in results}
+    per_dx = n / max(1, len(diagnoses))
+    print("\n" + "=" * 78)
+    print(f"  CASE INDEPENDENCE: {n} cases over {len(diagnoses)} distinct "
+          f"diagnoses ({per_dx:.1f} each)")
+    if per_dx > 8:
+        print("  WARNING: cases sharing a diagnosis are near-duplicates. The")
+        print("           p-values below assume independence and are therefore")
+        print("           optimistic. Widen NEEDLE_BANK in build_niah_cases.py.")
+    print("=" * 78)
+
     print("\n" + "=" * 78)
     print("  ACCURACY WITH 95% CONFIDENCE INTERVALS (Wilson)")
     print("=" * 78)
@@ -788,6 +806,11 @@ def _significance_table(results):
               f"({verdict} at alpha = 0.05)")
         stats[f"{challenger}_vs_{baseline}"] = {"delta_ci": delta, "mcnemar": mcn}
     print("=" * 78)
+    stats["_independence"] = {
+        "n_cases": n,
+        "n_distinct_diagnoses": len(diagnoses),
+        "cases_per_diagnosis": round(per_dx, 2),
+    }
     return stats
 
 
