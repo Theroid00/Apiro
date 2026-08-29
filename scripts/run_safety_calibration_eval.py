@@ -27,6 +27,11 @@ import math
 import statistics
 import sys
 from pathlib import Path
+# `Any` and `Callable` appear in annotations throughout this module. Thanks to
+# `from __future__ import annotations` they are never evaluated at runtime, so
+# the missing import did not raise — but every annotation referring to them was
+# unresolvable (typing.get_type_hints, and any static checker, fails on them).
+from typing import Any, Callable
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
