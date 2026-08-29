@@ -11,8 +11,11 @@ Ollama and a built ChromaDB corpus; the offline step needs neither.
 # 0. Offline. Seconds. Needs nothing but pytest.
 pytest
 
-# 1. Regenerate the C-NIAH case set at a size that can actually resolve an effect.
-python scripts/build_niah_cases.py --num-cases 120 --seed 7
+# 1a. PRIMARY: counterfactual traps + unanswerable cases. Lead with this.
+python scripts/build_niah_cases.py --counterfactual --num-cases 40 --seed 7
+
+# 1b. Or the classic five-family set, at a size that can resolve an effect.
+#     python scripts/build_niah_cases.py --num-cases 120 --seed 7
 
 # 2. The main run. This is the one that matters.
 python scripts/run_niah_eval.py --cases data/niah_cases.json --real \
@@ -32,6 +35,66 @@ on a local 8B model, so ~120 cases is a multi-hour run. Start with
 ---
 
 ## Choose the endpoint before choosing N
+
+### The short version
+
+```bash
+python scripts/build_niah_cases.py --counterfactual --num-cases 40 --seed 7
+python scripts/run_niah_eval.py --cases data/niah_cases.json --real --out data/niah_eval_results.json
+```
+
+That is the run to lead with. It emits 40 counterfactual (control, trap) pairs
+plus 10 unanswerable cases, and produces the two endpoints that can actually
+falsify this architecture's claims.
+
+### Related work these designs come from
+
+| Benchmark | Idea taken | Applied here |
+|---|---|---|
+| [MedEinst](https://arxiv.org/abs/2601.06636) (2026) | Counterfactual control/trap pairs; **Bias Trap Rate** = P(wrong on trap \| right on control). 5,383 pairs, 49 diseases. Frontier models keep high accuracy yet show *severe* trap rates — they do not adjust when discriminative evidence changes. | `--counterfactual` |
+| [MedAbstain](https://arxiv.org/abs/2601.12471) (2026) | Context-omission perturbations with an explicit abstention option. Even high-accuracy models fail to abstain when uncertain. | `--unanswerable-fraction` |
+| [DyReMe](https://arxiv.org/html/2510.09275) (2025) | Real-world distractors, dynamic generation to avoid contamination. | `NEEDLE_BANK` widened to 20 diagnoses; cases generated per run, never checked in as a fixed set to memorise |
+| [CUPCase](https://arxiv.org/abs/2601.06636) | Curated per-case distractors | `scripts/run_cupcase_eval.py` |
+
+### Why the counterfactual design replaced my first attempt
+
+`--paired` holds the answer fixed and adds a distractor. **A model that ignores
+the vignette entirely and pattern-matches the surface syndrome scores 100% on
+both halves.** It measures whether a distractor *derails* a model; it cannot
+detect a model that was never reading the evidence in the first place.
+
+`--counterfactual` makes the discriminative evidence flip the answer. The
+prior-driven answer is wrong by construction on the trap, so the design cannot
+be passed by ignoring the note. `--paired` is kept for the narrower question of
+distractor-induced degradation, but it is not the primary endpoint.
+
+### Power, at equal compute
+
+| Endpoint | 40 runs | 60 runs | 100 runs | Falsifies what? |
+|---|:---:|:---:|:---:|---|
+| **Bias trap rate** | **65%** | **89%** | **99%** | Does evidence override priors? |
+| **Distractor selection** | 76% | 92% | 100% | Does it name the designed wrong answer? |
+| Aggregate top-3 accuracy | 57% | 77% | 95% | Is it more accurate overall? |
+| Matched-pair retention | 8% | 26% | 59% | What survives an added distractor? |
+
+Pairs needed for 80% power on the bias trap rate, by true effect:
+
+| Apiro escapes | RAG escapes | Gap | Pairs | Case-runs |
+|:---:|:---:|:---:|:---:|:---:|
+| 90% | 25% | 65 pt | 20 | 40 |
+| 85% | 30% | 55 pt | 26 | 52 |
+| 80% | 40% | 40 pt | 44 | 88 |
+| 70% | 45% | 25 pt | 108 | 216 |
+| 60% | 50% | 10 pt | >200 | — |
+
+**If contradiction soft-pruning does anything at all, the gap here is large** —
+the trap is built to punish precisely the failure the mechanism prevents. If
+the gap turns out to be small, that is the most informative negative result
+this project could get, and worth more than another accuracy table.
+
+---
+
+## The older endpoint comparison
 
 Aggregate top-3 accuracy is the wrong primary endpoint for this architecture.
 Apiro is not built to out-diagnose an 8B model in general; it is built to
