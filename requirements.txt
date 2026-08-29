@@ -26,6 +26,10 @@ fastapi>=0.111.0
 uvicorn>=0.30.0
 pydantic>=2.7.0
 
+# External benchmark datasets. `datasets` (above) loads CUPCase; huggingface-hub
+# fetches the DDXPlus CSVs + dictionaries in scripts/fetch_datasets.py.
+huggingface-hub>=0.23.0
+
 # Eval / calibration (implemented with numpy only — no scipy/sklearn dependency)
 pandas>=2.1.0
 matplotlib>=3.8.0

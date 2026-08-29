@@ -51,6 +51,9 @@ medspacy = [
 # specific context length.
 benchmarks = [
     "tiktoken",
+    # scripts/fetch_datasets.py pulls the DDXPlus CSVs and dictionaries
+    # directly from the Hub; `datasets` (already a core dep) handles CUPCase.
+    "huggingface-hub>=0.23.0",
 ]
 
 [project.scripts]

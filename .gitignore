@@ -44,8 +44,11 @@ data/corpus/
 data/ontology/
 data/logs/
 
-# Source datasets that are not ours to redistribute.
+# Source datasets that are not ours to redistribute. Re-fetch with
+# `python scripts/fetch_datasets.py` — DDXPlus is CC-BY and CUPCase is public,
+# but both are large and belong to their upstreams, not to this repo.
 data/PMC-Patients-V2.json
+data/datasets/
 
 # =========================
 # Generated run artifacts
