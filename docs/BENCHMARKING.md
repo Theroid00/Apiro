@@ -54,7 +54,7 @@ falsify this architecture's claims.
 | [MedEinst](https://arxiv.org/abs/2601.06636) (2026) | Counterfactual control/trap pairs; **Bias Trap Rate** = P(wrong on trap \| right on control). 5,383 pairs, 49 diseases. Frontier models keep high accuracy yet show *severe* trap rates — they do not adjust when discriminative evidence changes. | `--counterfactual` |
 | [MedAbstain](https://arxiv.org/abs/2601.12471) (2026) | Context-omission perturbations with an explicit abstention option. Even high-accuracy models fail to abstain when uncertain. | `--unanswerable-fraction` |
 | [DyReMe](https://arxiv.org/html/2510.09275) (2025) | Real-world distractors, dynamic generation to avoid contamination. | `NEEDLE_BANK` widened to 20 diagnoses; cases generated per run, never checked in as a fixed set to memorise |
-| [CUPCase](https://arxiv.org/abs/2601.06636) | Curated per-case distractors | `scripts/run_cupcase_eval.py` |
+| [CUPCase](https://huggingface.co/datasets/ofir408/CupCase) | Curated per-case distractors (3 per case) | `scripts/run_cupcase_eval.py` |
 
 ### Why the counterfactual design replaced my first attempt
 
