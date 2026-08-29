@@ -1,6 +1,4 @@
 import logging
-from dataclasses import dataclass
-from typing import Optional
 
 from .ner import NERExtractor
 from .negation import NegationClassifier

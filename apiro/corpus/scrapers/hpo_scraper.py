@@ -29,7 +29,6 @@ Each record dict:
 """
 
 import gzip
-import io
 import logging
 from pathlib import Path
 

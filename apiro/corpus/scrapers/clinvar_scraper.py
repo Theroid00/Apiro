@@ -42,9 +42,7 @@ Each record dict:
 """
 
 import gzip
-import io
 import logging
-import time
 from pathlib import Path
 from typing import Iterator
 

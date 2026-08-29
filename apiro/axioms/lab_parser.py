@@ -1,6 +1,5 @@
 import re
 import logging
-from typing import Optional
 from .models import ClinicalAxiom
 
 logger = logging.getLogger(__name__)

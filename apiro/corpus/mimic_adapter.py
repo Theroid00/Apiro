@@ -35,8 +35,6 @@ Usage:
 from __future__ import annotations
 
 import csv
-import gzip
-import io
 import json
 import logging
 from dataclasses import dataclass, field

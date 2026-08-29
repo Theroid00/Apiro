@@ -29,7 +29,6 @@ Usage:
 """
 
 import logging
-import re
 
 from apiro.corpus.scrapers.medrag_scraper import (
     _guess_domain,

@@ -12,9 +12,7 @@ Run with:
     python -m pytest tests/test_graph.py -v
 """
 
-import json
 import math
-import sys
 import tempfile
 from pathlib import Path
 
