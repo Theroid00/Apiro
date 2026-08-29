@@ -1,0 +1,1102 @@
+{
+  "cases_evaluated": 25,
+  "real_components": true,
+  "overall": {
+    "bare_llm": 0.56,
+    "rag": 0.4,
+    "apiro": 0.68,
+    "bare_llm_correct": 14,
+    "rag_correct": 10,
+    "apiro_correct": 17,
+    "n_cases": 25
+  },
+  "per_family": {
+    "single_needle": {
+      "n_cases": 6,
+      "bare_llm": 0.8333333333333334,
+      "rag": 0.3333333333333333,
+      "apiro": 0.6666666666666666
+    },
+    "contradiction_needle": {
+      "n_cases": 9,
+      "bare_llm": 0.6666666666666666,
+      "rag": 0.4444444444444444,
+      "apiro": 0.8888888888888888
+    },
+    "multi_needle": {
+      "n_cases": 4,
+      "bare_llm": 0.25,
+      "rag": 0.25,
+      "apiro": 0.75
+    },
+    "red_herring": {
+      "n_cases": 4,
+      "bare_llm": 0.5,
+      "rag": 0.5,
+      "apiro": 0.5
+    },
+    "negation_trap": {
+      "n_cases": 2,
+      "bare_llm": 0.0,
+      "rag": 0.5,
+      "apiro": 0.0
+    }
+  },
+  "length_depth_matrix": {
+    "lengths": [
+      "2000k",
+      "4000k",
+      "8000k"
+    ],
+    "depths": [
+      "100%",
+      "25%",
+      "50%",
+      "75%",
+      "unknown"
+    ],
+    "cells": {
+      "2000k": {
+        "100%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "25%": {
+          "n_cases": 4,
+          "accuracy": 0.75,
+          "correct": 3
+        },
+        "50%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "75%": {
+          "n_cases": 2,
+          "accuracy": 0.5,
+          "correct": 1
+        },
+        "unknown": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        }
+      },
+      "4000k": {
+        "100%": {
+          "n_cases": 2,
+          "accuracy": 0.5,
+          "correct": 1
+        },
+        "25%": {
+          "n_cases": 2,
+          "accuracy": 0.5,
+          "correct": 1
+        },
+        "50%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "75%": {
+          "n_cases": 1,
+          "accuracy": 1.0,
+          "correct": 1
+        },
+        "unknown": {
+          "n_cases": 3,
+          "accuracy": 0.3333333333333333,
+          "correct": 1
+        }
+      },
+      "8000k": {
+        "100%": {
+          "n_cases": 3,
+          "accuracy": 1.0,
+          "correct": 3
+        },
+        "25%": {
+          "n_cases": 2,
+          "accuracy": 0.5,
+          "correct": 1
+        },
+        "50%": {
+          "n_cases": 1,
+          "accuracy": 1.0,
+          "correct": 1
+        },
+        "75%": {
+          "n_cases": 2,
+          "accuracy": 1.0,
+          "correct": 2
+        },
+        "unknown": {
+          "n_cases": 3,
+          "accuracy": 0.6666666666666666,
+          "correct": 2
+        }
+      }
+    }
+  },
+  "diagnostics": {
+    "stop_reasons": {
+      "exploration_budget": 17,
+      "saturation": 8
+    },
+    "apiro_only_wins": 7,
+    "bare_only_wins": 4
+  },
+  "case_results": [
+    {
+      "case_id": "single_needle-f95c41eeb2cd",
+      "description": "",
+      "family": "single_needle",
+      "length": "4000k",
+      "depth": "25%",
+      "target": "pulmonary_embolism",
+      "targets": [
+        "pulmonary_embolism"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "1. Pulmonary Embolism\n2. Pneumonia\n3. Acute Respiratory Distress Syndrome (ARDS)"
+      },
+      "rag": {
+        "success": false,
+        "output": "The provided text appears to be excerpts from various medical textbooks, including \"Harrison's Principles of Internal Medicine\" and \"First Aid for the USMLE Step 2 CK\". The text covers a range of topics related to internal medicine, including:\n\n1. Physical examination: The importance of performing a complete physical examination, with special attention to areas such as skin and soft tissue, neurologic evaluation, and vital signs.\n2. Appreciation of the patient's hospital experience: The challenges faced by patients in the hospital environment, including intimidation, isolation, and lack of control.\n3. Status functional capability of the patient: A grading system used to assess a patient's functional ability, ranging from fully active (Grade 0) to bedbound with malnutrition and pain (Grade 5).\n4. Changes in terminal illness: The physical and emotional changes that occur as patients approach the end of life, including"
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "Based on the provided clinical findings and reasoning trace, here are three possible diagnoses:",
+          "**Type 1 Diabetes Mellitus**",
+          "**Spontaneous Intracranial Hypotension Syndrome**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 130,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 6,
+        "rabbit_holes": 0,
+        "contradictions": 55,
+        "duration_seconds": 394.74
+      }
+    },
+    {
+      "case_id": "single_needle-042689a6a2b5",
+      "description": "",
+      "family": "single_needle",
+      "length": "4000k",
+      "depth": "25%",
+      "target": "acute_myocardial_infarction",
+      "targets": [
+        "acute_myocardial_infarction"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "1. Anxiety Disorder\n2. Hypoglycemia\n3. Panic Attack"
+      },
+      "rag": {
+        "success": false,
+        "output": "1. **Pneumonia**: The patient's symptoms, such as fever, tachycardia, hypotension, and pulmonary findings (basilar rales, atelectasis, pleural effusion), are consistent with pneumonia.\n\n2. **Pancreatitis**: The patient's abdominal tenderness, muscle rigidity, jaundice, and erythematous skin nodules due to subcutaneous fat necrosis suggest pancreatitis.\n\n3. **Sepsis**: The patient's symptoms of fever, tachycardia, hypotension, and shock are consistent with sepsis, which can be caused by a variety of infections, including pneumonia or pancreatitis.\n\n4. **Infectious Endocarditis**: The patient's history of recent upper respiratory tract infection, influenza, or varicella; prior trauma; disruption of cutaneous barriers due to lacer"
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Based on the provided information, I will attempt to generate three possible diagnoses that meet the specified requirements.",
+          "**Type 2 Diabetes Mellitus**",
+          "**Chronic Kidney Disease**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 138,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 6,
+        "rabbit_holes": 1,
+        "contradictions": 39,
+        "duration_seconds": 286.62
+      }
+    },
+    {
+      "case_id": "red_herring-db8370e91982",
+      "description": "",
+      "family": "red_herring",
+      "length": "2000k",
+      "depth": "25%",
+      "target": "acute_myocardial_infarction",
+      "targets": [
+        "acute_myocardial_infarction"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "1. **Myocardial Infarction**\n2. **Gastroesophageal Reflux Disease (GERD) exacerbation**\n3. **Anxiety/panic attack**"
+      },
+      "rag": {
+        "success": true,
+        "output": "Here are the top 3 differential diagnoses based on the clinical presentation:\n\n1. **Myocardial Infarction**: The patient's description of \"crushing substernal chest pressure radiating to the left arm and jaw\" is highly suggestive of an acute myocardial infarction.\n2. **Pulmonary Embolism**: The patient's symptoms, including chest pain and shortness of breath, could be indicative of a pulmonary embolism, especially given the lack of other obvious causes for these symptoms.\n3. **Acute Coronary Syndrome (ACS)**: Given the patient's description of chest pain and risk factors such as occasional alcohol use, ACS is another possible differential diagnosis to consider."
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Based on the provided patient data and strict rules, I will output three candidate diagnoses ranked by likelihood:",
+          "**Acute Coronary Syndrome**",
+          "**Type 1 Diabetes Mellitus**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 140,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 6,
+        "rabbit_holes": 3,
+        "contradictions": 60,
+        "duration_seconds": 325.24
+      }
+    },
+    {
+      "case_id": "contradiction_needle-9727e0003b4a",
+      "description": "",
+      "family": "contradiction_needle",
+      "length": "8000k",
+      "depth": "100%",
+      "target": "acute_myocardial_infarction",
+      "targets": [
+        "acute_myocardial_infarction"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "It appears that you have provided a large amount of text from a medical case study or report. I'll do my best to provide a concise summary and answer any specific questions you may have.\n\n**Summary:**\n\nThe patient presented with symptoms of chest pain, diaphoresis (excessive sweating), nausea, and a sense of impending doom. Initially, the admitting team suspected musculoskeletal chest wall pain as the cause, but further evaluation revealed dynamic ST elevation and a rising troponin trend, which are inconsistent with a musculoskeletal cause.\n\n**Key Findings:**\n\n* Chest pain\n* Diaphoresis\n* Nausea\n* Sense of impending doom\n* Dynamic ST elevation on ECG\n* Rising troponin trend\n\n**Working Diagnosis:**\n\nThe admitting team initially favored musculoskeletal chest wall pain, but the presence of dynamic ST elevation and a rising tro"
+      },
+      "rag": {
+        "success": true,
+        "output": "The provided text appears to be a collection of excerpts from various medical textbooks, including Harrison's Principles of Internal Medicine and First Aid Step 2. The text covers a range of topics related to internal medicine, including physical examination techniques, assessment of patients with suspected infections or cancer, and review materials for the USMLE (United States Medical Licensing Examination) Step 2 CK exam.\n\nSome key points from the text include:\n\n1.  **Physical Examination**: A complete physical examination should be performed, focusing on areas such as general appearance, vital signs, skin and soft tissue examination, and neurologic evaluation.\n2.  **Assessment of Patients with Suspected Infections or Cancer**: Initial assessment includes a comprehensive history and physical, laboratory tests (e.g., complete blood count, liver enzyme levels), imaging studies (e.g., chest radiography, abdominal ultrasound), and age- and risk factor\u2013specific"
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Acute Coronary Syndrome due to Myocardial Infarction",
+          "Anterior Wall Myocardial Infarction",
+          "STEMI (ST-Elevation Myocardial Infarction)"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 110,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 4,
+        "rabbit_holes": 4,
+        "contradictions": 37,
+        "duration_seconds": 294.43
+      }
+    },
+    {
+      "case_id": "multi_needle-51bf4b935308",
+      "description": "",
+      "family": "multi_needle",
+      "length": "8000k",
+      "depth": "100%",
+      "target": "bacterial_meningitis",
+      "targets": [
+        "bacterial_meningitis"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This appears to be a medical record from an outpatient clinic visit. The patient's symptoms and test results are not explicitly stated in the text, but based on the information provided, here is a summary of the key points:\n\n* The patient was seen for a routine follow-up appointment.\n* The patient's chronic medications were refilled without changes.\n* Physical therapy notes indicate steady progress toward mobility goals.\n* Baseline metabolic panel values were within normal reference ranges.\n* The patient has been compliant with previously prescribed therapy.\n* The patient reports adequate sleep and no recent changes in appetite.\n* The patient denies recent travel or known sick contacts.\n\nHowever, there is a mention of a cerebrospinal fluid (CSF) analysis at the end of the text. This suggests that the patient may have had some neurological symptoms or concerns that required further investigation. The CSF analysis results are as follows:\n\n* White"
+      },
+      "rag": {
+        "success": false,
+        "output": "The provided text appears to be a collection of excerpts from a medical textbook, specifically the Harrison's Principles of Internal Medicine. The topics covered include:\n\n1. **Infectious Diseases**: The importance of considering infectious diseases in patients with nonspecific symptoms.\n2. **Physical Examination**: The need for a thorough physical examination, including assessment of vital signs, skin and soft tissue examination, and neurologic evaluation.\n3. **Cardinal Manifestations and Presentation of Diseases**: Examples of skin lesions in neutropenic patients, septic emboli, and disseminated gonococcemia.\n\nThe text does not provide a specific patient case or scenario to analyze. However, based on the content, here are some general points that could be discussed:\n\n* The importance of considering infectious diseases in patients with nonspecific symptoms.\n* The need for a thorough physical examination, including assessment of vital signs and skin and soft tissue"
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "**Bacterial Meningitis**",
+          "**Type 1 Diabetes Mellitus**",
+          "**Nephrotic Syndrome due to Minimal Change Disease**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 119,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 5,
+        "rabbit_holes": 6,
+        "contradictions": 68,
+        "duration_seconds": 295.89
+      }
+    },
+    {
+      "case_id": "red_herring-acb984e6e02a",
+      "description": "",
+      "family": "red_herring",
+      "length": "8000k",
+      "depth": "unknown",
+      "target": "diabetic_ketoacidosis",
+      "targets": [
+        "diabetic_ketoacidosis"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This appears to be a lengthy medical record from an outpatient clinic visit, detailing various aspects of the patient's care. Here are some key points that can be extracted:\n\n1. **Patient Compliance**: The patient has been compliant with their prescribed therapy.\n2. **Medication Management**: Medication reconciliation was performed and the list was updated.\n3. **Diet and Exercise Counseling**: The patient was counseled on diet, exercise, and smoking cessation.\n4. **Vital Signs**: Vital signs were recorded on arrival and documented in the chart.\n5. **Physical Therapy Progress**: Physical therapy notes indicate steady progress toward mobility goals.\n6. **Wound Care**: Wound care instructions were reinforced and demonstrated to the patient.\n7. **Bowel and Bladder Function**: Bowel and bladder function were reported as unchanged and regular.\n8. **Sleep and Appetite**: The patient reports adequate"
+      },
+      "rag": {
+        "success": false,
+        "output": "The provided text appears to be a collection of medical notes and case studies from various sources, including Harrison's Principles of Internal Medicine and First Aid Step 1 and Step 2. The text covers a range of topics, including:\n\n1. Mitral valve prolapse, arrhythmias, hypotension, bradycardia, amenorrhea, and other symptoms associated with anorexia nervosa.\n2. Clinical presentation and diagnosis of various psychiatric conditions, including bulimia nervosa, illness anxiety disorder, and substance use disorders.\n3. Laboratory tests and diagnostic criteria for different medical conditions.\n\nHowever, there is no specific question or prompt provided to answer. The text seems to be a collection of information rather than a problem to solve.\n\nIf you could provide a specific question or prompt related to the topic, I would be happy to help you answer it."
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Based on the provided information, I will attempt to extract the most likely diagnoses for the patient. Please note that this is a complex task, and the output may not be 100% accurate without more context or specific medical knowledge.",
+          "*Primary Diagnosis:**",
+          "Diabetic Ketoacidosis (DKA)"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 96,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 6,
+        "rabbit_holes": 8,
+        "contradictions": 43,
+        "duration_seconds": 271.6
+      }
+    },
+    {
+      "case_id": "contradiction_needle-4e5a907d136d",
+      "description": "",
+      "family": "contradiction_needle",
+      "length": "8000k",
+      "depth": "75%",
+      "target": "pulmonary_embolism",
+      "targets": [
+        "pulmonary_embolism"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This appears to be a lengthy medical record from an outpatient clinic, detailing various aspects of a patient's care over several visits. I'll try to summarize the key points:\n\n**Patient Profile:**\n\n* The patient is seen in the outpatient clinic for routine follow-up appointments.\n* Their weight and vital signs are stable compared to previous encounters.\n\n**Medical History:**\n\n* The admitting team initially suspected community-acquired pneumonia based on symptoms, but subsequent chest radiographs showed clear lung fields with no infiltrate or consolidation.\n* A general review of systems reveals no acute cardiopulmonary complaints during the interview.\n\n**Medications and Allergies:**\n\n* The patient's chronic medications are refilled without changes.\n* No new allergies are reported since the last documented visit.\n\n**Laboratory Results:**\n\n* Baseline metabolic panel values are within normal reference ranges.\n* Laboratory specimens are collected and sent to the"
+      },
+      "rag": {
+        "success": false,
+        "output": "The provided text appears to be a collection of medical notes and references from various sources. It includes information on internal medicine, cancer screening, physical examination, and patient assessment.\n\nSome key points that can be extracted from the text include:\n\n* The importance of comprehensive history and physical examination in assessing patients with suspected pancreatic cancer.\n* The need for age-specific cancer screening tests, such as mammography and colonoscopy.\n* The use of instruments like the PART 2 to screen for dementia and depression in elderly patients with weight loss.\n* The common symptoms and signs of pancreatic cancer, including low-grade fever, tachycardia, hypotension, jaundice, and erythematous skin nodules.\n* The importance of assessing the patient's functional capability using tools like the Eastern Cooperative Oncology Group (ECOG) performance status scale.\n\nThe text also includes references to medical textbooks and online"
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Based on the provided information, I will attempt to generate three possible diagnoses that meet the strict rules outlined above.",
+          "**Type 2 Diabetes Mellitus**",
+          "The patient's symptoms are consistent with chronic kidney disease and renal insufficiency, which is a common complication of diabetes mellitus. The laboratory results indicate a high level of glucose in the blood, consistent with diabetes mellitus."
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 135,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 6,
+        "rabbit_holes": 9,
+        "contradictions": 68,
+        "duration_seconds": 293.42
+      }
+    },
+    {
+      "case_id": "single_needle-d7ce56820e9a",
+      "description": "",
+      "family": "single_needle",
+      "length": "2000k",
+      "depth": "25%",
+      "target": "diabetic_ketoacidosis",
+      "targets": [
+        "diabetic_ketoacidosis"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "1. Metabolic acidosis\n2. Chronic kidney disease (CKD)\n3. Diabetic ketoacidosis (DKA)"
+      },
+      "rag": {
+        "success": false,
+        "output": "Here are my top 3 differential diagnoses based on the clinical presentation:\n\n1. **Pancreatitis**: The patient's symptoms and laboratory results suggest pancreatitis, which is a common cause of acute abdominal pain, nausea, vomiting, and changes in vital signs.\n2. **Sepsis**: The patient's fever, tachycardia, hypotension, and altered mental status are consistent with sepsis, which can be caused by a variety of underlying infections or conditions.\n3. **Acute Kidney Injury (AKI)**: The patient's laboratory results show an elevated anion gap and metabolic acidosis, which can be indicative of AKI, particularly in the context of other symptoms such as nausea, vomiting, and changes in vital signs."
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "Based on the patient's presentation and the objective findings, I will provide three candidate diagnoses ranked by likelihood:",
+          "**Metabolic Acidosis due to Tumor Lysis Syndrome**",
+          "**Pulmonary Edema secondary to Mitochondrial Dysfunction**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 112,
+        "total_edges": 108,
+        "seed_nodes": 20,
+        "explored_nodes": 16,
+        "max_depth_reached": 6,
+        "rabbit_holes": 10,
+        "contradictions": 60,
+        "duration_seconds": 260.18
+      }
+    },
+    {
+      "case_id": "contradiction_needle-0e88ef70c099",
+      "description": "",
+      "family": "contradiction_needle",
+      "length": "2000k",
+      "depth": "75%",
+      "target": "pulmonary_embolism",
+      "targets": [
+        "pulmonary_embolism"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "1. Community-acquired pneumonia\n2. Pulmonary embolism\n3. Acute coronary syndrome"
+      },
+      "rag": {
+        "success": false,
+        "output": "Here are my top 3 differential diagnoses based on the clinical presentation:\n\n* **Pancreatitis**: The patient's symptoms of sudden-onset pleuritic chest pain and acute dyspnea after a long flight, along with the absence of lung infiltrates or consolidation on chest radiograph, suggest pancreatitis as a possible diagnosis.\n* **Pneumonia (community-acquired)**: Although the chest radiograph is clear, the patient's symptoms of pleuritic chest pain and acute dyspnea could still be consistent with pneumonia, especially given the recent travel history.\n* **Acute coronary syndrome**: The patient's sudden onset of symptoms and lack of previous cardiopulmonary complaints make this a possible diagnosis. However, the absence of specific cardiac findings on physical examination makes it less likely."
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Based on the patient's presentation and the evidence provided, I will output three candidate diagnoses ranked by likelihood:",
+          "**Type 2 Diabetes Mellitus**",
+          "**Hypothyroidism**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 124,
+        "total_edges": 108,
+        "seed_nodes": 17,
+        "explored_nodes": 19,
+        "max_depth_reached": 6,
+        "rabbit_holes": 14,
+        "contradictions": 51,
+        "duration_seconds": 247.53
+      }
+    },
+    {
+      "case_id": "contradiction_needle-31ca82a4807f",
+      "description": "",
+      "family": "contradiction_needle",
+      "length": "4000k",
+      "depth": "unknown",
+      "target": "diabetic_ketoacidosis",
+      "targets": [
+        "diabetic_ketoacidosis"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "1. Diabetic Ketoacidosis (DKA)\n2. Alcoholic Ketoacidosis\n3. Malignant Hyperthermia"
+      },
+      "rag": {
+        "success": true,
+        "output": "The provided text appears to be a collection of medical notes and case studies related to diabetes mellitus, specifically diabetic ketoacidosis (DKA), hyperosmolar hyperglycemic state (HHS), and hypoglycemia.\n\nThere is no specific question or prompt provided for me to answer. However, I can summarize the key points from the text:\n\n1. **Diabetic Ketoacidosis (DKA)**:\n\t* Characterized by hyperglycemia (> 300 mg/dL), anion gap metabolic acidosis, and hyperkalemia.\n\t* Often precipitated by stress, infection, or non-compliance with insulin therapy.\n\t* Presents with Kussmaul respirations, dehydration, nausea, vomiting, mental status changes, and fruity smelling breath (due to acetone).\n2. **Hyperosmolar Hyperglycemic State (HHS"
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "Based on the provided information, I will attempt to generate three possible diagnoses that are most likely to explain the objective findings.",
+          "**Diabetic Nephropathy**: This is a complication of long-standing diabetes mellitus, which can lead to chronic glomerular damage and basement membrane thickening.",
+          "**Hyperglycemic State due to Insulin Resistance**: This condition occurs when the body's cells become less responsive to insulin, leading to elevated blood glucose levels."
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 136,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 6,
+        "rabbit_holes": 15,
+        "contradictions": 62,
+        "duration_seconds": 307.0
+      }
+    },
+    {
+      "case_id": "contradiction_needle-31ca82a4807f",
+      "description": "",
+      "family": "contradiction_needle",
+      "length": "4000k",
+      "depth": "100%",
+      "target": "diabetic_ketoacidosis",
+      "targets": [
+        "diabetic_ketoacidosis"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "1. Diabetic Ketoacidosis (DKA)\n2. Hyperglycemic Hyperosmolar Non-Ketotic Syndrome (HHNS)\n3. Metabolic Alkalosis"
+      },
+      "rag": {
+        "success": false,
+        "output": "The provided text appears to be a collection of medical notes and references from various sources. The content covers internal medicine topics, including patient assessment, physical examination, and treatment guidelines for various conditions.\n\nHowever, there is no specific question or prompt provided for me to answer. If you could provide more context or specify what you would like me to focus on, I'll be happy to assist you in extracting relevant information from the text.\n\nIf you'd like, I can summarize the key points from the text, highlighting important concepts and takeaways related to internal medicine. Please let me know how I can best assist you!"
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Diabetic ketoacidosis",
+          "Type 1 diabetes mellitus",
+          "Hyperosmolar hyperglycemic state"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 81,
+        "total_edges": 99,
+        "seed_nodes": 19,
+        "explored_nodes": 14,
+        "max_depth_reached": 5,
+        "rabbit_holes": 15,
+        "contradictions": 24,
+        "duration_seconds": 211.0
+      }
+    },
+    {
+      "case_id": "negation_trap-2fcea51a6e45",
+      "description": "",
+      "family": "negation_trap",
+      "length": "4000k",
+      "depth": "100%",
+      "target": "acute_appendicitis",
+      "targets": [
+        "acute_appendicitis"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "1. Leukocytosis\n2. Infection or inflammation\n3. Acute stress response (Cushing's syndrome)"
+      },
+      "rag": {
+        "success": true,
+        "output": "Here are my top 3 differential diagnoses based on the clinical presentation:\n\n1. **Pancreatitis**: The patient's elevated WBC count with a left shift and neutrophilia, along with abdominal tenderness and muscle rigidity, suggest pancreatitis.\n2. **Sepsis**: The patient's fever, tachycardia, hypotension, and elevated WBC count are consistent with sepsis, which can be caused by a variety of underlying infections or conditions.\n3. **Acute Appendicitis**: The patient's abdominal tenderness and muscle rigidity, along with the elevated WBC count, suggest acute appendicitis as another possible diagnosis.\n\nThese differential diagnoses are supported by the clinical presentation and laboratory findings, including the elevated WBC count, fever, and abdominal symptoms. Further diagnostic testing and evaluation would be necessary to determine the underlying cause of these symptoms."
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "*Diagnosis 1:**",
+          "Acute Myeloid Leukemia (AML)",
+          "*Diagnosis 2:**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 113,
+        "total_edges": 123,
+        "seed_nodes": 17,
+        "explored_nodes": 24,
+        "max_depth_reached": 6,
+        "rabbit_holes": 15,
+        "contradictions": 51,
+        "duration_seconds": 291.39
+      }
+    },
+    {
+      "case_id": "contradiction_needle-9727e0003b4a",
+      "description": "",
+      "family": "contradiction_needle",
+      "length": "8000k",
+      "depth": "75%",
+      "target": "acute_myocardial_infarction",
+      "targets": [
+        "acute_myocardial_infarction"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "This appears to be a lengthy medical record with numerous entries, but I'll try to summarize the key points:\n\n**Patient's Condition:**\n\n* Initially suspected of having musculoskeletal chest wall pain\n* However, dynamic ST elevation and rising troponin trend suggest a cardiac issue (e.g., myocardial infarction)\n\n**Medical History and Treatment:**\n\n* The patient has been compliant with their prescribed therapy\n* Their chronic medications were refilled without changes\n* Laboratory specimens were collected and sent to the reference lab for analysis\n\n**Clinical Findings:**\n\n* No acute cardiopulmonary complaints were elicited during the interview\n* Skin was warm and dry with no obvious rashes or lesions noted\n* Baseline metabolic panel values were within normal reference ranges\n* The patient's weight was stable compared to the prior encounter\n\n**Follow-up and Future Care:**\n\n* The patient"
+      },
+      "rag": {
+        "success": true,
+        "output": "The provided text appears to be a collection of excerpts from various medical texts, including Harrison's Principles of Internal Medicine, Step 2 CK First Aid, and Adams and Victor's Principles of Neurology.\n\nBased on the content, it seems that the original question or prompt was not included in the provided text. However, I can attempt to provide an answer based on the information presented.\n\nThe excerpts appear to be discussing various aspects of medical evaluation and diagnosis, including:\n\n1. The importance of a complete physical examination, particularly in patients with suspected neurological disorders.\n2. Case studies illustrating common presentations of psychiatric conditions, such as anxiety, depression, and substance use disorders.\n3. Discussion of laboratory tests and diagnostic approaches for evaluating patients with suspected neurological or psychiatric conditions.\n\nIf you could provide the original question or prompt, I would be happy to attempt a more specific answer."
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Based on the provided information, I will attempt to extract the most likely diagnoses for the patient. Please note that this is a complex task, and the output may not be 100% accurate without more context or specific medical knowledge.",
+          "*Confirmed Objective Findings:**",
+          "The patient presents with the clinical finding of mental status examination."
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 127,
+        "total_edges": 129,
+        "seed_nodes": 19,
+        "explored_nodes": 24,
+        "max_depth_reached": 6,
+        "rabbit_holes": 17,
+        "contradictions": 53,
+        "duration_seconds": 268.46
+      }
+    },
+    {
+      "case_id": "multi_needle-ff5272864eab",
+      "description": "",
+      "family": "multi_needle",
+      "length": "2000k",
+      "depth": "25%",
+      "target": "pulmonary_embolism",
+      "targets": [
+        "pulmonary_embolism"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "1. Deep Vein Thrombosis (DVT)\n2. Pulmonary Embolism\n3. Venous Insufficiency"
+      },
+      "rag": {
+        "success": false,
+        "output": "Here are the top 3 differential diagnoses based on the clinical presentation:\n\n1. **Deep Vein Thrombosis (DVT)**: The patient has a high-risk Wells score and a D-dimer of 3,400 ng/mL, which suggests an increased risk for thromboembolic events.\n2. **Cellulitis**: The patient's unilateral calf swelling and tenderness following prolonged immobilization are consistent with cellulitis, especially given the lack of other obvious causes such as trauma or infection.\n3. **Osteomyelitis**: Given the patient's history of immobility and potential pressure ulcers, osteomyelitis is a possible differential diagnosis, although it would typically require further investigation (e.g., imaging studies) to confirm.\n\nNote: These diagnoses are based on the provided clinical presentation and may not be exhaustive or definitive. Further evaluation and testing would be necessary to"
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "**Deep Vein Thrombosis**",
+          "**Acute Promyelocytic Leukemia**",
+          "**Pulmonary Embolism**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 87,
+        "total_edges": 84,
+        "seed_nodes": 20,
+        "explored_nodes": 8,
+        "max_depth_reached": 4,
+        "rabbit_holes": 17,
+        "contradictions": 30,
+        "duration_seconds": 168.39
+      }
+    },
+    {
+      "case_id": "multi_needle-3d3b5d1f18b3",
+      "description": "",
+      "family": "multi_needle",
+      "length": "8000k",
+      "depth": "unknown",
+      "target": "pulmonary_embolism",
+      "targets": [
+        "pulmonary_embolism"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This appears to be a lengthy medical record from an outpatient clinic visit, detailing various aspects of the patient's care. I'll attempt to summarize the key points:\n\n**Patient Information:**\n\n* The patient was seen in the outpatient clinic for a routine follow-up visit.\n* Their weight was stable compared to the previous encounter.\n\n**Medical History and Medications:**\n\n* The patient has been compliant with their prescribed therapy.\n* Their chronic medications were refilled without changes.\n* No new allergies or sensitivities were reported since the last documented visit.\n\n**Physical Examination:**\n\n* A brief mental status examination was conducted, which was grossly non-focal (i.e., no significant abnormalities were noted).\n* Vital signs were recorded and documented in the chart.\n* The patient's home glucose logs were reviewed and appeared consistent with their treatment plan.\n\n**Treatment and Education:**\n\n* Wound care instructions were reinforced"
+      },
+      "rag": {
+        "success": false,
+        "output": "The provided text appears to be a collection of case studies and review materials from various medical textbooks. The topics covered include:\n\n1. **First Aid Step 2**: A companion book to the Blueprints series, focusing on high-yield cases for the USMLE Step 2 CK exam.\n2. **Pharmacology Katzung**: A pharmacology textbook that provides information on various medications and their uses.\n3. **Biochemistry Lippincott**: A review of biochemistry concepts, including metabolic pathways and disorders.\n4. **Internal Medicine Harrison**: A comprehensive internal medicine textbook covering various diseases and conditions.\n\nThe case studies presented in the text include:\n\n1. A 25-year-old woman with a deep vein thrombosis (DVT) and pulmonary emboli, who is being treated for acute venous thromboembolism.\n2. A patient named MW, who is diagnosed with"
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Based on the provided information, I will attempt to extract three diagnoses that meet the specified criteria.",
+          "**Type 2 Diabetes Mellitus**",
+          "The patient's stable glucose levels, normal review of systems, and absence of rash or lesions suggest a diagnosis of Type 2 Diabetes Mellitus."
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 125,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 6,
+        "rabbit_holes": 17,
+        "contradictions": 48,
+        "duration_seconds": 289.58
+      }
+    },
+    {
+      "case_id": "contradiction_needle-df955b775bf2",
+      "description": "",
+      "family": "contradiction_needle",
+      "length": "8000k",
+      "depth": "50%",
+      "target": "diabetic_ketoacidosis",
+      "targets": [
+        "diabetic_ketoacidosis"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This appears to be a lengthy and repetitive medical record of a patient's visit to an outpatient clinic. I'll try to summarize the key points:\n\n**Patient Information**\n\n* The patient has been compliant with their prescribed therapy.\n* Their weight is stable compared to the previous encounter.\n* They have adequate sleep and no recent changes in appetite.\n\n**Medical History**\n\n* There are no new conditions or allergies reported by the patient.\n* Family history was reviewed, and there were no new conditions found.\n* Immunization history was up-to-date.\n\n**Physical Examination**\n\n* The patient's vital signs were recorded and documented.\n* A brief mental status examination was performed, which was grossly non-focal.\n* Physical therapy notes indicate steady progress toward mobility goals.\n\n**Medications**\n\n* The patient's chronic medications were refilled without changes.\n* Medication reconciliation was performed, and the list was updated.\n\n**"
+      },
+      "rag": {
+        "success": false,
+        "output": "This appears to be a review of various medical texts and resources related to internal medicine, including Harrison's Principles of Internal Medicine.\n\nThe reviews are generally positive, highlighting the strengths of each resource in terms of its organization, focus on high-yield information, and ease of use. However, some criticisms are also noted, such as the text being crowded onto one page without images or diagrams (First_Aid_Step2), or the book being too lengthy and detailed for USMLE review (InternalMed_Harrison).\n\nSome key points from the reviews include:\n\n* Harrison's Principles of Internal Medicine is a comprehensive resource that covers a wide range of topics in internal medicine.\n* The Blueprints series, including \"Blueprints Q & A Step 2 Medicine\" and \"Blueprints: Clinical Cases\", are useful for quick study on the wards and provide high-yield information on common diseases.\n* The Secrets series"
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Type 1 Diabetes Mellitus",
+          "Diabetic Ketoacidosis",
+          "Insulinoma"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 101,
+        "total_edges": 123,
+        "seed_nodes": 20,
+        "explored_nodes": 21,
+        "max_depth_reached": 5,
+        "rabbit_holes": 17,
+        "contradictions": 41,
+        "duration_seconds": 247.39
+      }
+    },
+    {
+      "case_id": "red_herring-d10f4456cb68",
+      "description": "",
+      "family": "red_herring",
+      "length": "4000k",
+      "depth": "unknown",
+      "target": "hyperkalemia",
+      "targets": [
+        "hyperkalemia"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "1. Chronic Kidney Disease\n2. Renal Tubular Acidosis\n3. Pseudohyperkalemia (lab error)"
+      },
+      "rag": {
+        "success": true,
+        "output": "The provided text appears to be a collection of medical notes, case studies, and explanations related to various conditions such as diabetic ketoacidosis (DKA), hyperkalemia, hypokalemia, and acid-base disturbances. The text includes:\n\n1. A description of DKA, its diagnosis, and treatment.\n2. An explanation of the diagnostic approach to hyperkalemia, including laboratory tests and medications that can cause it.\n3. A case study of a patient with severe hypokalemia, including laboratory results and an analysis of the possible causes.\n4. A table summarizing the cardinal manifestations and presentation of diseases related to potassium disturbances.\n\nThe text does not provide a clear narrative or a specific question to answer. However, based on the content, it seems that the text is intended for medical professionals or students in the field of internal medicine.\n\nIf you would like me to extract"
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "Based on the provided information, I will attempt to generate three possible diagnoses that are most likely to explain the objective findings.",
+          "**Diabetic Ketoacidosis**",
+          "**Hypokalemia due to Aldosterone Insufficiency or Resistance**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 109,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 4,
+        "rabbit_holes": 21,
+        "contradictions": 54,
+        "duration_seconds": 291.18
+      }
+    },
+    {
+      "case_id": "red_herring-f6004552511b",
+      "description": "",
+      "family": "red_herring",
+      "length": "2000k",
+      "depth": "75%",
+      "target": "acute_appendicitis",
+      "targets": [
+        "acute_appendicitis"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "1. Irritable Bowel Syndrome (IBS)\n2. Acute Appendicitis\n3. Gastroenteritis"
+      },
+      "rag": {
+        "success": false,
+        "output": "Here are my top 3 differential diagnoses based on the clinical presentation:\n\n1. **Irritable Bowel Syndrome (IBS)**: The patient has a long-standing history of irritable bowel syndrome with recurrent diffuse abdominal pain, which suggests that IBS is a likely diagnosis.\n2. **Inflammatory Bowel Disease (IBD)**: The patient's symptoms, such as abdominal pain and changes in bowel habits, could be indicative of inflammatory bowel disease (e.g., Crohn's disease or ulcerative colitis).\n3. **Functional Constipation**: The patient's bowel and bladder function were reported as unchanged and regular, which suggests that functional constipation may be a contributing factor to their symptoms.\n\nNote: These differential diagnoses are based on the information provided in the clinical presentation and do not take into account any additional information or test results that may have been mentioned in the context."
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "**Chronic Pancreatitis**",
+          "**Sigmoid Colon Diverticulitis**",
+          "**Tubo-Ovarian Abscess**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 147,
+        "total_edges": 129,
+        "seed_nodes": 19,
+        "explored_nodes": 24,
+        "max_depth_reached": 6,
+        "rabbit_holes": 21,
+        "contradictions": 73,
+        "duration_seconds": 310.36
+      }
+    },
+    {
+      "case_id": "multi_needle-776ccd3f0a52",
+      "description": "",
+      "family": "multi_needle",
+      "length": "8000k",
+      "depth": "unknown",
+      "target": "bacterial_meningitis",
+      "targets": [
+        "bacterial_meningitis"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This appears to be a lengthy medical record from an outpatient clinic visit, detailing various aspects of the patient's care. Here is a summarized version:\n\n**Patient Information**\n\n* The patient was seen for a routine follow-up appointment.\n* Their weight was stable compared to the previous encounter.\n\n**Medical History and Medications**\n\n* The patient has been compliant with their prescribed medications.\n* Their chronic medications were refilled without changes.\n* A medication reconciliation was performed, and the list was updated.\n\n**Physical Examination**\n\n* Vital signs were recorded on arrival and documented in the chart.\n* The patient's home glucose logs were reviewed and appeared consistent.\n* Baseline metabolic panel values were within normal reference ranges.\n* Bowel and bladder function were reported as unchanged and regular.\n* No acute cardiopulmonary complaints were elicited during the interview.\n\n**Social History**\n\n* Social history includes occasional alcohol use and no"
+      },
+      "rag": {
+        "success": true,
+        "output": "The provided text appears to be a collection of medical notes and references from various sources, including Harrison's Principles of Internal Medicine and First Aid Step 1. The content covers a wide range of topics related to internal medicine, infectious diseases, and general medical conditions.\n\nTo provide a concise answer to the original question, \"What is the most likely diagnosis for this patient?\", I would need more specific information about the patient's symptoms, medical history, and test results. However, based on the provided text, it seems that the patient may have an infectious disease or a condition related to immunodeficiency.\n\nSome possible diagnoses that come to mind based on the text include:\n\n1. Invasive fungal infection (e.g., aspergillosis, mucormycosis)\n2. Bacterial sepsis or bacteremia\n3. Viral infection (e.g., HIV, hepatitis B)\n4."
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "**Macrocytic anemia caused by folate deficiency**",
+          "**Osmotic demyelination syndrome (ODS)** due to rapid correction of hyponatremia",
+          "**Leukopenia, specifically neutropenia, caused by chemotherapy-induced damage to stem cells**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 112,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 6,
+        "rabbit_holes": 26,
+        "contradictions": 58,
+        "duration_seconds": 274.38
+      }
+    },
+    {
+      "case_id": "contradiction_needle-ee7b40208a38",
+      "description": "",
+      "family": "contradiction_needle",
+      "length": "4000k",
+      "depth": "75%",
+      "target": "acute_myocardial_infarction",
+      "targets": [
+        "acute_myocardial_infarction"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "1. Acute Coronary Syndrome (ACS)\n2. Musculoskeletal chest wall pain\n3. Anxiety or stress-related chest discomfort"
+      },
+      "rag": {
+        "success": true,
+        "output": "Here are the key points from the text:\n\n**Patient's Status**\n\n* The patient is a 100-year-old man with no complaints and no evidence of disease.\n* He is able to carry on normal activity, but has some minor signs or symptoms of disease.\n\n**Physical Examination**\n\n* A complete physical examination should be performed, including:\n\t+ General appearance and vital signs\n\t+ Skin and soft tissue examination\n\t+ Neurologic evaluation\n* The patient may appear anxious and agitated or lethargic and apathetic.\n* Fever is usually present, but elderly patients and compromised hosts may be afebrile.\n\n**Clinical Judgment**\n\n* An effective physician must be able to identify crucial elements in a complex history and physical examination.\n* They must order the appropriate laboratory, imaging, and diagnostic tests, and extract key results from densely populated computer screens.\n* Deciding whether a clinical"
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Type 2 diabetes mellitus",
+          "Acute coronary syndrome due to an imbalance between oxygen supply and demand",
+          "ST-segment elevation myocardial infarction"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 122,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 5,
+        "rabbit_holes": 27,
+        "contradictions": 51,
+        "duration_seconds": 283.18
+      }
+    },
+    {
+      "case_id": "negation_trap-2133b5d36962",
+      "description": "",
+      "family": "negation_trap",
+      "length": "8000k",
+      "depth": "25%",
+      "target": "hyperkalemia",
+      "targets": [
+        "hyperkalemia"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This text appears to be a repetitive and lengthy description of a medical visit or examination. It includes various details such as:\n\n* Vital signs (temperature, blood pressure, etc.) being recorded\n* Medication reconciliation and updates\n* Review of laboratory specimens sent to a reference lab\n* Discussion of goals of care and documented preferences by the care team\n* Review of immunization history and updating it if necessary\n* Assessment of bowel and bladder function\n* Physical therapy notes indicating steady progress toward mobility goals\n* Review of sleep and appetite habits\n* Counseling on diet, exercise, and smoking cessation\n\nHowever, without a specific question or request for information, it is difficult to provide a concise answer. If you could provide more context or clarify what you are looking for, I would be happy to assist further.\n\nThat being said, here are some possible questions that could be answered based on the provided text"
+      },
+      "rag": {
+        "success": false,
+        "output": "This appears to be a collection of text snippets from various medical textbooks and resources, including Harrison's Internal Medicine, First Aid Step 2, and others. The text covers a range of topics related to internal medicine, including physical examination, patient assessment, and management of various diseases.\n\nHowever, I couldn't find any specific complaints or issues mentioned in the provided text. It seems that the text is more focused on providing information and guidance for medical professionals rather than addressing specific complaints or problems.\n\nIf you could provide more context or clarify what you are looking for, I'd be happy to try and assist you further."
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "*Diagnosis 1:**",
+          "Gilbert Syndrome",
+          "*Diagnosis 2:**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 116,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 6,
+        "rabbit_holes": 33,
+        "contradictions": 54,
+        "duration_seconds": 278.3
+      }
+    },
+    {
+      "case_id": "single_needle-1d329a34a951",
+      "description": "",
+      "family": "single_needle",
+      "length": "4000k",
+      "depth": "unknown",
+      "target": "hyperkalemia",
+      "targets": [
+        "hyperkalemia"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "1. Hyperkalemia\n2. Renal insufficiency\n3. Medication non-adherence (potassium-sparing diuretics)"
+      },
+      "rag": {
+        "success": true,
+        "output": "The provided text appears to be a collection of medical case studies and explanations related to various conditions such as diabetic ketoacidosis (DKA), hyperkalemia, hypokalemia, and other electrolyte imbalances.\n\nTo answer the question posed at the beginning of the text: \"What caused the hyperkalemia and metabolic acidosis in this patient?\" we need more information about the specific case being discussed. However, based on the general explanations provided for each condition:\n\n- Hyperkalemia can be caused by renal failure, excessive potassium intake, or a shift from intracellular to extracellular compartments.\n- Metabolic acidosis is often associated with DKA, but it can also result from other conditions such as kidney disease, certain medications (e.g., amphotericin B), and severe diarrhea.\n\nWithout specific details about the patient's case, it's challenging to pinpoint the exact"
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Based on the provided information, I will attempt to generate three possible diagnoses that meet the strict rules outlined above.",
+          "**Hyperkalemia**",
+          "**Primary Aldosteronism**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 93,
+        "total_edges": 120,
+        "seed_nodes": 19,
+        "explored_nodes": 21,
+        "max_depth_reached": 6,
+        "rabbit_holes": 35,
+        "contradictions": 39,
+        "duration_seconds": 264.9
+      }
+    },
+    {
+      "case_id": "contradiction_needle-ea197ee0e7b3",
+      "description": "",
+      "family": "contradiction_needle",
+      "length": "8000k",
+      "depth": "25%",
+      "target": "acute_appendicitis",
+      "targets": [
+        "acute_appendicitis"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "This appears to be a lengthy medical record from an outpatient clinic, detailing various aspects of a patient's care over several visits. I'll summarize the key points:\n\n**Patient Information:**\n\n* The patient has been seen in the outpatient clinic for routine follow-up appointments.\n* Their weight was stable compared to previous encounters.\n\n**Medical History and Medications:**\n\n* The patient has no new allergies since their last documented visit.\n* Their chronic medications were refilled without changes.\n* They have a history of occasional alcohol use, but no illicit drug use.\n\n**Physical Examination and Laboratory Results:**\n\n* Vital signs were recorded on arrival and documented in the chart.\n* Baseline metabolic panel values were within normal reference ranges.\n* Physical therapy notes indicate steady progress toward mobility goals.\n* Bowel and bladder function were reported as unchanged and regular.\n\n**Care Plan and Next Steps:**\n\n* The patient was scheduled"
+      },
+      "rag": {
+        "success": false,
+        "output": "The provided text appears to be a medical textbook, specifically the section on \"Fever of Unknown Origin\" from Harrison's Principles of Internal Medicine. The text discusses various aspects of fever of unknown origin (FUO), including:\n\n1. **History**: The importance of detailed questioning about the onset and duration of symptoms, as well as host factors that may increase the risk of infection.\n2. **Physical Examination**: A complete physical examination is essential, with special attention to areas such as skin and soft tissue, neurologic evaluation, and assessment of vital signs.\n3. **Diagnostic Approach**: The text outlines a step-by-step approach to diagnosing FUO, including:\n\t* Identifying potential causes (PDCs) based on the history and physical examination\n\t* Guided diagnostic tests (e.g., FDG-PET/CT, scintigraphy)\n\t* Confirmation of abnormality through"
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Based on the provided information, I will generate three possible diagnoses that meet the strict rules:",
+          "**Type 2 Diabetes Mellitus**",
+          "**Chronic Alcoholism-induced Malnutrition**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 109,
+        "total_edges": 126,
+        "seed_nodes": 20,
+        "explored_nodes": 22,
+        "max_depth_reached": 6,
+        "rabbit_holes": 36,
+        "contradictions": 32,
+        "duration_seconds": 250.16
+      }
+    },
+    {
+      "case_id": "single_needle-d96870a50b7c",
+      "description": "",
+      "family": "single_needle",
+      "length": "8000k",
+      "depth": "100%",
+      "target": "acute_myocardial_infarction",
+      "targets": [
+        "acute_myocardial_infarction"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "Based on the provided text, it appears that this is a medical record from an outpatient clinic visit. The patient has been seen for routine follow-up appointments, with no acute issues reported.\n\nHowever, in the last paragraph, there is a mention of \"crushing substernal chest pressure radiating to the left arm and jaw.\" This description is classic for angina pectoris or myocardial infarction (heart attack). The patient's symptoms are severe and require immediate medical attention.\n\nTo provide a more detailed response, I would need to know more about the patient's medical history, current medications, and any previous diagnoses. However, based on this information alone, it is clear that the patient requires urgent evaluation by a cardiologist or emergency physician.\n\nHere are some potential next steps:\n\n1.  **Call for Emergency Services**: If you suspect someone is having a heart attack, call your local emergency"
+      },
+      "rag": {
+        "success": false,
+        "output": "The patient's symptoms are described as \"crushing substernal chest pressure radiating to the left arm and jaw.\" This is a classic description of angina pectoris, which is a symptom of coronary artery disease.\n\nHowever, in this context, the patient's symptoms are likely related to a psychiatric or neurological condition rather than a cardiac issue. The presence of these symptoms in conjunction with other clues from the history (e.g., \"the patient has been compliant with previously prescribed therapy\") suggests that the patient may be experiencing a conversion disorder or somatic symptom disorder.\n\nConversion disorder is characterized by the presence of one or more neurological symptoms (such as weakness, paralysis, or sensory disturbances) that cannot be explained by any medical condition. Somatic symptom disorder is characterized by excessive thoughts, feelings, or behaviors related to somatic symptoms (such as pain or fatigue).\n\nThe patient's description of their symptoms and"
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Based on the provided information, I will attempt to generate three possible diagnoses that meet the strict rules outlined above:",
+          "**Pheochromocytoma**",
+          "**Acute Tubular Necrosis due to Nephrotoxins from Medications**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "exploration_budget",
+        "total_nodes": 116,
+        "total_edges": 132,
+        "seed_nodes": 20,
+        "explored_nodes": 24,
+        "max_depth_reached": 6,
+        "rabbit_holes": 36,
+        "contradictions": 42,
+        "duration_seconds": 278.34
+      }
+    },
+    {
+      "case_id": "single_needle-9c8962489956",
+      "description": "",
+      "family": "single_needle",
+      "length": "2000k",
+      "depth": "25%",
+      "target": "acute_myocardial_infarction",
+      "targets": [
+        "acute_myocardial_infarction"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "1. Acute Coronary Syndrome\n2. Myocardial Infarction\n3. Cardiac Stress Response"
+      },
+      "rag": {
+        "success": true,
+        "output": "Based on the clinical presentation, here are my top 3 differential diagnoses:\n\n1. **Acute Pancreatitis**: The high-sensitivity troponin level rose from 45 to 1220 ng/L over three hours, which suggests cardiac involvement and potential myocardial injury, possibly due to acute pancreatitis.\n2. **Sepsis or Infection**: The patient's presentation with nonspecific symptoms, such as low-grade fever, tachycardia, and hypotension, is consistent with sepsis or infection, particularly given the recent increase in high-sensitivity troponin levels.\n3. **Cardiac Injury or Myocardial Infarction**: The significant rise in high-sensitivity troponin levels suggests cardiac injury or myocardial infarction, which may be related to a pre-existing condition or an acute event."
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "*Primary Diagnosis:** Acute Coronary Syndrome",
+          "*Secondary Diagnosis:** Type 2 Diabetes Mellitus",
+          "*Tertiary Diagnosis:** Chronic Kidney Disease"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 96,
+        "total_edges": 90,
+        "seed_nodes": 19,
+        "explored_nodes": 11,
+        "max_depth_reached": 5,
+        "rabbit_holes": 36,
+        "contradictions": 45,
+        "duration_seconds": 180.85
+      }
+    }
+  ]
+}

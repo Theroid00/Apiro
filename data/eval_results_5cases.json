@@ -1,0 +1,173 @@
+{
+  "mode": "real",
+  "n_cases": 5,
+  "bare_llm_accuracy": 0.2,
+  "rag_accuracy": 0.4,
+  "apiro_accuracy": 0.2,
+  "stop_reasons": {
+    "saturation": 4,
+    "critic_halt": 1
+  },
+  "results": [
+    {
+      "case_id": "pmc_case_1",
+      "description": "Real world case report from PMC (Scrubbed)",
+      "target": "Pulmonary embolism is not mentioned in this case.\n\nThe primary presenting diagnosis is:\n\nPoorly differentiated serous papillary cystadenocarcinoma (umbilical mass)\n\nHowever, the final conclusion after extensive investigation is:\n\nOvarian cancer stage 4 \n\n(Note: The original diagnosis was based on the umbilical mass, but subsequent investigations led to the conclusion that the primary site was likely ovarian cancer)",
+      "bare_llm": {
+        "success": false,
+        "output": "1. Metastatic melanoma to the umbilicus from a primary site elsewhere in the body, possibly related to previous liver transplantation.\n2. Kaposi's sarcoma (KS) of the skin, which is more common in immunocompromised patients such as those with organ transplants.\n3. Malignant fibrous histiocytoma or another type of soft tissue sarcoma."
+      },
+      "rag": {
+        "success": false,
+        "output": "Here are my top 3 differential diagnoses for the clinical presentation:\n\n1. **Krukenberg tumor**: A metastatic mucinous tumor that involves both ovaries, most commonly due to metastatic gastric carcinoma (diffuse type).\n2. **Choriocarcinoma**: A highly aggressive and malignant form of gestational trophoblastic disease, which can spread rapidly through the body.\n3. **Sertoli-Leydig cell tumor**: A rare malignant ovarian tumor that may produce androgen and is associated with hirsutism and virilization.\n\nNote: These diagnoses are based on the patient's age, sex, symptoms, laboratory results, and imaging findings."
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "Metastatic Hepatocellular Carcinoma",
+          "Pancreatic Neuroendocrine Tumor",
+          "Gastrointestinal Stromal Tumor"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 130,
+        "total_edges": 117,
+        "seed_nodes": 21,
+        "explored_nodes": 18,
+        "max_depth_reached": 6,
+        "rabbit_holes": 2,
+        "contradictions": 69,
+        "duration_seconds": 212.15
+      }
+    },
+    {
+      "case_id": "pmc_case_2",
+      "description": "Real world case report from PMC (Scrubbed)",
+      "target": "Miliary tuberculosis",
+      "bare_llm": {
+        "success": true,
+        "output": "1. Cutaneous Tuberculosis\n2. Mycobacterium marinum infection\n3. Disseminated M. tuberculosis with cutaneous involvement"
+      },
+      "rag": {
+        "success": true,
+        "output": "Here are the top 3 differential diagnoses for the patient:\n\n1. **Tuberculosis (TB) with extrapulmonary involvement**: The presence of a cutaneous abscess on the right side of the neck, cervical and axillary lymphadenopathy, and positive culture results from the aspirated pus showing M. tuberculosis suggest TB as a likely diagnosis.\n2. **Lymphoma or metastatic carcinoma**: The patient's presentation with a single cutaneous abscess and lymphadenopathy could also be consistent with a malignancy such as lymphoma or metastatic carcinoma.\n3. **Kikuchi's disease (necrotizing histiocytic lymphadenitis)**: This is a rare disorder that can present with cervical lymphadenopathy, fever, and night sweats, which are similar to the patient's symptoms."
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Tuberculous abscess formation",
+          "Extrapulmonary tuberculosis",
+          "Tuberculous lymphadenitis"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "critic_halt",
+        "total_nodes": 91,
+        "total_edges": 87,
+        "seed_nodes": 21,
+        "explored_nodes": 8,
+        "max_depth_reached": 6,
+        "rabbit_holes": 2,
+        "contradictions": 43,
+        "duration_seconds": 152.06
+      }
+    },
+    {
+      "case_id": "pmc_case_3",
+      "description": "Real world case report from PMC (Scrubbed)",
+      "target": "Gastrointestinal Stromal Tumor (GIST)",
+      "bare_llm": {
+        "success": false,
+        "output": "1. Pancreatic adenocarcinoma\n2. Pseudomyxoma peritonei\n3. Mucinous cystic neoplasm of the pancreas"
+      },
+      "rag": {
+        "success": false,
+        "output": "Here are the top 3 differential diagnoses for the patient's abdominal mass:\n\n1. **Pancreatic Cancer**: The mass is located in the tail of the pancreas, which is a common location for pancreatic cancer.\n2. **Chronic Pancreatitis with Pseudocyst Formation**: The heterogeneous mass and involvement of the lesser sac and gastrosplenic ligament are consistent with chronic pancreatitis and pseudocyst formation.\n3. **Pancreatic Abscess**: The patient's symptoms, including abdominal pain and swelling, could be indicative of a pancreatic abscess, which is a complication of acute or chronic pancreatitis."
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "Pancreatic adenocarcinoma",
+          "Chronic pancreatitis",
+          "Pancreatogenic diabetes"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 89,
+        "total_edges": 84,
+        "seed_nodes": 17,
+        "explored_nodes": 11,
+        "max_depth_reached": 6,
+        "rabbit_holes": 2,
+        "contradictions": 52,
+        "duration_seconds": 152.94
+      }
+    },
+    {
+      "case_id": "pmc_case_4",
+      "description": "Real world case report from PMC (Scrubbed)",
+      "target": "Poorly differentiated mucinous adenocarcinoma of colon",
+      "bare_llm": {
+        "success": false,
+        "output": "1. Crohn's disease\n2. Ulcerative colitis with gastric involvement\n3. Gastric carcinoma with fistula formation"
+      },
+      "rag": {
+        "success": false,
+        "output": "Here are the top 3 differential diagnoses based on the clinical presentation:\n\n1. **Small Bowel Obstruction (SBO)**: The patient's symptoms of epigastric pain, feculent vomiting, post-prandial diarrhea, and significant weight loss suggest a mechanical obstruction in the small bowel.\n2. **Crohn's Disease**: The presence of thickened bowel in the right upper quadrant, dilated duodenum, and fistulous tract into the transverse colon on imaging studies are consistent with Crohn's disease, which can cause chronic inflammation and narrowing of the intestinal lumen.\n3. **Gastrointestinal Fistula**: The patient's symptoms of feculent vomiting, post-prandial diarrhea, and significant weight loss, combined with the presence of a fistulous tract into the transverse colon on imaging studies, suggest a gastrointestinal fistula, which can be caused by various conditions"
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "**Gastric adenocarcinoma**",
+          "**Colorectal cancer**",
+          "**Celiac disease**"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 129,
+        "total_edges": 117,
+        "seed_nodes": 21,
+        "explored_nodes": 18,
+        "max_depth_reached": 4,
+        "rabbit_holes": 3,
+        "contradictions": 69,
+        "duration_seconds": 233.81
+      }
+    },
+    {
+      "case_id": "pmc_case_5",
+      "description": "Real world case report from PMC (Scrubbed)",
+      "target": "Pulmonary embolism.",
+      "bare_llm": {
+        "success": false,
+        "output": "1. Small cell lung cancer\n2. Non-small cell lung cancer\n3. Sarcoidosis"
+      },
+      "rag": {
+        "success": true,
+        "output": "Here are my top 3 differential diagnoses:\n\n1. **Small Cell Lung Cancer**: The patient's age, smoking history, and presence of bilateral pulmonary nodules on CT scan make this a strong consideration.\n2. **Pulmonary Embolism**: The patient is in respiratory distress, which can be a presentation of pulmonary embolism, especially given the bilateral pulmonary nodules on chest X-ray.\n3. **Tuberculosis (TB)**: Given the patient's history of smoking and exposure to TB, this is also a strong consideration, particularly with the presence of bilateral pulmonary nodules on CT scan."
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Smoking-related Lung Cancer",
+          "Sarcoidosis"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 55,
+        "total_edges": 51,
+        "seed_nodes": 9,
+        "explored_nodes": 8,
+        "max_depth_reached": 6,
+        "rabbit_holes": 4,
+        "contradictions": 24,
+        "duration_seconds": 78.66
+      }
+    }
+  ]
+}
