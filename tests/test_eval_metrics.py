@@ -1,0 +1,434 @@
+"""
+tests/test_eval_metrics.py
+==========================
+Unit tests for apiro/eval/metrics.py — the rank-aware differential-diagnosis
+metrics and the paired significance machinery.
+
+Pure arithmetic on stub inputs: no Ollama, no ChromaDB, no model download.
+Every expected value below is hand-computed in the docstring or comment next
+to the assertion, so a failure tells you which formula moved.
+"""
+
+import math
+
+import pytest
+
+from apiro.eval.metrics import (
+    ArmScores,
+    _normal_quantile,
+    bootstrap_proportion_ci,
+    compare_arms,
+    distractor_selection_rate,
+    first_hit_rank,
+    mcnemar_exact,
+    mean_reciprocal_rank,
+    paired_bootstrap_delta_ci,
+    reciprocal_rank,
+    score_arm,
+    top_k_accuracy,
+    wilson_interval,
+)
+
+
+def exact_matcher(prediction: str, truth: str) -> bool:
+    """Case-insensitive exact match — keeps the tests about the metrics."""
+    return prediction.strip().lower() == truth.strip().lower()
+
+
+# --------------------------------------------------------------------------- #
+# Rank-aware hit metrics
+# --------------------------------------------------------------------------- #
+class TestFirstHitRank:
+    def test_returns_one_based_rank_of_first_match(self):
+        preds = ["Pneumonia", "Pulmonary embolism", "Asthma"]
+        assert first_hit_rank(preds, "pulmonary embolism", exact_matcher) == 2
+
+    def test_returns_none_when_nothing_matches(self):
+        preds = ["Pneumonia", "Asthma"]
+        assert first_hit_rank(preds, "sarcoidosis", exact_matcher) is None
+
+    def test_first_match_wins_when_truth_appears_twice(self):
+        preds = ["Sepsis", "Sepsis"]
+        assert first_hit_rank(preds, "sepsis", exact_matcher) == 1
+
+    def test_blank_entries_do_not_consume_a_rank_slot(self):
+        # A blank line in the model's output must not push the real answer down
+        # a rank; it is not a prediction.
+        preds = ["", "   ", "Sepsis"]
+        assert first_hit_rank(preds, "sepsis", exact_matcher) == 1
+
+    def test_none_entries_are_tolerated(self):
+        assert first_hit_rank([None, "Sepsis"], "sepsis", exact_matcher) == 1
+
+    def test_empty_prediction_list(self):
+        assert first_hit_rank([], "sepsis", exact_matcher) is None
+
+
+class TestTopKAccuracy:
+    RANKS = [1, 3, None, 2]      # 4 cases: hit@1, hit@3, miss, hit@2
+
+    def test_top1(self):
+        assert top_k_accuracy(self.RANKS, 1) == pytest.approx(0.25)
+
+    def test_top3(self):
+        assert top_k_accuracy(self.RANKS, 3) == pytest.approx(0.75)
+
+    def test_top5_does_not_exceed_available_hits(self):
+        assert top_k_accuracy(self.RANKS, 5) == pytest.approx(0.75)
+
+    def test_empty_case_set_is_zero_not_an_error(self):
+        assert top_k_accuracy([], 3) == 0.0
+
+    def test_k_below_one_is_rejected(self):
+        with pytest.raises(ValueError):
+            top_k_accuracy(self.RANKS, 0)
+
+
+class TestReciprocalRank:
+    def test_rank_one_is_one(self):
+        assert reciprocal_rank(1) == pytest.approx(1.0)
+
+    def test_rank_four_is_a_quarter(self):
+        assert reciprocal_rank(4) == pytest.approx(0.25)
+
+    def test_miss_contributes_zero(self):
+        assert reciprocal_rank(None) == 0.0
+
+    def test_mrr_over_mixed_ranks(self):
+        # (1/1 + 1/3 + 0 + 1/2) / 4 = 1.8333.. / 4
+        assert mean_reciprocal_rank([1, 3, None, 2]) == pytest.approx(1.8333333 / 4)
+
+    def test_mrr_separates_what_top3_accuracy_conflates(self):
+        # Both arms are 100% correct at top-3; only MRR sees that one of them
+        # ranked every answer first. This is the signal the old pass/fail
+        # harness discarded.
+        assert top_k_accuracy([1, 1, 1], 3) == top_k_accuracy([3, 3, 3], 3)
+        assert mean_reciprocal_rank([1, 1, 1]) > mean_reciprocal_rank([3, 3, 3])
+
+
+class TestDistractorSelectionRate:
+    def test_flags_a_distractor_in_the_top_prediction(self):
+        assert distractor_selection_rate(
+            ["Crohn disease", "Colon cancer"], ["Crohn disease"], exact_matcher
+        ) is True
+
+    def test_distractor_below_the_cutoff_is_not_counted(self):
+        assert distractor_selection_rate(
+            ["Colon cancer", "Crohn disease"], ["Crohn disease"], exact_matcher
+        ) is False
+
+    def test_wider_cutoff_sees_the_distractor(self):
+        assert distractor_selection_rate(
+            ["Colon cancer", "Crohn disease"], ["Crohn disease"],
+            exact_matcher, top_n=2,
+        ) is True
+
+    def test_none_when_case_ships_no_distractors(self):
+        # None, not False: a case with no distractors cannot contribute to the
+        # rate, and counting it as a non-selection would dilute the denominator.
+        assert distractor_selection_rate(["Colon cancer"], [], exact_matcher) is None
+        assert distractor_selection_rate(["Colon cancer"], ["", "  "], exact_matcher) is None
+
+
+# --------------------------------------------------------------------------- #
+# Intervals on a single proportion
+# --------------------------------------------------------------------------- #
+class TestWilsonInterval:
+    def test_matches_hand_computed_value_for_the_published_niah_result(self):
+        # 17/25 is the published Apiro C-NIAH figure. Wilson 95%:
+        #   z = 1.959964, denom = 1 + z^2/25 = 1.153661
+        #   centre = (0.68 + z^2/50) / denom = 0.656033
+        #   half   = (z/denom) * sqrt(0.68*0.32/25 + z^2/2500) = 0.171927
+        low, high = wilson_interval(17, 25)
+        assert low == pytest.approx(0.4841, abs=1e-3)
+        assert high == pytest.approx(0.8280, abs=1e-3)
+
+    def test_interval_is_wide_enough_to_cover_the_rag_baseline(self):
+        # The point of reporting it: 17/25 (68%) and 10/25 (40%) have
+        # overlapping marginal intervals, so the headline delta needs the
+        # paired test below, not a comparison of these two intervals.
+        apiro_low, _ = wilson_interval(17, 25)
+        _, rag_high = wilson_interval(10, 25)
+        assert apiro_low < rag_high
+
+    def test_zero_successes_does_not_collapse_to_a_point(self):
+        # The Wald interval gives [0, 0] here, which would claim certainty from
+        # 10 observations. Wilson does not.
+        low, high = wilson_interval(0, 10)
+        assert low == 0.0
+        assert 0.2 < high < 0.35
+
+    def test_all_successes_does_not_collapse_to_a_point(self):
+        low, high = wilson_interval(10, 10)
+        assert high == 1.0
+        assert 0.65 < low < 0.80
+
+    def test_no_data_means_no_constraint(self):
+        assert wilson_interval(0, 0) == (0.0, 1.0)
+
+    def test_rejects_impossible_counts(self):
+        with pytest.raises(ValueError):
+            wilson_interval(11, 10)
+        with pytest.raises(ValueError):
+            wilson_interval(-1, 10)
+
+    def test_rejects_out_of_range_confidence(self):
+        with pytest.raises(ValueError):
+            wilson_interval(5, 10, confidence=1.0)
+
+
+class TestNormalQuantile:
+    @pytest.mark.parametrize(
+        "p,expected",
+        [
+            (0.975, 1.959964),
+            (0.95, 1.644854),
+            (0.5, 0.0),
+            (0.025, -1.959964),
+        ],
+    )
+    def test_known_quantiles(self, p, expected):
+        assert _normal_quantile(p) == pytest.approx(expected, abs=1e-5)
+
+    def test_tail_branches_are_symmetric(self):
+        assert _normal_quantile(0.001) == pytest.approx(-_normal_quantile(0.999), abs=1e-6)
+
+    def test_rejects_closed_interval_endpoints(self):
+        with pytest.raises(ValueError):
+            _normal_quantile(0.0)
+        with pytest.raises(ValueError):
+            _normal_quantile(1.0)
+
+
+class TestBootstrapProportionCI:
+    def test_brackets_the_observed_proportion(self):
+        outcomes = [True] * 17 + [False] * 8
+        low, high = bootstrap_proportion_ci(outcomes)
+        assert low < 0.68 < high
+
+    def test_agrees_with_wilson_to_within_a_few_points(self):
+        outcomes = [True] * 17 + [False] * 8
+        b_low, b_high = bootstrap_proportion_ci(outcomes)
+        w_low, w_high = wilson_interval(17, 25)
+        assert abs(b_low - w_low) < 0.08
+        assert abs(b_high - w_high) < 0.08
+
+    def test_is_reproducible_under_a_fixed_seed(self):
+        outcomes = [True, False, True, True, False]
+        assert bootstrap_proportion_ci(outcomes, seed=7) == bootstrap_proportion_ci(outcomes, seed=7)
+
+    def test_degenerate_input_has_zero_width(self):
+        assert bootstrap_proportion_ci([True] * 10) == (1.0, 1.0)
+
+    def test_empty_means_no_constraint(self):
+        assert bootstrap_proportion_ci([]) == (0.0, 1.0)
+
+
+# --------------------------------------------------------------------------- #
+# Paired comparison
+# --------------------------------------------------------------------------- #
+class TestMcNemarExact:
+    def test_counts_only_discordant_pairs(self):
+        a = [True, True, False, False, True]
+        b = [True, False, True, False, False]
+        result = mcnemar_exact(a, b)
+        assert result["a_only"] == 2      # cases 2 and 5
+        assert result["b_only"] == 1      # case 3
+        assert result["n_discordant"] == 3
+        assert result["n_cases"] == 5
+
+    def test_no_disagreement_gives_no_evidence(self):
+        result = mcnemar_exact([True, False], [True, False])
+        assert result["n_discordant"] == 0
+        assert result["p_value"] == 1.0
+        assert result["significant_at_05"] is False
+
+    def test_five_zero_split_is_not_significant(self):
+        # 2 * (1/2^5) = 0.0625 — the classic result that five straight wins are
+        # not enough at alpha = 0.05.
+        result = mcnemar_exact([True] * 5 + [True] * 3, [False] * 5 + [True] * 3)
+        assert result["n_discordant"] == 5
+        assert result["p_value"] == pytest.approx(0.0625)
+        assert result["significant_at_05"] is False
+
+    def test_six_zero_split_is_significant(self):
+        # 2 * (1/2^6) = 0.03125
+        result = mcnemar_exact([True] * 6, [False] * 6)
+        assert result["p_value"] == pytest.approx(0.03125)
+        assert result["significant_at_05"] is True
+
+    def test_even_split_is_maximally_inconclusive(self):
+        result = mcnemar_exact([True, False], [False, True])
+        assert result["p_value"] == 1.0
+
+    def test_p_value_never_exceeds_one(self):
+        for n_a, n_b in [(1, 1), (2, 2), (3, 4), (5, 5)]:
+            a = [True] * n_a + [False] * n_b
+            b = [False] * n_a + [True] * n_b
+            assert 0.0 <= mcnemar_exact(a, b)["p_value"] <= 1.0
+
+    def test_direction_is_reported(self):
+        forward = mcnemar_exact([True] * 6, [False] * 6)
+        reverse = mcnemar_exact([False] * 6, [True] * 6)
+        assert forward["a_only"] == reverse["b_only"] == 6
+        assert forward["p_value"] == pytest.approx(reverse["p_value"])
+
+    def test_mismatched_lengths_are_rejected(self):
+        # Two arms scored on different case sets is not a paired design; a
+        # silent zip() would have truncated and reported a test that means
+        # nothing.
+        with pytest.raises(ValueError):
+            mcnemar_exact([True, False], [True])
+
+
+class TestPairedBootstrapDeltaCI:
+    def test_delta_is_the_plain_accuracy_difference(self):
+        a = [True] * 17 + [False] * 8      # 0.68
+        b = [True] * 10 + [False] * 15     # 0.40
+        result = paired_bootstrap_delta_ci(a, b)
+        assert result["delta"] == pytest.approx(0.28)
+        assert result["n_cases"] == 25
+
+    def test_interval_brackets_the_point_estimate(self):
+        a = [True] * 17 + [False] * 8
+        b = [True] * 10 + [False] * 15
+        result = paired_bootstrap_delta_ci(a, b)
+        assert result["ci_low"] <= result["delta"] <= result["ci_high"]
+
+    def test_identical_arms_give_a_zero_width_interval(self):
+        outcomes = [True, False, True, True]
+        result = paired_bootstrap_delta_ci(outcomes, outcomes)
+        assert result["delta"] == 0.0
+        assert result["ci_low"] == 0.0
+        assert result["ci_high"] == 0.0
+        assert result["excludes_zero"] is False
+
+    def test_a_clean_sweep_excludes_zero(self):
+        result = paired_bootstrap_delta_ci([True] * 20, [False] * 20)
+        assert result["delta"] == pytest.approx(1.0)
+        assert result["excludes_zero"] is True
+
+    def test_is_reproducible_under_a_fixed_seed(self):
+        a = [True, False, True, True, False]
+        b = [False, False, True, False, True]
+        assert (paired_bootstrap_delta_ci(a, b, seed=11)
+                == paired_bootstrap_delta_ci(a, b, seed=11))
+
+    def test_empty_input(self):
+        result = paired_bootstrap_delta_ci([], [])
+        assert result["n_cases"] == 0
+        assert result["delta"] == 0.0
+
+    def test_mismatched_lengths_are_rejected(self):
+        with pytest.raises(ValueError):
+            paired_bootstrap_delta_ci([True, False], [True])
+
+
+# --------------------------------------------------------------------------- #
+# Arm aggregation
+# --------------------------------------------------------------------------- #
+class TestScoreArm:
+    PREDICTIONS = [
+        ["Pulmonary embolism", "Pneumonia", "Asthma"],   # hit @1
+        ["Pneumonia", "Sepsis", "Meningitis"],           # hit @3 (truth=meningitis)
+        ["Asthma", "Anxiety", "GERD"],                   # miss
+    ]
+    TRUTHS = ["Pulmonary embolism", "Meningitis", "Aortic dissection"]
+    DISTRACTORS = [["Pneumonia"], ["Migraine"], ["Asthma"]]
+
+    def _scores(self):
+        return score_arm(
+            "apiro", self.PREDICTIONS, self.TRUTHS, exact_matcher,
+            distractors_per_case=self.DISTRACTORS,
+        )
+
+    def test_ranks_and_top_k(self):
+        s = self._scores()
+        assert s.ranks == [1, 3, None]
+        assert s.top_k[1] == pytest.approx(1 / 3)
+        assert s.top_k[3] == pytest.approx(2 / 3)
+
+    def test_mrr(self):
+        # (1 + 1/3 + 0) / 3
+        assert self._scores().mrr == pytest.approx((1 + 1 / 3) / 3)
+
+    def test_distractor_rate_counts_only_top1_selections(self):
+        # Case 3 leads with "Asthma", which is its curated distractor.
+        # Cases 1 and 2 lead with something else.
+        s = self._scores()
+        assert s.n_distractor_cases == 3
+        assert s.distractor_rate == pytest.approx(1 / 3)
+
+    def test_confidence_intervals_are_attached(self):
+        s = self._scores()
+        assert s.top1_ci[0] <= s.top_k[1] <= s.top1_ci[1]
+        assert s.top3_ci[0] <= s.top_k[3] <= s.top3_ci[1]
+
+    def test_outcomes_at_feeds_the_paired_tests(self):
+        assert self._scores().outcomes_at(1) == [True, False, False]
+        assert self._scores().outcomes_at(3) == [True, True, False]
+
+    def test_distractor_rate_is_none_without_distractors(self):
+        s = score_arm("apiro", self.PREDICTIONS, self.TRUTHS, exact_matcher)
+        assert s.distractor_rate is None
+        assert s.n_distractor_cases == 0
+
+    def test_to_dict_is_json_safe(self):
+        import json
+
+        payload = self._scores().to_dict()
+        json.dumps(payload)                      # must not raise
+        assert set(payload["top_k"]) == {"1", "3", "5"}
+
+    def test_mismatched_lengths_are_rejected(self):
+        with pytest.raises(ValueError):
+            score_arm("apiro", self.PREDICTIONS, self.TRUTHS[:2], exact_matcher)
+        with pytest.raises(ValueError):
+            score_arm("apiro", self.PREDICTIONS, self.TRUTHS, exact_matcher,
+                      distractors_per_case=[[]])
+
+
+class TestCompareArms:
+    def _arms(self):
+        return {
+            "apiro": ArmScores(arm="apiro", n_cases=4, ranks=[1, 2, 3, None]),
+            "bare_llm": ArmScores(arm="bare_llm", n_cases=4, ranks=[None, None, 3, None]),
+        }
+
+    def test_compares_every_arm_against_the_reference(self):
+        result = compare_arms(self._arms(), reference="bare_llm", k=3)
+        assert set(result) == {"apiro"}
+        assert result["apiro"]["vs"] == "bare_llm"
+        assert result["apiro"]["k"] == 3
+
+    def test_delta_reflects_the_cutoff(self):
+        # At k=3 Apiro is 3/4 and the baseline 1/4.
+        result = compare_arms(self._arms(), reference="bare_llm", k=3)
+        assert result["apiro"]["delta_ci"]["delta"] == pytest.approx(0.5)
+        assert result["apiro"]["mcnemar"]["a_only"] == 2
+        assert result["apiro"]["mcnemar"]["b_only"] == 0
+
+    def test_unknown_reference_is_rejected(self):
+        with pytest.raises(KeyError):
+            compare_arms(self._arms(), reference="rag")
+
+
+# --------------------------------------------------------------------------- #
+# Cross-cutting sanity
+# --------------------------------------------------------------------------- #
+def test_all_reported_quantities_are_finite():
+    """No metric may emit NaN or inf — a results JSON must stay serialisable."""
+    a = [True, False, True, True, False]
+    b = [False, True, True, False, False]
+
+    values = [
+        top_k_accuracy([1, None, 2], 3),
+        mean_reciprocal_rank([1, None, 2]),
+        *wilson_interval(3, 5),
+        *bootstrap_proportion_ci(a),
+        paired_bootstrap_delta_ci(a, b)["delta"],
+        paired_bootstrap_delta_ci(a, b)["ci_low"],
+        paired_bootstrap_delta_ci(a, b)["ci_high"],
+        mcnemar_exact(a, b)["p_value"],
+    ]
+    assert all(math.isfinite(v) for v in values)
