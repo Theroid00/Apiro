@@ -32,9 +32,11 @@ import logging
 
 from apiro.graph.node import Node
 from apiro.graph.edge import Edge
+from apiro.parsing import DIFFERENTIAL_SENTINEL, parse_claims, parse_differential
 from apiro.config import (
     RAG_DOMAIN_FILTER,
     N_CHILD_HYPOTHESES,
+    N_DIFFERENTIAL,
     CONTRADICTION_THRESHOLD,
     RAG_TOP_K,
     RAG_MIN_CHUNKS_FOR_GROUNDING,
@@ -282,6 +284,7 @@ class NodeExpander:
         contradiction_detector=None,
         inline_contradiction_check: bool = False,
         n_children: int = N_CHILD_HYPOTHESES,
+        n_diagnoses: int = N_DIFFERENTIAL,
     ):
         self.entropy_engine = entropy_engine
         self.chroma_client = chroma_client
@@ -297,6 +300,9 @@ class NodeExpander:
         # count hard-coded to 3 in _parse_hypotheses' default argument, so
         # changing it in config.py had no effect on the engine.
         self.n_children = n_children
+        # Size of the final differential. A harness that lets its baselines
+        # offer five candidates must let this arm offer five too.
+        self.n_diagnoses = n_diagnoses
 
     @staticmethod
     def _generate_node_id(parent_id: str, index: int) -> str:
@@ -468,19 +474,14 @@ class NodeExpander:
     # signal is _batch_entropy() below, which scores each already-generated
     # hypothesis independently via EntropyEngine.temperature_corrected_entropy().
 
-    # Regex to detect preamble/header lines that are NOT actual hypotheses.
-    # LLMs often prefix their output with labels like "Hypotheses:" or "Output:"
-    # which must be stripped before parsing.
-    _PREAMBLE_RE = re.compile(
-        r"^(hypothes[ie]s?|output|answer|diagnos[ie]s?|differential|results?|response|here are|the top|my top|list)\s*:?\s*$",
-        re.IGNORECASE,
-    )
-
     def _parse_hypotheses(self, llm_output: str, limit: int = 3, pad: bool = False) -> list[str]:
         """
-        Parse the LLM's output into up to `limit` hypothesis strings.
+        Parse the LLM's output into up to `limit` hypothesis claims.
 
-        Defensive: strips preamble headers and numbering, drops empty lines.
+        Delegates to apiro.parsing.parse_claims. The previous implementation
+        stripped a single leading bullet character, which left "**Hypothesis
+        1:**" as "*Hypothesis 1:**" and admitted it to the graph as a clinical
+        claim. See apiro/parsing.py for the measured cost of that.
 
         `pad` is False by default. Padding used to inject synthetic
         "[Expansion failed for: ...]" strings, which then entered the graph as
@@ -490,23 +491,7 @@ class NodeExpander:
         burning the node budget on nothing. An expansion that yields two usable
         hypotheses should return two.
         """
-        lines = llm_output.strip().split("\n")
-        hypotheses = []
-        for line in lines:
-            clean = re.sub(r"^\s*\d+\s*[\.)]\s*|^\s*[-*•]\s*", "", line.strip())
-            clean = clean.strip()
-            if not clean:
-                continue
-            # Skip preamble/header lines that are not actual clinical claims
-            if self._PREAMBLE_RE.match(clean):
-                continue
-            # Skip degenerate fragments (bare punctuation, stray markdown fences)
-            if len(clean) < 4 or clean.startswith("```"):
-                continue
-            hypotheses.append(clean)
-
-        if len(hypotheses) > limit:
-            hypotheses = hypotheses[:limit]
+        hypotheses = parse_claims(llm_output, limit=limit)
 
         if pad:
             while len(hypotheses) < limit:
@@ -669,7 +654,13 @@ class NodeExpander:
         return new_nodes
 
 
-    def synthesize_differential(self, graph, top_k: int = 15, vignette: str = None) -> list[str]:
+    def synthesize_differential(
+        self,
+        graph,
+        top_k: int = 15,
+        vignette: str = None,
+        n_diagnoses: int | None = None,
+    ) -> list[str]:
         """
         Synthesize a final differential diagnosis from the belief graph.
 
@@ -693,11 +684,18 @@ class NodeExpander:
             graph:     The BeliefGraph containing gathered evidence.
             top_k:     Max number of exploration claims passed to the LLM.
             vignette:  Raw (or axiom-enriched) clinical presentation.
+            n_diagnoses: How many ranked candidates to return. Defaults to the
+                expander's `n_diagnoses`. Must match what the baselines are
+                allowed to offer, or the comparison is not a comparison.
 
         Returns:
-            A list of up to 3 specific clinical diagnoses, most likely first.
+            A list of up to `n_diagnoses` clinical diagnoses, most likely first.
         """
-        logger.info("[NodeExpander] Synthesizing final differential diagnosis...")
+        n_diagnoses = self.n_diagnoses if n_diagnoses is None else n_diagnoses
+        logger.info(
+            f"[NodeExpander] Synthesizing final differential "
+            f"({n_diagnoses} candidates)..."
+        )
 
         # --- Step 1: partition -------------------------------------------------
         anchors: list[Node]      = []   # depth 0, affirmed  -> ground truth
@@ -810,23 +808,68 @@ class NodeExpander:
                 " findings better than any non-contradicted alternative.\n"
             )
 
+        # Output contract. An 8B model ignores "no preamble, no explanation"
+        # roughly half the time — on the committed C-NIAH run it spent 57% of
+        # Apiro's answer slots on markdown scaffolding. A required per-line
+        # sentinel is followed far more reliably, and lets the parser discard
+        # everything the model says around the answer (see apiro/parsing.py).
         sections.append(
             "=== STRICT RULES ===\n"
-            "1. Output exactly 3 diagnoses, one per line, most likely first.\n"
-            "2. Give only the specific disease name (e.g. 'Type 1 autoimmune pancreatitis')."
-            " No preamble, numbering, explanation, or mechanism.\n"
-            "3. Name the specific underlying primary disease, not a syndrome or a symptom"
-            " (e.g. prefer 'Pheochromocytoma' over 'Hypertensive crisis').\n"
-            "4. Every diagnosis must be compatible with ALL confirmed and ruled-out"
+            f"1. Output exactly {n_diagnoses} lines, most likely first.\n"
+            f"2. Every line MUST start with '{DIFFERENTIAL_SENTINEL} ' followed by the"
+            " disease name and nothing else.\n"
+            "3. Give only the specific disease name (e.g."
+            f" '{DIFFERENTIAL_SENTINEL} Type 1 autoimmune pancreatitis')."
+            " No preamble, numbering, mechanism, or explanation.\n"
+            "4. Name the specific underlying primary disease, not a syndrome or a"
+            " symptom (e.g. prefer 'Pheochromocytoma' over 'Hypertensive crisis').\n"
+            "5. Every diagnosis must be compatible with ALL confirmed and ruled-out"
             " findings above.\n\n"
-            "=== OUTPUT (3 lines only) ==="
+            f"=== OUTPUT ({n_diagnoses} lines, each beginning"
+            f" '{DIFFERENTIAL_SENTINEL} ') ==="
         )
 
         prompt = "\n".join(sections)
 
         # --- Step 4: call + parse ---------------------------------------------
         raw_output = self._call_llm(prompt)
-        diagnoses = self._parse_hypotheses(raw_output, limit=3)
+        diagnoses = parse_differential(raw_output, limit=n_diagnoses)
+
+        # A formatting miss used to cost the engine the whole comparison: an
+        # unparseable answer became an empty differential, scored as a loss
+        # against baselines whose raw text was searched line by line. One
+        # retry with a harder instruction costs a single call on the case where
+        # it matters and nothing on the cases where it does not.
+        if len(diagnoses) < n_diagnoses:
+            logger.info(
+                f"[NodeExpander] Synthesis parsed {len(diagnoses)}/{n_diagnoses} "
+                f"diagnoses — retrying with a stricter output contract."
+            )
+            retry_prompt = (
+                f"{prompt}\n\n"
+                f"REMINDER: your previous answer could not be read. Reply with"
+                f" EXACTLY {n_diagnoses} lines. Each line must be"
+                f" '{DIFFERENTIAL_SENTINEL} <disease name>'. Write nothing else —"
+                f" no introduction, no bold, no numbering, no explanation."
+            )
+            retry_output = self._call_llm(retry_prompt)
+            retry_diagnoses = parse_differential(retry_output, limit=n_diagnoses)
+            # Keep whichever attempt yielded more usable candidates, merging the
+            # first attempt's answers in behind rather than discarding them.
+            if len(retry_diagnoses) > len(diagnoses):
+                merged = list(retry_diagnoses)
+                seen = {d.lower() for d in merged}
+                for d in diagnoses:
+                    if d.lower() not in seen and len(merged) < n_diagnoses:
+                        merged.append(d)
+                        seen.add(d.lower())
+                diagnoses = merged
+
+        if not diagnoses:
+            logger.warning(
+                "[NodeExpander] Synthesis produced no parseable diagnosis after "
+                "a retry. Returning an empty differential."
+            )
 
         logger.info(f"[NodeExpander] Synthesis complete: {diagnoses}")
         return diagnoses

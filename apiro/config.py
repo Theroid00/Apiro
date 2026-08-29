@@ -61,6 +61,12 @@ CHUNK_OVERLAP_TOKENS = 50
 # ---------------------------------------------------------------------------
 N_CHILD_HYPOTHESES  = 3                # child nodes generated per expansion
 
+# Size of the final ranked differential. Every benchmark arm must be allowed
+# the same number of candidates: the committed C-NIAH run graded the baselines
+# over their entire raw output (~7 lines per case, uncapped) while capping
+# Apiro at 3 parsed slots, so the arms were not answering the same question.
+N_DIFFERENTIAL = 3
+
 # BeliefGraph construction defaults. These were previously hard-coded in the
 # BeliefGraph constructor and unreachable from config.
 GRAPH_MAX_NODES = 200
