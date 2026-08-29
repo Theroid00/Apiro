@@ -22,6 +22,7 @@ apiro.egg-info/
 # =========================
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
 .tox/
 .coverage
 htmlcov/
@@ -35,32 +36,46 @@ htmlcov/
 Thumbs.db
 
 # =========================
-# Project Specific & Data
+# Local caches & downloaded corpora
 # =========================
-# Local data databases/caches
+# Rebuildable from apiro/corpus/build_corpus.py; hundreds of MB.
 data/chroma_db/
 data/corpus/
+data/ontology/
 data/logs/
-data/corpus_stats.json
-data/smoke_results.json
+
+# Source datasets that are not ours to redistribute.
+data/PMC-Patients-V2.json
+
+# =========================
+# Generated run artifacts
+# =========================
+# Per-case traversal traces, one file per case per run.
+data/traversal_log_*.jsonl
 data/graph_*.json
 data/graph_*.html
-data/traversal_log_*.jsonl
-data/phase3_results.json
-
-# Figures and Outputs
+data/corpus_stats.json
+data/smoke_results.json
 figures/
-*.html
-*.jsonl
 
-# Documentation & Logs
+# Raw captured console output from a benchmark run.
+data/*benchmark_output.txt
+
+# NOTE: benchmark *inputs* and *results* are deliberately NOT ignored.
+# The previous version of this file ignored `data/*.json` wholesale with a
+# single `!data/pmc_cases.json` exception, which silently excluded
+# data/niah_cases.json, data/niah_eval_results.json and
+# data/calibration_eval_results.json — i.e. the case definitions and every
+# published number in the README. Reproducing a reported figure requires the
+# case set it was computed on, so these are tracked.
+#
+# It also carried bare `*.html` and `*.jsonl` rules that applied repo-wide,
+# not just under data/, so any documentation page or fixture anywhere in the
+# tree would have been dropped without warning.
+
+# =========================
+# Local developer notes (not part of the project record)
+# =========================
 DEVELOPER_NOTES.md
 PROJECT_STATUS.md
 implementation_plan.md
-data/PMC-Patients-V2.json
-data/ontology/
-data/*.json
-!data/pmc_cases.json
-!data/distractor_cases.json
-!data/unseen_cases.json
-

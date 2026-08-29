@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "apiro"
 version = "0.1.0"
-description = "A biomedical belief-graph engine using LLM token-entropy heuristics."
+description = "A biomedical belief-graph engine using an entropy-guided LLM traversal heuristic."
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -18,7 +18,7 @@ dependencies = [
     "requests>=2.31.0",
     "requests-cache>=1.2.0",
     "numpy>=1.26.0",
-    "sentence-transformers>=2.5.0",
+    "sentence-transformers>=2.7.0",
     "datasets>=2.18.0",
     "biopython>=1.83",
     "nltk>=3.8.1",
@@ -31,11 +31,26 @@ dependencies = [
     "matplotlib>=3.8.0",
     "tqdm>=4.66.0",
     "pandas>=2.1.0",
+    "pyyaml>=6.0.1",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
+]
+# Enables the primary (context-window-aware) negation classification path in
+# apiro/axioms/negation.py. Without it, negation falls back to a regex
+# classifier automatically — this is genuinely optional, not a silent gap.
+medspacy = [
+    "medspacy",
+]
+# Exact token counts when generating C-NIAH haystacks
+# (scripts/build_niah_cases.py). Without it the generator falls back to a
+# words/0.75 heuristic, so the "target_tokens" of a generated case is
+# approximate — fine for relative comparisons, not for a claim about a
+# specific context length.
+benchmarks = [
+    "tiktoken",
 ]
 
 [project.scripts]
@@ -44,3 +59,12 @@ apiro = "apiro.run:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["apiro*"]
+
+[tool.pytest.ini_options]
+# The suite is deliberately offline: every test runs on stubs, with no Ollama,
+# no ChromaDB and no model download. `testpaths` keeps a bare `pytest` from
+# trying to collect scripts/, which would import the eval harnesses and pull in
+# torch/transformers at collection time.
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+filterwarnings = ["ignore::DeprecationWarning"]
