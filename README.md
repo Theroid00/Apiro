@@ -122,6 +122,14 @@ The result is a system that **rejects distractors instead of rationalizing them*
 
 ## Empirical Benchmark Results
 
+> **The results below predate a measurement fix and will change.** Two defects
+> were suppressing the Apiro arm specifically: 57% of its answer slots held
+> markdown scaffolding rather than diagnoses, and the baselines were graded over
+> their entire raw output (~7 candidates per case, uncapped) while Apiro was
+> graded over 3 parsed slots. Both are fixed; every number on this page was
+> computed before the fix. See [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md)
+> for the re-run procedure.
+
 > **Status of the evidence, in one paragraph.** Apiro has been evaluated on two case sets: a 25-case self-authored synthetic benchmark (C-NIAH) and 10 real PMC case reports. On C-NIAH it leads both baselines by a consistent margin, but **no comparison reaches statistical significance** at that sample size (Apiro vs RAG: p = 0.119). On the PMC set the intervals are so wide the three arms are indistinguishable, and four of the ten ground-truth labels are malformed. A third benchmark — [CUPCase](#reproducing-the-benchmarks), external and with curated per-case distractors — is implemented but **has not been run**, so no results for it are reported here. Treat the tables below as directional evidence that the mechanism behaves as designed, not as a demonstration that it outperforms the baselines.
 
 ### Clinical Needle-In-A-Haystack (C-NIAH)
@@ -308,6 +316,11 @@ python scripts/run_niah_eval.py --cases data/niah_cases.json --real
 
 The committed results were computed on 25 cases, which is not enough to resolve the differences between arms — generate more than the default before quoting a figure. The harness emits per-case verdicts, aggregate accuracy with Wilson intervals, per-family and length × depth breakdowns, and paired McNemar tests between every pair of arms.
 
+**Before running anything**, read [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md):
+it carries the power analysis (N = 25 gives 35% power at the observed effect;
+N = 100 gives 95%), the case-independence constraint, and the order to run the
+four benchmarks in.
+
 **Metric definitions** live in `apiro/eval/metrics.py` (top-k, MRR, distractor-selection rate, Wilson / bootstrap intervals, exact McNemar) and are covered by `tests/test_eval_metrics.py`. All four harnesses share one component stack via `apiro/eval/harness.py`, so their numbers are directly comparable.
 
 **Safety, calibration & selective-abstention evaluation**
@@ -393,7 +406,9 @@ Apiro/
 │   ├── niah_cases.json          # C-NIAH case definitions
 │   ├── niah_eval_results.json   # C-NIAH results backing the tables above
 │   └── calibration_eval_results.json   # Pillar-3 results backing the tables above
-├── docs/IMPROVEMENTS.md         # Known issues, fixed and open
+├── docs/
+│   ├── BENCHMARKING.md          # What to run, in what order, and how to read it
+│   └── IMPROVEMENTS.md          # Known issues, fixed and open
 ├── Log.md                       # Chronological architecture history
 ├── run_eval.sh                  # Benchmark wrapper: pmc | niah | cupcase | calibration
 ├── requirements.txt

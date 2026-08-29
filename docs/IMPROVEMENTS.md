@@ -149,6 +149,32 @@ and claimed Apiro's "sole win on Case 4 (Colon Adenocarcinoma)" — in the
 captured run Apiro *failed* Case 4. Both corrected, with the discrepancy noted
 in place rather than quietly overwritten.
 
+### Apiro was answering with 1.3 candidates against baselines offering 7
+The largest single defect found, and a measurement one rather than a reasoning
+one. On the committed C-NIAH run, the Apiro arm's differential looked like:
+
+    ['*Diagnosis 1:**', 'Acute Myeloid Leukemia (AML)', '*Diagnosis 2:**']
+
+43 of 75 answer slots (57%) held markdown scaffolding or preamble instead of a
+diagnosis; five cases held none at all, twelve held exactly one. The cause was
+`_parse_hypotheses` stripping a single leading bullet character (so
+`**Diagnosis 1:**` became `*Diagnosis 1:**` and was admitted as an answer) with
+a `$`-anchored preamble regex that only caught bare headers.
+
+Compounding it, the harnesses graded the baselines over *every non-empty line*
+of raw output — uncapped, averaging 7.2 candidates per case and reaching 17 —
+while capping Apiro at 3 parsed slots. Roughly a five-fold difference in how
+many guesses each arm was allowed.
+
+Fix: `apiro/parsing.py`, one parser shared by the engine and every arm, at a
+common `config.N_DIFFERENTIAL`; a `DX:` output sentinel in the synthesis prompt
+with one retry on an under-filled parse; and an `n_candidates` field per arm in
+every per-case record so the asymmetry cannot return unnoticed. Replayed over
+the committed outputs this lifts usable diagnoses from 18/75 to 52/75 and cuts
+zero-diagnosis cases from 15 to 1.
+
+**Every published number predates this fix and must be regenerated.**
+
 ### Smaller cleanups
 Unused imports across 18 modules; three config constants nothing read
 (`MAX_TRAVERSAL_DEPTH`, `MAX_NODES_PER_RUN`, `EVAL_EXCLUDE_SEED_HITS`); a dead
@@ -207,6 +233,8 @@ matter to someone reading the code closely:
 
 ### Benchmark validity — the largest open item
 
+- **All published numbers predate the parsing/grading fix** and are not a valid
+  baseline. Re-run per `docs/BENCHMARKING.md` before comparing anything.
 - **Every published comparison is underpowered.** Recomputed from
   `data/niah_eval_results.json`: Apiro vs Standard RAG on C-NIAH is +28.0 pp
   with an exact McNemar p of **0.119**, and a paired bootstrap CI on the delta
@@ -214,7 +242,11 @@ matter to someone reading the code closely:
   N = 10 with intervals over thirty points wide. Nothing in the README's
   tables is statistically established; the direction is consistent and the
   sample sizes are too small to confirm it. Generating 60–100+ C-NIAH cases
-  (`--num-cases`) is the cheapest fix.
+  (`--num-cases`) is the cheapest fix: power is 35% at N = 25, 87% at N = 75 and
+  95% at N = 100. `NEEDLE_BANK` was widened from 6 to 20 diagnoses so that
+  scaling N produces genuinely independent cases rather than pseudo-replicates —
+  without that, a larger N would have manufactured significance rather than
+  measured it.
 - **C-NIAH is self-authored end to end.** The cases, the needles, the
   distractors and the stub responses that recover them all come from
   `scripts/build_niah_cases.py` in this repository. It is a good instrumented
