@@ -130,6 +130,14 @@ The result is a system that **rejects distractors instead of rationalizing them*
 > computed before the fix. See [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md)
 > for the re-run procedure.
 
+> **The evaluation was redesigned around what this architecture claims.**
+> Aggregate top-3 accuracy cannot falsify "rejects distractors" or "knows when
+> to abstain" — a model that ignores the note entirely can score well on it.
+> The primary endpoints are now **Bias Trap Rate** on counterfactual pairs
+> (after [MedEinst](https://arxiv.org/abs/2601.06636)) and **fabrication rate**
+> on unanswerable cases (after [MedAbstain](https://arxiv.org/abs/2601.12471)).
+> Neither has been run yet. See [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md).
+
 > **Status of the evidence, in one paragraph.** Apiro has been evaluated on two case sets: a 25-case self-authored synthetic benchmark (C-NIAH) and 10 real PMC case reports. On C-NIAH it leads both baselines by a consistent margin, but **no comparison reaches statistical significance** at that sample size (Apiro vs RAG: p = 0.119). On the PMC set the intervals are so wide the three arms are indistinguishable, and four of the ten ground-truth labels are malformed. A third benchmark — [CUPCase](#reproducing-the-benchmarks), external and with curated per-case distractors — is implemented but **has not been run**, so no results for it are reported here. Treat the tables below as directional evidence that the mechanism behaves as designed, not as a demonstration that it outperforms the baselines.
 
 ### Clinical Needle-In-A-Haystack (C-NIAH)
@@ -229,14 +237,15 @@ AURC measures whether a system's confidence *ranks* its correct answers above it
 
 ## Literature Grounding
 
-Apiro's evaluation methodology is grounded in the emerging consensus on **medical long-context reasoning** and **selective prediction**:
+**The evaluation design** follows two 2026 benchmarks whose documented failure modes are exactly the ones this architecture claims to fix:
 
-- **Med-Gemini** — establishes long-context clinical reasoning as a first-class capability for medical LLMs.
-- **MedOdyssey** — benchmarks long-context medical comprehension and information retrieval under length stress.
-- **NeedleBench** — formalizes needle-in-a-haystack retrieval and multi-needle synthesis for long contexts.
-- **Selective prediction / risk–coverage** (e.g., Geifman & El-Yaniv) — formalizes abstention and the risk–coverage tradeoff (AURC) used in Pillar 3.
+- **[MedEinst](https://arxiv.org/abs/2601.06636)** — the Einstellung effect in medical LLMs: models answer from statistical shortcuts rather than patient-specific evidence, and misdiagnose atypical cases. Measured with counterfactual control/trap pairs (5,383 pairs, 49 diseases) and **Bias Trap Rate**, P(wrong on trap | right on control). Frontier models keep high baseline accuracy while showing *severe* trap rates. Apiro's whole design — deterministic anchors plus contradiction pruning — is a bet against this failure, so it is the benchmark that can most directly confirm or refute the thesis. Implemented as `build_niah_cases.py --counterfactual`.
+- **[MedAbstain](https://arxiv.org/abs/2601.12471)** — abstention under clinical uncertainty, using context-omission perturbations and an explicit abstention option. Finds that even state-of-the-art models fail to abstain when uncertain. Implemented as `--unanswerable-fraction`.
+- **[DyReMe](https://arxiv.org/html/2510.09275)** — dynamic evaluation with real-world distractors, motivated by contamination and inflated scores on static benchmarks. Reflected here in generating cases per run rather than shipping a fixed set to memorise.
 
-Collectively, these validate **Clinical Needle-In-A-Haystack (C-NIAH)** as the standard paradigm for measuring **distractor resilience in long EHR notes**, and **risk–coverage analysis** as the standard paradigm for measuring **calibrated abstention** — the two axes Apiro is engineered to dominate.
+**The metrics** follow the selective-prediction literature — Geifman & El-Yaniv for risk–coverage and AURC, Guo et al. for ECE — and the long-context paradigm (Med-Gemini, MedOdyssey, NeedleBench) that motivates C-NIAH.
+
+> An earlier version of this section claimed these works "validate C-NIAH … the two axes Apiro is engineered to dominate." They validate the *paradigm*; they say nothing about this implementation, and no result here yet supports "dominate."
 
 ---
 
