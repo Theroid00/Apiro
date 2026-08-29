@@ -43,7 +43,8 @@ from apiro.graph.belief_graph import BeliefGraph
 from apiro.graph.node import Node
 from apiro.graph.traversal import ApiroTraversal
 from apiro.axioms.extractor import AxiomExtractor
-from apiro.config import SATURATION_EXPLORATION_ONLY
+from apiro.config import N_DIFFERENTIAL, SATURATION_EXPLORATION_ONLY
+from apiro.parsing import parse_differential
 
 def _significance_block(results) -> dict:
     """Wilson intervals per arm plus paired McNemar tests between the arms.
@@ -328,14 +329,19 @@ def run_evaluation(real_components: bool, limit: int | None = None, out_path: st
         # 1. Bare LLM Zero-Shot
         logger.info("  Running Bare LLM Zero-Shot...")
         prompt = (
-            "Based on the following clinical presentation, provide a list of your top 3 differential diagnoses. "
-            "Output ONLY the top 3 diagnoses as a bulleted or numbered list without any other text:\n\n"
+            f"Based on the following clinical presentation, provide a list of your top "
+            f"{N_DIFFERENTIAL} differential diagnoses, most likely first. Output ONLY the "
+            f"{N_DIFFERENTIAL} diagnosis names, one per line, no numbering, no "
+            f"explanation:\n\n"
             f"{vignette}"
         )
         bare_output = llm_client.generate(prompt)
         logger.info(f"  Bare LLM Output:\n{bare_output.strip()}")
-        
-        bare_items = [line.strip() for line in bare_output.split("\n") if line.strip()]
+
+        # Same parser and candidate budget as the Apiro arm — see the note in
+        # run_niah_eval.py. Splitting on newlines gave the baselines an
+        # uncapped candidate list while Apiro was held to 3 parsed slots.
+        bare_items = parse_differential(bare_output, limit=N_DIFFERENTIAL)
         bare_success, _ = _check_synthesis_hit(
             bare_items,
             target,
@@ -349,8 +355,10 @@ def run_evaluation(real_components: bool, limit: int | None = None, out_path: st
             rag_results = embedder.query(vignette, n_results=6)
             rag_context = "\n\n".join([r["text"] for r in rag_results])
             prompt_rag = (
-                "Based on the following clinical presentation and the retrieved medical context, provide your top 3 differential diagnoses. "
-                "Output ONLY the top 3 diagnoses as a bulleted or numbered list:\n\n"
+                f"Based on the following clinical presentation and the retrieved medical "
+                f"context, provide your top {N_DIFFERENTIAL} differential diagnoses, most "
+                f"likely first. Output ONLY the {N_DIFFERENTIAL} diagnosis names, one per "
+                f"line, no numbering, no explanation:\n\n"
                 f"Vignette: {vignette}\n\nContext:\n{rag_context}"
             )
             rag_output = llm_client.generate(prompt_rag)
@@ -360,7 +368,7 @@ def run_evaluation(real_components: bool, limit: int | None = None, out_path: st
         
         logger.info(f"  RAG Output:\n{rag_output.strip()}")
         
-        rag_items = [line.strip() for line in rag_output.split("\n") if line.strip()]
+        rag_items = parse_differential(rag_output, limit=N_DIFFERENTIAL)
         rag_success, _ = _check_synthesis_hit(
             rag_items,
             target,

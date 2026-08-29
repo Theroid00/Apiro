@@ -49,7 +49,8 @@ from apiro.graph.belief_graph import BeliefGraph
 from apiro.graph.node import Node
 from apiro.graph.traversal import ApiroTraversal
 from apiro.axioms.extractor import AxiomExtractor
-from apiro.config import SATURATION_EXPLORATION_ONLY
+from apiro.config import N_DIFFERENTIAL, SATURATION_EXPLORATION_ONLY
+from apiro.parsing import parse_differential
 
 # The canonical NIAH families. Order here defines display order everywhere.
 NIAH_FAMILIES = [
@@ -452,14 +453,20 @@ def _evaluate_case(case, components, real_components, axiom_extractor):
     # ---- Arm 1: Bare LLM Zero-Shot --------------------------------------- #
     logger.info("  Running Bare LLM Zero-Shot...")
     prompt = (
-        "Based on the following clinical presentation, provide a list of your top 3 "
-        "differential diagnoses. Output ONLY the top 3 diagnoses as a bulleted or "
-        "numbered list without any other text:\n\n"
+        f"Based on the following clinical presentation, provide a list of your top "
+        f"{N_DIFFERENTIAL} differential diagnoses, most likely first. Output ONLY the "
+        f"{N_DIFFERENTIAL} diagnosis names, one per line, no numbering, no "
+        f"explanation:\n\n"
         f"{vignette}"
     )
     bare_output = llm_client.generate(prompt)
     logger.info(f"  Bare LLM Output:\n{bare_output.strip()}")
-    bare_items = [ln.strip() for ln in bare_output.split("\n") if ln.strip()]
+    # Same parser and the same candidate budget as the Apiro arm. Splitting the
+    # raw reply on newlines handed the baselines an uncapped candidate list
+    # (~7 lines per case) while Apiro was graded on 3 parsed slots — so a
+    # baseline could hit the target on its seventh line and still be scored
+    # correct, which is not the question the benchmark claims to answer.
+    bare_items = parse_differential(bare_output, limit=N_DIFFERENTIAL)
     bare_success = _synthesis_hits_all_targets(
         bare_items, targets,
         embedder if real_components else None,
@@ -472,9 +479,10 @@ def _evaluate_case(case, components, real_components, axiom_extractor):
         rag_results = embedder.query(vignette, n_results=6)
         rag_context = "\n\n".join([r["text"] for r in rag_results])
         prompt_rag = (
-            "Based on the following clinical presentation and the retrieved medical "
-            "context, provide your top 3 differential diagnoses. Output ONLY the top 3 "
-            "diagnoses as a bulleted or numbered list:\n\n"
+            f"Based on the following clinical presentation and the retrieved medical "
+            f"context, provide your top {N_DIFFERENTIAL} differential diagnoses, most "
+            f"likely first. Output ONLY the {N_DIFFERENTIAL} diagnosis names, one per "
+            f"line, no numbering, no explanation:\n\n"
             f"Vignette: {vignette}\n\nContext:\n{rag_context}"
         )
         rag_output = llm_client.generate(prompt_rag)
@@ -482,7 +490,7 @@ def _evaluate_case(case, components, real_components, axiom_extractor):
         prompt_rag = f"Standard RAG presentation:\n{vignette}"
         rag_output = llm_client.generate(prompt_rag)
     logger.info(f"  RAG Output:\n{rag_output.strip()}")
-    rag_items = [ln.strip() for ln in rag_output.split("\n") if ln.strip()]
+    rag_items = parse_differential(rag_output, limit=N_DIFFERENTIAL)
     rag_success = _synthesis_hits_all_targets(
         rag_items, targets,
         embedder if real_components else None,
@@ -570,9 +578,19 @@ def _evaluate_case(case, components, real_components, axiom_extractor):
         "depth": depth,
         "target": _target_display(case),
         "targets": targets,
-        "bare_llm": {"success": bare_success, "output": bare_output},
-        "rag": {"success": rag_success, "output": rag_output},
-        "apiro": {"success": apiro_success, "output": apiro_output},
+        "bare_llm": {"success": bare_success, "output": bare_output,
+                     "candidates": bare_items},
+        "rag": {"success": rag_success, "output": rag_output,
+                "candidates": rag_items},
+        "apiro": {"success": apiro_success, "output": apiro_output,
+                  "candidates": list(apiro_output)},
+        # Candidates offered per arm. If these are not equal, the accuracy
+        # comparison is confounded by output formatting rather than reasoning.
+        "n_candidates": {
+            "bare_llm": len(bare_items),
+            "rag": len(rag_items),
+            "apiro": len(apiro_output),
+        },
         "traversal": {
             "stop_reason": traversal_res.stop_reason,
             "total_nodes": traversal_res.total_nodes,

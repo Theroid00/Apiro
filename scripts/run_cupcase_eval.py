@@ -66,6 +66,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from apiro.eval.harness import build_real_components, make_matcher  # noqa: E402
+from apiro.parsing import parse_differential  # noqa: E402
 from apiro.eval.metrics import compare_arms, score_arm  # noqa: E402
 from apiro.graph.belief_graph import BeliefGraph  # noqa: E402
 
@@ -73,7 +74,9 @@ ARMS = ("apiro", "rag", "bare_llm")
 ARM_LABELS = {"apiro": "Apiro", "rag": "Standard RAG", "bare_llm": "Bare LLM"}
 
 #: How many diagnoses each arm is asked for. Fixed across arms — asking one arm
-#: for more candidates than another would inflate its top-k for free.
+#: for more candidates than another would inflate its top-k for free, which is
+#: exactly the defect the C-NIAH harness shipped with. Five, so top-5 accuracy
+#: is meaningful; the Apiro arm is configured to match in run_evaluation().
 N_DIFFERENTIAL = 5
 
 BARE_PROMPT = (
@@ -91,32 +94,6 @@ RAG_PROMPT = (
     "explanation.\n\n"
     "Clinical presentation:\n{vignette}\n\nRetrieved context:\n{context}"
 )
-
-
-# --------------------------------------------------------------------------- #
-# Output parsing
-# --------------------------------------------------------------------------- #
-def _parse_differential(raw: str, limit: int = N_DIFFERENTIAL) -> list[str]:
-    """Parse an LLM's newline-separated differential into a ranked list.
-
-    Strips list numbering and bullets, drops preamble lines, and preserves
-    order — order *is* the ranking every rank-aware metric reads.
-    """
-    import re
-
-    out: list[str] = []
-    for line in (raw or "").splitlines():
-        clean = re.sub(r"^\s*\d+\s*[.)]\s*|^\s*[-*•]\s*", "", line.strip()).strip()
-        if not clean or clean.startswith("```"):
-            continue
-        # Drop header lines like "Differential:" / "Top 3 diagnoses:".
-        if re.match(r"^(top\s*\d*|differential|diagnos[ei]s|answer|output)\s*:?\s*$",
-                    clean, re.IGNORECASE):
-            continue
-        out.append(clean)
-        if len(out) >= limit:
-            break
-    return out
 
 
 # --------------------------------------------------------------------------- #
@@ -145,7 +122,7 @@ def _evaluate_case(case: dict, components, max_depth: int) -> dict:
     bare_raw = llm_client.generate(
         BARE_PROMPT.format(n=N_DIFFERENTIAL, vignette=vignette)
     )
-    bare_preds = _parse_differential(bare_raw)
+    bare_preds = parse_differential(bare_raw, limit=N_DIFFERENTIAL)
     logger.info(f"  bare_llm : {bare_preds}")
 
     # ---- Arm 2: standard RAG --------------------------------------------- #
@@ -154,7 +131,7 @@ def _evaluate_case(case: dict, components, max_depth: int) -> dict:
     rag_raw = llm_client.generate(
         RAG_PROMPT.format(n=N_DIFFERENTIAL, vignette=vignette, context=rag_context)
     )
-    rag_preds = _parse_differential(rag_raw)
+    rag_preds = parse_differential(rag_raw, limit=N_DIFFERENTIAL)
     logger.info(f"  rag      : {rag_preds}")
 
     # ---- Arm 3: Apiro belief-graph traversal ----------------------------- #
@@ -317,6 +294,8 @@ def run_evaluation(
         return
 
     components = build_real_components()
+    # Give the Apiro arm the same candidate budget as the baselines above.
+    components.traversal.expander.n_diagnoses = N_DIFFERENTIAL
     logger.info(f"Components ready. Corpus: {components.doc_count:,} documents.")
 
     results = []
