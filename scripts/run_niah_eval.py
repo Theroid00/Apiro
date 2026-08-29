@@ -25,7 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
+import re
 import sys
 from pathlib import Path
 
@@ -98,10 +98,31 @@ def _case_family(case: dict) -> str:
     return fam or "unknown"
 
 
+def _first_present(case: dict, *keys):
+    """First key whose value is not None.
+
+    `a or b` treats 0 and 0.0 as absent. `depth_fraction` is legitimately 0.0
+    for a needle placed at the very top of the haystack, so the old `or` chain
+    reported the shallowest depth bucket — the control condition for the
+    long-context claim — as "unknown" and dropped it from the matrix.
+    """
+    for key in keys:
+        value = case.get(key)
+        if value is not None:
+            return value
+    return None
+
+
 def _length_bucket(case: dict) -> str:
-    tokens = case.get("target_tokens") or case.get("approx_tokens") or case.get("length_tokens")
+    tokens = _first_present(case, "target_tokens", "approx_tokens", "length_tokens")
     if tokens is not None:
-        return f"{tokens}k" if tokens >= 1000 and tokens % 1000 == 0 else f"{tokens}tok"
+        # A round thousand renders as "2k", not "2000k". The old expression
+        # appended "k" to the raw token count, so the published length x depth
+        # matrix labelled 8,000-token contexts as "8000k" — eight million
+        # tokens — in every report and in data/niah_eval_results.json.
+        if tokens >= 1000 and tokens % 1000 == 0:
+            return f"{tokens // 1000}k"
+        return f"{tokens}tok"
     val = (
         case.get("length_bucket")
         or case.get("haystack_length")
@@ -112,7 +133,7 @@ def _length_bucket(case: dict) -> str:
 
 
 def _depth_bucket(case: dict) -> str:
-    depth = case.get("depth_fraction") or case.get("depth")
+    depth = _first_present(case, "depth_fraction", "depth")
     if depth is not None:
         try:
             return f"{int(float(depth) * 100)}%"
@@ -176,108 +197,20 @@ def _synthesis_hits_all_targets(items, targets, embedder, llm_client) -> bool:
 # Real component wiring (Ollama + ChromaDB)
 # --------------------------------------------------------------------------- #
 def _build_real_components():
-    import requests
-    from apiro.config import OLLAMA_BASE_URL, PRIMARY_MODEL
-    from apiro.graph.expander import NodeExpander
-    from apiro.graph.saturation import SaturationDetector
-    from apiro.graph.rabbit_hole import RabbitHoleDetector
-    from apiro.graph.contradiction import ContradictionDetector
-    from apiro.entropy.engine import EntropyEngine
-    from apiro.corpus.embedder import Embedder
+    """Live Ollama + ChromaDB stack.
 
-    # Fail fast if Ollama is unreachable.
-    try:
-        r = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
-        r.raise_for_status()
-    except Exception as e:  # noqa: BLE001
-        logger.error(f"[Ollama Error] Could not reach Ollama at {OLLAMA_BASE_URL}: {e}")
-        sys.exit(1)
+    The wiring (and a verbatim copy of the chroma adapter) used to live here
+    and again in run_pmc_eval.py. It is now shared — see
+    apiro/eval/harness.py for why that mattered.
+    """
+    from apiro.eval.harness import build_real_components
 
-    embedder = Embedder()
-
-    class _ChromaAdapter:
-        """Adapts the Embedder to the chroma-style query surface the expander expects."""
-
-        def __init__(self, emb: Embedder):
-            self._emb = emb
-
-        def query(
-            self,
-            collection_name: str = "",
-            query_texts: list | None = None,
-            n_results: int = 6,
-            where: dict | None = None,
-        ) -> dict:
-            query_texts = query_texts or []
-            text = query_texts[0] if query_texts else ""
-            results = self._emb.query(text, n_results=n_results, where=where)
-            # Distances pass through so the expander can discard mere nearest
-            # neighbours that are not real evidence.
-            return {
-                "documents": [[r["text"] for r in results]],
-                "distances": [[r.get("distance") for r in results]],
-            }
-
-    chroma_adapter = _ChromaAdapter(embedder)
-    entropy_engine = EntropyEngine(model=PRIMARY_MODEL, ollama_url=OLLAMA_BASE_URL)
-
-    class OllamaLLMClient:
-        def __init__(self, url, model):
-            self.url = url
-            self.model = model
-
-        def generate(self, prompt: str) -> str:
-            import requests as req
-
-            payload = {
-                "model": self.model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {"temperature": 0.2, "num_predict": 180},
-            }
-            resp = req.post(f"{self.url}/api/generate", json=payload, timeout=120)
-            return resp.json().get("response", "")
-
-        def generate_with_logprobs(self, prompt: str) -> tuple[str, list]:
-            import requests as req
-
-            payload = {
-                "model": self.model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {"temperature": 0.2, "num_predict": 180},
-                "logprobs": True,
-            }
-            resp = req.post(f"{self.url}/api/generate", json=payload, timeout=120)
-            data = resp.json()
-            return data.get("response", ""), data.get("logprobs", [])
-
-        def chat(self, prompt: str) -> str:
-            return self.generate(prompt)
-
-    llm_client = OllamaLLMClient(OLLAMA_BASE_URL, PRIMARY_MODEL)
-    contradiction = ContradictionDetector()
-    expander = NodeExpander(
-        entropy_engine=entropy_engine,
-        chroma_client=chroma_adapter,
-        llm_client=llm_client,
-        contradiction_detector=contradiction,
-    )
-    # exploration_only: depth-0 axiom seeds have a fixed entropy and must never
-    # be counted as evidence of convergence.
-    saturation = SaturationDetector(exploration_only=SATURATION_EXPLORATION_ONLY)
-    rabbit_hole = RabbitHoleDetector()
-    traversal = ApiroTraversal(
-        expander=expander,
-        saturation=saturation,
-        rabbit_hole=rabbit_hole,
-        contradiction=contradiction,
-    )
+    components = build_real_components(llm_timeout=120)
     return {
-        "embedder": embedder,
-        "llm_client": llm_client,
-        "traversal": traversal,
-        "contradiction": contradiction,
+        "embedder": components.embedder,
+        "llm_client": components.llm_client,
+        "traversal": components.traversal,
+        "contradiction": components.contradiction,
     }
 
 
@@ -582,6 +515,28 @@ def _evaluate_case(case, components, real_components, axiom_extractor):
     else:
         vignette_to_pass = vignette
 
+    if not seeds:
+        # build_niah_cases.py does not emit a `seed_nodes` field, and stub mode
+        # skips axiom extraction, so the Apiro arm was handed an empty frontier:
+        # the traversal returned stop_reason="no_frontier" on iteration 1 and
+        # synthesised from an empty graph. That is a guaranteed loss dressed up
+        # as a result, so seed the presentation itself and say so — the same
+        # fallback apiro.axioms.seeding.build_seeds() applies.
+        logger.warning(
+            f"  Case {case_id} has no seed nodes and no axioms were extracted "
+            f"(stub mode). Seeding the raw presentation so the traversal has a "
+            f"frontier."
+        )
+        seeds = [Node(
+            id="ax_fallback_0",
+            claim=f"The patient presents with the following clinical picture: "
+                  f"{vignette.strip()[:400]}",
+            entropy_score=0.01,
+            domain="pathophysiology",
+            depth=0,
+            metadata={"axiom_weight": 1.0, "polarity": "affirmed", "fallback": True},
+        )]
+
     traversal_res = traversal.run(
         seed_nodes=seeds,
         graph=graph,
@@ -699,22 +654,49 @@ def _per_family_table(results):
     return per_family
 
 
+_NUMERIC_BUCKET_RE = re.compile(r"^(\d+(?:\.\d+)?)")
+
+
+def _bucket_sort_key(label: str) -> tuple[float, str]:
+    """Sort key that orders generated buckets numerically, not lexically.
+
+    The generated buckets are strings like "2k", "8k", "25%", "100%". A plain
+    `sorted()` puts "100%" before "25%" and would put "16k" before "2k", so the
+    published matrix read as if accuracy were being swept in an arbitrary order.
+    A numeric prefix sorts on its value; anything else sorts last, by name.
+    """
+    match = _NUMERIC_BUCKET_RE.match(label)
+    if not match:
+        return (float("inf"), label)
+    scale = 1000.0 if label[match.end():].startswith("k") else 1.0
+    return (float(match.group(1)) * scale, label)
+
+
+def _ordered_buckets(values: set[str], canonical: list[str]) -> list[str]:
+    """Canonical buckets first (in their declared order), then the rest sorted
+    numerically, with "unknown" always last."""
+    ordered = [b for b in canonical if b in values]
+    extra = values - set(canonical) - {"unknown"}
+    ordered += sorted(extra, key=_bucket_sort_key)
+    if "unknown" in values:
+        ordered.append("unknown")
+    return ordered
+
+
 def _length_depth_matrix(results, arm="apiro"):
     """Length (rows) x Depth (cols) accuracy heatmap for a single arm."""
-    lengths = [l for l in LENGTH_BUCKETS if any(r["length"] == l for r in results)]
-    lengths += sorted({r["length"] for r in results} - set(LENGTH_BUCKETS) - {"unknown"})
-    if any(r["length"] == "unknown" for r in results):
-        lengths.append("unknown")
-
-    depths = [d for d in DEPTH_BUCKETS if any(r["depth"] == d for r in results)]
-    depths += sorted({r["depth"] for r in results} - set(DEPTH_BUCKETS) - {"unknown"})
-    if any(r["depth"] == "unknown" for r in results):
-        depths.append("unknown")
+    lengths = _ordered_buckets({r["length"] for r in results}, LENGTH_BUCKETS)
+    depths = _ordered_buckets({r["depth"] for r in results}, DEPTH_BUCKETS)
 
     print("\n" + "=" * 78)
     print(f"  LENGTH x DEPTH ACCURACY MATRIX — arm='{arm}'  (rows=length, cols=depth)")
     print("=" * 78)
-    header = f"{'length \\ depth':<16}" + "".join(f"{d:>12}" for d in depths)
+    # NOTE: the corner label is built outside the f-string. A literal backslash
+    # inside an f-string expression is a SyntaxError before Python 3.12, and
+    # pyproject declares requires-python = ">=3.10" — this file did not parse
+    # at all on the project's own minimum interpreter.
+    corner = "length \\ depth"
+    header = f"{corner:<16}" + "".join(f"{d:>12}" for d in depths)
     print(header)
     print("-" * len(header))
 
@@ -740,6 +722,55 @@ def _length_depth_matrix(results, arm="apiro"):
         print(f"{length:<16}" + "".join(row_cells))
     print("=" * 78)
     return {"lengths": lengths, "depths": depths, "cells": matrix}
+
+
+def _significance_table(results):
+    """Paired significance of each arm against the two baselines.
+
+    The overall table reports three accuracies over the same 25 cases and the
+    README turns the gap between two of them into a headline ("+28% over
+    RAG"). Three accuracies on shared cases is a *paired* design, so the
+    supporting test is McNemar on the discordant cases, not an eyeball
+    comparison of two independent proportions. Reported here so the number and
+    its uncertainty travel together.
+    """
+    from apiro.eval.metrics import mcnemar_exact, paired_bootstrap_delta_ci, wilson_interval
+
+    n = len(results)
+    outcomes = {
+        arm: [bool(r[arm]["success"]) for r in results]
+        for arm in ("apiro", "rag", "bare_llm")
+    }
+    labels = {"apiro": "Apiro", "rag": "Standard RAG", "bare_llm": "Bare LLM"}
+
+    print("\n" + "=" * 78)
+    print("  ACCURACY WITH 95% CONFIDENCE INTERVALS (Wilson)")
+    print("=" * 78)
+    for arm in ("apiro", "rag", "bare_llm"):
+        hits = sum(outcomes[arm])
+        low, high = wilson_interval(hits, n)
+        print(f"  {labels[arm]:<16}{hits:>3}/{n:<4}"
+              f"{hits / n * 100 if n else 0:>7.1f}%"
+              f"   95% CI [{low * 100:5.1f}%, {high * 100:5.1f}%]")
+    print("=" * 78)
+
+    print("\n" + "=" * 78)
+    print("  PAIRED COMPARISONS (exact McNemar on discordant cases)")
+    print("=" * 78)
+    stats = {}
+    for challenger, baseline in (("apiro", "rag"), ("apiro", "bare_llm"), ("rag", "bare_llm")):
+        delta = paired_bootstrap_delta_ci(outcomes[challenger], outcomes[baseline])
+        mcn = mcnemar_exact(outcomes[challenger], outcomes[baseline])
+        verdict = "significant" if mcn["significant_at_05"] else "NOT significant"
+        print(f"  {labels[challenger]} vs {labels[baseline]}")
+        print(f"      delta = {delta['delta'] * 100:+6.1f} pp   "
+              f"95% CI [{delta['ci_low'] * 100:+.1f}, {delta['ci_high'] * 100:+.1f}] pp")
+        print(f"      McNemar: {mcn['a_only']} won / {mcn['b_only']} lost of "
+              f"{mcn['n_discordant']} discordant, p = {mcn['p_value']:.4f} "
+              f"({verdict} at alpha = 0.05)")
+        stats[f"{challenger}_vs_{baseline}"] = {"delta_ci": delta, "mcnemar": mcn}
+    print("=" * 78)
+    return stats
 
 
 def _traversal_diagnostics(results):
@@ -775,13 +806,13 @@ def _traversal_diagnostics(results):
     }
 
 
-def _print_evaluator_summary(results):
-    """Delegate to the shared evaluator summary printer when available."""
-    try:
-        from apiro.eval.evaluator import _print_summary
-        _print_summary(results)
-    except Exception as e:
-        logger.debug(f"Summary printer notice: {e}")
+# NOTE: a `_print_evaluator_summary()` helper used to live here. It was never
+# called, and it passed the per-case results *list* to
+# apiro.eval.evaluator._print_summary(), which expects the aggregate summary
+# *dict* — so had anything called it, it would have printed an all-zero table
+# behind a swallowed exception. The reporting this harness actually uses is
+# _overall_table / _per_family_table / _length_depth_matrix below.
+
 
 def run_evaluation(cases_path: str = "data/niah_cases.json", real_components: bool = False, limit: int | None = None, out_path: str | None = None):
     cases_file = Path(cases_path)
@@ -813,6 +844,7 @@ def run_evaluation(cases_path: str = "data/niah_cases.json", real_components: bo
     overall = _overall_table(results)
     per_family = _per_family_table(results)
     matrix = _length_depth_matrix(results, arm="apiro")
+    significance = _significance_table(results)
     diagnostics = _traversal_diagnostics(results)
 
     if out_path:
@@ -826,6 +858,7 @@ def run_evaluation(cases_path: str = "data/niah_cases.json", real_components: bo
             "overall": overall,
             "per_family": per_family,
             "length_depth_matrix": matrix,
+            "significance": significance,
             "diagnostics": diagnostics,
             "case_results": results,
         }
