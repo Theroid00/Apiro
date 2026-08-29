@@ -120,8 +120,18 @@ class Chunker:
             return []
 
         if _TOKENIZER_NAME == "naive":
-            # Simple fallback: split on ". " boundaries
-            sentences = [s.strip() + "." for s in text.split(". ") if s.strip()]
+            # Simple fallback: split on ". " boundaries. Only append "." to
+            # pieces that don't already end in sentence-ending punctuation —
+            # the last piece from a str.split(". ") keeps the original
+            # text's own trailing punctuation (or none, mid-sentence), so
+            # unconditionally appending "." here used to double it up
+            # ("...pain." -> "...pain..") whenever the input already ended
+            # with '.', '!', or '?'.
+            sentences = [
+                s if s[-1] in ".!?" else s + "."
+                for s in (piece.strip() for piece in text.split(". "))
+                if s
+            ]
         else:
             sentences = nltk.sent_tokenize(text)
         if not sentences:

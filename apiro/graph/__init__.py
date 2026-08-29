@@ -1,11 +1,11 @@
 """
-apiro.graph — belief graph data model and Phase 2 orchestration components.
+apiro.graph — belief graph data model and orchestration components.
 
-Phase 1 (data model):
+Data model:
   BeliefGraph, Node, Edge
 
-Phase 2 (orchestration):
-  HypothesisTestingTraversal
+Orchestration:
+  ApiroTraversal, TraversalResult
   ContradictionDetector (import directly: from apiro.graph.contradiction import ContradictionDetector)
 
 Stubs (for testing without Ollama/ChromaDB/model download):

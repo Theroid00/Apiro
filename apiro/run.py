@@ -1,49 +1,41 @@
-import argparse
+"""
+apiro/run.py — packaging entry point.
+
+`pip install -e .` registers `apiro = apiro.run:main` as a console script
+(see pyproject.toml). This module exists to satisfy that entry point; the
+actual CLI logic lives in scripts/investigate.py so both `python
+scripts/investigate.py ...` (works straight from a clone, no install
+required) and the installed `apiro` command stay in sync with a single
+implementation.
+
+This only works for an editable install (`pip install -e .`) run from
+within the cloned repo, since `scripts/` isn't a packaged module — it adds
+the repo's `scripts/` directory to sys.path at call time and imports
+investigate.py from there. For anything else, run
+`python scripts/investigate.py` or `uvicorn scripts.app:app` directly.
+"""
 import sys
-import logging
 from pathlib import Path
 
-# `requests` was only imported inside generate(), so generate_with_logprobs()
-# raised NameError the moment anything called it.
-import requests
-
-# Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-logger = logging.getLogger("run")
-
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
 
-class OllamaLLMClient:
-    def __init__(self, url, model):
-        self.url = url
-        self.model = model
 
-    def generate(self, prompt: str) -> str:
-        resp = requests.post(
-            f"{self.url}/api/generate",
-            json={"model": self.model, "prompt": prompt, "stream": False, "options": {"temperature": 0.2, "num_predict": 180}},
-            timeout=90,
+def main() -> None:
+    scripts_dir = ROOT / "scripts"
+    if not scripts_dir.exists():
+        print(
+            "[-] Could not find scripts/investigate.py next to this installation.\n"
+            "    The `apiro` command only works for an editable install run from\n"
+            "    inside the cloned repository (`pip install -e .`).\n"
+            "    Otherwise, run `python scripts/investigate.py` directly from the repo."
         )
-        resp.raise_for_status()
-        return resp.json().get("response", "")
+        sys.exit(1)
 
-    def generate_with_logprobs(self, prompt: str) -> tuple[str, list]:
-        payload = {
-            "model":  self.model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {"temperature": 0.2, "num_predict": 180},
-            "logprobs": True,
-        }
-        resp = requests.post(f"{self.url}/api/generate", json=payload, timeout=90)
-        resp.raise_for_status()
-        data = resp.json()
-        return data.get("response", ""), data.get("logprobs", [])
+    sys.path.insert(0, str(scripts_dir))
+    import investigate  # scripts/investigate.py
 
-    def chat(self, prompt: str) -> str:
-        return self.generate(prompt)
+    investigate.main()
+
 
 if __name__ == "__main__":
-    print("Please use scripts/investigate.py or scripts/app.py as the entry point.")
-    sys.exit(0)
+    main()

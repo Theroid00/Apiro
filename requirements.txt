@@ -1,36 +1,36 @@
-# Calibration experiment deps (already installed)
-requests>=2.31.0
-numpy>=1.26.0
-pandas>=2.1.0
-sentence-transformers>=2.7.0
-scikit-learn>=1.4.0
-matplotlib>=3.8.0
-seaborn>=0.13.0
-tqdm>=4.66.0
-scipy>=1.12.0
+# Core runtime deps. Kept in sync with pyproject.toml's [project.dependencies];
+# pyproject.toml is the source of truth for `pip install -e .` — this file is
+# for `pip install -r requirements.txt` in a plain venv.
 
-# Phase 1 — Corpus & Infrastructure
+# Corpus & infrastructure
 chromadb>=0.5.0
 networkx>=3.3
-nltk>=3.8.0
+nltk>=3.8.1
+pyyaml>=6.0.1
 
 # Corpus sources
-datasets>=2.19.0            # HuggingFace datasets (MedRAG/pubmed streaming)
+datasets>=2.18.0            # HuggingFace datasets (MedRAG/pubmed streaming)
 biopython>=1.83             # ClinVar FTP gz parsing (gzip stdlib used instead)
+requests>=2.31.0
 requests-cache>=1.2.0       # Optional: cache HTTP requests during development
+certifi>=2024.2.2
 
-# Phase 2 — Graph Engine
-pyvis>=0.3.2
-
-# Phase 5 - HADCE NLP Pipeline
-pyyaml>=6.0.1
+# Graph / entropy engine
+numpy>=1.26.0
+sentence-transformers>=2.7.0
 transformers>=4.40.0
 torch>=2.2.0
 
-# Phase 4 — API & Interface
+# Web app / API
 fastapi>=0.111.0
 uvicorn>=0.30.0
 pydantic>=2.7.0
 
-# Phase 5 - HADCE NLP Pipeline
-pyyaml>=6.0.1
+# Eval / calibration (implemented with numpy only — no scipy/sklearn dependency)
+pandas>=2.1.0
+matplotlib>=3.8.0
+tqdm>=4.66.0
+
+# Optional: enables the primary negation-classification path in
+# apiro/axioms/negation.py (falls back to a regex classifier without it).
+# medspacy
