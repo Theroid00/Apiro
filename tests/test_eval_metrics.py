@@ -345,7 +345,8 @@ class TestDistractorRobustness:
         r = distractor_robustness(clean, fragile)
         assert r["clean_accuracy"] == pytest.approx(0.8)
         assert r["broken"] == 5
-        assert r["retention"] == pytest.approx(5 / 8)
+        # 8 solvable, 5 broken -> 3 survived.
+        assert r["retention"] == pytest.approx(3 / 8)
         assert r["degradation"] == pytest.approx(0.5)
 
     def test_retention_denominator_is_the_solvable_set(self):
