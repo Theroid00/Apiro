@@ -28,6 +28,11 @@ python scripts/run_safety_calibration_eval.py --input data/niah_eval_results.jso
 python scripts/run_cupcase_eval.py --n 60 --out data/cupcase_eval_results.json
 ```
 
+**Before trusting any number from step 2, read
+[Are the current test cases appropriate?](#are-the-current-test-cases-appropriate-partly)** —
+it records one defect that was silently depressing every arm (now fixed) and
+two limitations that are not fixable by editing the generator.
+
 Steps 2 and 4 are the long ones — budget roughly 2–4 minutes per case per arm
 on a local 8B model, so ~120 cases is a multi-hour run. Start with
 `--limit 10` to confirm the stack is healthy before committing to the full set.
@@ -46,6 +51,93 @@ python scripts/run_niah_eval.py --cases data/niah_cases.json --real --out data/n
 That is the run to lead with. It emits 40 counterfactual (control, trap) pairs
 plus 10 unanswerable cases, and produces the two endpoints that can actually
 falsify this architecture's claims.
+
+### Do these benchmarks ship their own data? Mostly no.
+
+Short answer: **the designs and metrics are reusable, the datasets largely are
+not — but the source data underneath them is.**
+
+| Benchmark | Data obtainable? | Metric reusable? | What we do |
+|---|---|---|---|
+| [MedEinst](https://arxiv.org/abs/2601.06636) | Not locatable. Jan 2026 preprint; no public repo or HF release found as of Aug 2026. Built **from DDXPlus**. | Yes — Bias Trap Rate is fully specified | Reimplemented the design; see the DDXPlus route below |
+| [MedAbstain](https://arxiv.org/abs/2601.12471) | Not locatable | Yes — context-omission + explicit abstention option | Reimplemented as `--unanswerable-fraction` |
+| [DyReMe](https://arxiv.org/html/2510.09275) | Generates dynamically by design | Principle only | Reflected in generating cases per run |
+| [CUPCase](https://huggingface.co/datasets/ofir408/CupCase) | **Yes** — public HF dataset, 3,562 cases, 3 curated distractors each | Distractor-selection rate | **Already wired**: `scripts/run_cupcase_eval.py` |
+| [DDXPlus](https://huggingface.co/datasets/aai530-group6/ddxplus) | **Yes** — CC-BY, 1.3M patients, 49 pathologies, structured symptoms + **ground-truth differential** | — | **Not yet wired. This is the highest-value remaining work.** |
+
+So there are two real external datasets available today: CUPCase (wired) and
+DDXPlus (not). DDXPlus matters most, because:
+
+- It is the substrate MedEinst was built from, so counterfactual traps
+  constructed on it are the reference design rather than an imitation of it.
+- Its symptoms and antecedents are **structured**, so control/trap pairs can be
+  constructed programmatically by swapping discriminative features, instead of
+  from a hand-written bank.
+- It ships a ground-truth **differential** (a ranked list), not a single label,
+  which is what makes top-k and MRR meaningful.
+- CC-BY. No access barrier.
+
+---
+
+## Are the current test cases appropriate? Partly.
+
+Audited rather than assumed. One blocking defect found and fixed; two
+limitations remain and cannot be fixed by editing the generator.
+
+### Fixed: the evaluator could not score its own answers
+
+When `NEEDLE_BANK` grew from 6 diagnoses to 20, only **2 of the 20** had a
+clinical synonym group. **22 of 36 clinically correct paraphrases were graded
+as misses** — every common abbreviation (DKA, SAH, GCA, GBS), and every
+British spelling. That last one is self-inflicted: the needle bank is written
+in British English, so a model primed by the note's own spelling produced
+"haemorrhage" and was marked wrong.
+
+Recall is now 38/38, with 12/12 confusable pairs kept distinct — pinned by
+`tests/test_evaluator_coverage.py`. Separation is the load-bearing half: if
+"acute appendicitis" matched "acute mesenteric ischemia", every counterfactual
+trap would score as correct whichever way the model answered.
+
+**Do not run the benchmark on a checkout without this fix.** Every arm is
+depressed by it, and the artifact is large enough to swamp the effect.
+
+### Remains: the haystacks are boilerplate, not clinical prose
+
+Measured on generated cases:
+
+| Note size | Sentences | Distinct | Repeated | Needle density |
+|---|:---:|:---:|:---:|:---:|
+| 2,000 tok | 133 | 33 | 98% | 0.8% |
+| 8,000 tok | 508 | 33 | 99% | 0.2% |
+
+`HAY_SENTENCES` is a pool of 30 filler sentences, cycled. In an 8k note, 99% of
+sentences are verbatim repeats and the needle is **the only sentence that
+isn't**. The task is closer to "find the line that breaks the pattern" than to
+"find the decisive finding among hundreds of plausible clinical statements".
+Expect absolute accuracies to be optimistic, and the long-context result in
+particular to overstate real performance.
+
+### Remains: still a self-authored exam
+
+20 diagnoses, hand-written needles, hand-written confusable pairs. The
+counterfactual design fixed the worst problem — the old cases could be passed
+by ignoring the vignette — but the cases are still ours. A result here is
+evidence that *the mechanism fires*, not evidence about clinical performance.
+
+### So what is it good for?
+
+| Question | Suitable? |
+|---|---|
+| Does contradiction soft-pruning actually fire? | **Yes** — that is what it is built for |
+| Does discriminative evidence override the prior? | **Yes** — the counterfactual traps test exactly this |
+| Does the engine fabricate when evidence is absent? | **Yes** — unanswerable cases test this directly |
+| Is Apiro more accurate than RAG on real patients? | **No** — use CUPCase, and DDXPlus once wired |
+| Comparable to published MedEinst numbers? | **No** — different cases, different construction |
+
+Run it. Treat a positive result as "the mechanism works as designed", and go to
+CUPCase and DDXPlus for anything stronger.
+
+---
 
 ### Related work these designs come from
 
