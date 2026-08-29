@@ -29,8 +29,6 @@ STUB FALLBACKS:
 
 import re
 import logging
-import math
-from typing import Optional
 
 from apiro.graph.node import Node
 from apiro.graph.edge import Edge
@@ -283,6 +281,7 @@ class NodeExpander:
         collection_name: str = "medical_knowledge",
         contradiction_detector=None,
         inline_contradiction_check: bool = False,
+        n_children: int = N_CHILD_HYPOTHESES,
     ):
         self.entropy_engine = entropy_engine
         self.chroma_client = chroma_client
@@ -293,11 +292,15 @@ class NodeExpander:
         # the same node set. Set True only when driving the expander directly
         # without a traversal.
         self.inline_contradiction_check = inline_contradiction_check
-        self._node_counter = 0
+        # Number of child hypotheses to keep per expansion. Config-driven:
+        # N_CHILD_HYPOTHESES used to be imported and then ignored, with the
+        # count hard-coded to 3 in _parse_hypotheses' default argument, so
+        # changing it in config.py had no effect on the engine.
+        self.n_children = n_children
 
-    def _generate_node_id(self, parent_id: str, index: int) -> str:
+    @staticmethod
+    def _generate_node_id(parent_id: str, index: int) -> str:
         """Deterministic child ID: {parent_id}_c{index}"""
-        self._node_counter += 1
         return f"{parent_id}_c{index}"
 
     # Sentence scaffolding added by the axiom extractor. It is there so the NLI
@@ -455,59 +458,15 @@ class NodeExpander:
             logger.error(f"[NodeExpander] LLM call failed: {e}")
             return ""
 
-    def _call_llm_with_logprobs(self, prompt: str) -> tuple[str, list]:
-        """Call the LLM client, requesting logprobs if supported."""
-        if hasattr(self.llm_client, "generate_with_logprobs"):
-            try:
-                return self.llm_client.generate_with_logprobs(prompt)
-            except Exception as e:
-                logger.error(f"[NodeExpander] LLM call with logprobs failed: {e}")
-        try:
-            return self.llm_client.chat(prompt), []
-        except Exception as e:
-            logger.error(f"[NodeExpander] LLM call failed: {e}")
-            return "", []
-
-    def _align_logprobs_to_hypotheses(self, logprobs: list, hypotheses: list[str]) -> list[float]:
-        """
-        Align token logprobs to the parsed hypotheses.
-        Returns a list of uncertainty/entropy scores (float) for each hypothesis.
-        """
-        DEFAULT = 0.693  # ln(2)
-        if not logprobs or not hypotheses:
-            return [DEFAULT] * len(hypotheses)
-            
-        lines_logprobs = []
-        current_line = []
-        for item in logprobs:
-            token_text = item.get("token", "")
-            logprob = item.get("logprob", 0.0)
-            current_line.append(logprob)
-            if "\n" in token_text:
-                if current_line:
-                    lines_logprobs.append(current_line)
-                    current_line = []
-        if current_line:
-            lines_logprobs.append(current_line)
-            
-        scores = []
-        for idx, hyp in enumerate(hypotheses):
-            if idx < len(lines_logprobs) and lines_logprobs[idx]:
-                line_lps = lines_logprobs[idx]
-                avg_lp = sum(line_lps) / len(line_lps)
-                p = math.exp(avg_lp)
-                # Map token average probability to binary Shannon entropy
-                p = max(0.5001, min(0.9999, p))
-                entropy = - p * math.log(p) - (1.0 - p) * math.log(1.0 - p)
-                entropy = max(0.05, min(0.693, entropy))
-                scores.append(round(entropy, 4))
-            else:
-                scores.append(DEFAULT)
-                
-        while len(scores) < len(hypotheses):
-            scores.append(DEFAULT)
-            
-        return scores[:len(hypotheses)]
+    # NOTE: an earlier design generated hypotheses and their entropies in one
+    # LLM call, aligning each hypothesis to a slice of that call's token
+    # logprobs (real Shannon entropy over the model's own token
+    # distribution). That path (_call_llm_with_logprobs /
+    # _align_logprobs_to_hypotheses) was never reconnected after the entropy
+    # engine was rewritten — see apiro/entropy/engine.py's module docstring —
+    # and was removed from here since nothing called it. The live entropy
+    # signal is _batch_entropy() below, which scores each already-generated
+    # hypothesis independently via EntropyEngine.temperature_corrected_entropy().
 
     # Regex to detect preamble/header lines that are NOT actual hypotheses.
     # LLMs often prefix their output with labels like "Hypotheses:" or "Output:"
@@ -579,10 +538,15 @@ class NodeExpander:
             except Exception:
                 return DEFAULT
 
+        if not hypotheses:
+            return []
+
         import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(len(hypotheses), self.n_children)
+        ) as executor:
             scores = list(executor.map(_score_hyp, hypotheses))
-            
+
         return scores
 
     def expand(self, node: Node, graph, vignette: str = None) -> list[Node]:
@@ -610,12 +574,14 @@ class NodeExpander:
         raw_output = self._call_llm(prompt)
 
         # Step 4: Parse
-        hypotheses = self._parse_hypotheses(raw_output)
+        hypotheses = self._parse_hypotheses(raw_output, limit=self.n_children)
 
-        # Step 5a: Batch entropy — score all 3 hypotheses in one pass using
-        # the verification signal (first-token Yes/No entropy). This is the
-        # correct epistemic uncertainty measure — token logprobs from generation
-        # measure generation fluency, not clinical decision-boundary certainty.
+        # Step 5a: Batch entropy — score all 3 hypotheses concurrently via
+        # EntropyEngine.temperature_corrected_entropy(), which (per
+        # apiro/entropy/engine.py) asks the LLM to self-report how many
+        # distinct diagnoses could explain the claim and maps that count
+        # through a fixed table. This is a bounded uncertainty heuristic,
+        # not Shannon entropy computed over a token probability distribution.
         entropies = self._batch_entropy(hypotheses, chunks)
 
         new_nodes = []

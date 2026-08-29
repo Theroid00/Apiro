@@ -1,28 +1,22 @@
 """
 graph/traversal.py
 ------------------
-Contains two traversal strategies:
+ApiroTraversal — the entropy-first traversal loop that drives the belief
+graph: repeatedly picks the highest-entropy frontier node, expands it via
+NodeExpander, runs the contradiction/rabbit-hole/saturation checks, and
+stops on saturation, max-depth, or an empty frontier.
 
-1. ApiroTraversal (CLASSIC) — Phase 2 generative expansion:
-   Entropy-first BFS that blindly expands frontier nodes via LLM.
-   Kept for backwards compatibility and comparison.
-
-2. HypothesisTestingTraversal (NEW) — hypothesis-testing inference:
-   Phase 1: Extract structured PatientContext.
-   Phase 2: Generate N candidate diagnoses via HypothesisOracle (1 LLM call).
-   Phase 3: Score each hypothesis deterministically via EvidenceMatcher (0 LLM calls).
-   Phase 4: Apply demographic constraints via BayesianScorer (0 LLM calls).
-   Phase 5 (optional): Targeted graph enrichment for top-3 hypotheses only.
-
-Select via the `--mode classic|hypothesis` flag in run.py.
+An earlier "hypothesis-testing" traversal strategy (structured PatientContext
+extraction → oracle-generated candidates → deterministic evidence scoring)
+was explored and then purged (commit 8a001c7); ApiroTraversal is the only
+strategy left in this codebase.
 """
 
 import json
 import logging
 import os
 import time
-from dataclasses import dataclass, field
-from pathlib import Path
+from dataclasses import dataclass
 from typing import Optional
 
 from apiro.config import (
@@ -54,26 +48,6 @@ class TraversalResult:
     duration_seconds:    float
     synthesis:           list[str]        # Final differential diagnosis
     saturation_status:   Optional[object] = None  # SaturationStatus if stop was saturation
-
-
-@dataclass
-class HypothesisTestingResult:
-    """
-    Summary returned by HypothesisTestingTraversal.run().
-
-    Carries the ranked hypotheses, evidence scores, and timing stats.
-    """
-    synthesis:           list[str]              # Top 3 diagnoses
-    ranked_hypotheses:   list                   # list[RankedHypothesis]
-    duration_seconds:    float
-    patient_context:     object                 # PatientContext
-    stop_reason:         str = "scored"
-    # Classic graph stats (populated if graph enrichment ran)
-    total_nodes:         int = 0
-    total_edges:         int = 0
-    rabbit_hole_count:   int = 0
-    contradiction_count: int = 0
-    graph:               Optional[object] = None
 
 
 class ApiroTraversal:
@@ -136,7 +110,6 @@ class ApiroTraversal:
         vignette: str = None,
         on_event = None,
     ) -> TraversalResult:
-        self._on_event = on_event
         """
         Run the entropy-first traversal loop.
 
@@ -145,10 +118,12 @@ class ApiroTraversal:
             graph:      empty BeliefGraph to populate
             max_depth:  hard stop — prevents infinite loops
             case_name:  used for log filename
+            on_event:   optional callback invoked with each traversal event dict
 
         Returns:
             TraversalResult with the populated graph and run statistics
         """
+        self._on_event = on_event
         start_time = time.time()
         self._traversal_log = []
 
