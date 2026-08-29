@@ -1,15 +1,29 @@
 #!/usr/bin/env python3
 """
-scripts/run_distractor_eval.py
-==============================
-Runs the distractor-resilience evaluation comparing Apiro's belief graph
-traversal against a bare LLM's zero-shot output on clinical vignettes
-containing strong distractors/decoys.
+scripts/run_pmc_eval.py
+=======================
+Real-world PMC case-report benchmark. Compares Apiro's belief-graph traversal
+against a bare zero-shot LLM and a standard RAG baseline on the ten scrubbed
+PubMed Central case reports in ``data/pmc_cases.json``.
+
+(The file was renamed from run_distractor_eval.py; the docstring still carried
+the old name.)
+
+CAVEAT ON THE CASE SET: the ``target_diagnosis`` fields in
+``data/pmc_cases.json`` were produced by an unconstrained LLM in
+``generate_pmc_cases.py`` and four of the ten are multi-paragraph prose rather
+than a diagnosis label. Grading a differential against a paragraph is not a
+fair test of any arm. Regenerate the set with the current
+``generate_pmc_cases.py`` (which now post-processes the label) before treating
+these accuracies as meaningful.
+
+Usage:
+    python scripts/run_pmc_eval.py --real
+    python scripts/run_pmc_eval.py --real --limit 5 --out data/pmc_eval_results.json
 """
 import argparse
 import json
 import logging
-import os
 import sys
 from pathlib import Path
 
@@ -31,6 +45,45 @@ from apiro.graph.traversal import ApiroTraversal
 from apiro.axioms.extractor import AxiomExtractor
 from apiro.config import SATURATION_EXPLORATION_ONLY
 
+def _significance_block(results) -> dict:
+    """Wilson intervals per arm plus paired McNemar tests between the arms.
+
+    The PMC set is N = 10. An accuracy printed to one decimal place from ten
+    binary outcomes implies a precision it does not have; the interval says so
+    explicitly, and McNemar says whether any gap between two arms survives the
+    fact that they were scored on the same ten cases.
+    """
+    from apiro.eval.metrics import mcnemar_exact, paired_bootstrap_delta_ci, wilson_interval
+
+    n = len(results)
+    outcomes = {
+        arm: [bool(r[arm]["success"]) for r in results]
+        for arm in ("apiro", "rag", "bare_llm")
+    }
+    labels = {"apiro": "Apiro", "rag": "Standard RAG", "bare_llm": "Bare LLM"}
+
+    print("-" * 65)
+    print("95% confidence intervals (Wilson):")
+    for arm in ("apiro", "rag", "bare_llm"):
+        hits = sum(outcomes[arm])
+        low, high = wilson_interval(hits, n)
+        print(f"  {labels[arm]:<14}{hits}/{n}  "
+              f"[{low * 100:.1f}%, {high * 100:.1f}%]")
+
+    print("Paired comparisons (exact McNemar):")
+    stats = {}
+    for challenger, baseline in (("apiro", "rag"), ("apiro", "bare_llm"), ("rag", "bare_llm")):
+        delta = paired_bootstrap_delta_ci(outcomes[challenger], outcomes[baseline])
+        mcn = mcnemar_exact(outcomes[challenger], outcomes[baseline])
+        verdict = "significant" if mcn["significant_at_05"] else "NOT significant"
+        print(f"  {labels[challenger]} vs {labels[baseline]}: "
+              f"delta={delta['delta'] * 100:+.1f}pp, "
+              f"discordant={mcn['n_discordant']}, "
+              f"p={mcn['p_value']:.4f} ({verdict})")
+        stats[f"{challenger}_vs_{baseline}"] = {"delta_ci": delta, "mcnemar": mcn}
+    return stats
+
+
 def run_evaluation(real_components: bool, limit: int | None = None, out_path: str | None = None):
     # Load distractor cases
     cases_path = PROJECT_ROOT / "data" / "pmc_cases.json"
@@ -39,89 +92,17 @@ def run_evaluation(real_components: bool, limit: int | None = None, out_path: st
 
     # Initialize components
     if real_components:
-        import requests
-        from apiro.config import OLLAMA_BASE_URL, PRIMARY_MODEL
-        from apiro.graph.expander import NodeExpander
-        from apiro.graph.saturation import SaturationDetector
-        from apiro.graph.rabbit_hole import RabbitHoleDetector
-        from apiro.graph.contradiction import ContradictionDetector
-        from apiro.entropy.engine import EntropyEngine
-        from apiro.corpus.embedder import Embedder
-        # Checks
-        try:
-            r = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
-            r.raise_for_status()
-        except Exception as e:
-            logger.error(f"[Ollama Error] Could not reach Ollama at {OLLAMA_BASE_URL}: {e}")
-            sys.exit(1)
+        # Shared wiring — see apiro/eval/harness.py. This block used to be a
+        # verbatim copy of the one in run_niah_eval.py, and the two copies had
+        # already drifted apart on the LLM timeout, so the two benchmarks were
+        # not in fact reporting numbers from an identical stack.
+        from apiro.eval.harness import build_real_components
 
-        embedder = Embedder()
-        
-        class _ChromaAdapter:
-            def __init__(self, emb: Embedder):
-                self._emb = emb
-            def query(self, collection_name: str = "", query_texts: list = None, n_results: int = 6, where: dict | None = None) -> dict:
-                query_texts = query_texts or []
-                text = query_texts[0] if query_texts else ""
-                results = self._emb.query(text, n_results=n_results, where=where)
-                # Distances are passed through so the expander can discard
-                # chunks that are merely nearest neighbours, not real evidence.
-                return {
-                    "documents": [[r["text"] for r in results]],
-                    "distances": [[r.get("distance") for r in results]],
-                }
-
-        chroma_adapter = _ChromaAdapter(embedder)
-        entropy_engine = EntropyEngine(model=PRIMARY_MODEL, ollama_url=OLLAMA_BASE_URL)
-        axiom_extractor = AxiomExtractor()
-        
-        class OllamaLLMClient:
-            def __init__(self, url, model):
-                self.url   = url
-                self.model = model
-            def generate(self, prompt: str) -> str:
-                import requests as req
-                payload = {
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {"temperature": 0.2, "num_predict": 180},
-                }
-                resp = req.post(f"{self.url}/api/generate", json=payload, timeout=90)
-                return resp.json().get("response", "")
-            def generate_with_logprobs(self, prompt: str) -> tuple[str, list]:
-                import requests as req
-                payload = {
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {"temperature": 0.2, "num_predict": 180},
-                    "logprobs": True,
-                }
-                resp = req.post(f"{self.url}/api/generate", json=payload, timeout=90)
-                data = resp.json()
-                return data.get("response", ""), data.get("logprobs", [])
-            def chat(self, prompt: str) -> str:
-                return self.generate(prompt)
-
-        llm_client = OllamaLLMClient(OLLAMA_BASE_URL, PRIMARY_MODEL)
-        contradiction = ContradictionDetector()
-        expander = NodeExpander(
-            entropy_engine=entropy_engine,
-            chroma_client=chroma_adapter,
-            llm_client=llm_client,
-            contradiction_detector=contradiction,
-        )
-        # exploration_only: depth-0 axiom seeds have a fixed entropy and must
-        # never be counted as evidence of convergence.
-        saturation = SaturationDetector(exploration_only=SATURATION_EXPLORATION_ONLY)
-        rabbit_hole = RabbitHoleDetector()
-        traversal = ApiroTraversal(
-            expander=expander,
-            saturation=saturation,
-            rabbit_hole=rabbit_hole,
-            contradiction=contradiction,
-        )
+        components = build_real_components(llm_timeout=120)
+        embedder = components.embedder
+        llm_client = components.llm_client
+        contradiction = components.contradiction
+        traversal = components.traversal
     else:
         # Import stub components
         from apiro.graph.expander import NodeExpander, StubEntropyEngine, StubChromaClient
@@ -497,6 +478,10 @@ def run_evaluation(real_components: bool, limit: int | None = None, out_path: st
     print(f"RAG Baseline Success  : {rag_wins}/{len(results)} ({rag_wins/n*100:.1f}%)")
     print(f"Apiro Total Success   : {apiro_wins}/{len(results)} ({apiro_wins/n*100:.1f}%)")
 
+    # At N = 10 a one-case swing moves accuracy by ten points, so the interval
+    # and the paired test matter more here than the point estimate does.
+    significance = _significance_block(results)
+
     # Head-to-head against the baseline Apiro is meant to beat.
     apiro_only = sum(1 for r in results if r["apiro"]["success"] and not r["bare_llm"]["success"])
     bare_only  = sum(1 for r in results if r["bare_llm"]["success"] and not r["apiro"]["success"])
@@ -525,6 +510,7 @@ def run_evaluation(real_components: bool, limit: int | None = None, out_path: st
                 "bare_llm_accuracy": bare_wins / n,
                 "rag_accuracy": rag_wins / n,
                 "apiro_accuracy": apiro_wins / n,
+                "significance": significance,
                 "stop_reasons": stop_reasons,
                 "results": results,
             }, f, indent=2)
