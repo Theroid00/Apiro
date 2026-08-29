@@ -1,18 +1,29 @@
 """
 apiro/patient/context.py — PatientContext
-==========================================
 
-Structured patient representation extracted once from a raw clinical vignette
-using a single LLM call. Everything downstream (HypothesisOracle,
-EvidenceMatcher, BayesianScorer) operates on this structured object
-instead of passing raw vignette strings everywhere.
+.. deprecated::
+    DEPRECATED AND UNUSED. Nothing in the engine, the CLI, the web app or any
+    benchmark imports this module. It is retained deliberately, not by
+    oversight — see the note below — but treat it as frozen: do not add
+    callers, and do not extend it without first deciding it is being brought
+    back into the pipeline.
 
-WHY THIS EXISTS:
-  The old architecture passed the raw vignette text through every component.
-  This meant the graph expansion had no stable concept of "chief complaint"
-  and would drift toward whatever was most interesting to the LLM (e.g.
-  dextrocardia instead of biliary colic). Structuring the patient data upfront
-  anchors every downstream step to the actual acute presentation.
+Structured patient representation extracted once from a raw clinical
+vignette using a single LLM call.
+
+WHY IT IS STILL HERE
+    It was built for an earlier "hypothesis-testing" architecture (structured
+    PatientContext → HypothesisOracle → EvidenceMatcher → BayesianScorer) that
+    was purged in commit 8a001c7. ApiroTraversal instead passes the raw
+    (sanitized) vignette string directly to NodeExpander, which derives its own
+    case anchor and seed context — see apiro/axioms/seeding.py and
+    BeliefGraph.set_case_anchor().
+
+    The open question recorded in docs/IMPROVEMENTS.md is whether seed
+    selection would be better anchored on structured fields (age, sex, explicit
+    lab dict) than on free text. This module is the working implementation of
+    that idea, so it is kept as the starting point for answering it rather than
+    deleted and rewritten later.
 
 EXTRACTION:
   A single LLM call with a JSON-format prompt extracts all fields. Failures
@@ -24,7 +35,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from dataclasses import dataclass, field
 from typing import Optional
 
