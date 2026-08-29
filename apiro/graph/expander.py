@@ -32,7 +32,13 @@ import logging
 
 from apiro.graph.node import Node
 from apiro.graph.edge import Edge
-from apiro.parsing import DIFFERENTIAL_SENTINEL, parse_claims, parse_differential
+from apiro.parsing import (
+    ABSTENTION_SENTINEL,
+    DIFFERENTIAL_SENTINEL,
+    detect_abstention,
+    parse_claims,
+    parse_differential,
+)
 from apiro.config import (
     RAG_DOMAIN_FILTER,
     N_CHILD_HYPOTHESES,
@@ -824,7 +830,14 @@ class NodeExpander:
             "4. Name the specific underlying primary disease, not a syndrome or a"
             " symptom (e.g. prefer 'Pheochromocytoma' over 'Hypertensive crisis').\n"
             "5. Every diagnosis must be compatible with ALL confirmed and ruled-out"
-            " findings above.\n\n"
+            " findings above.\n"
+            "6. Weigh the CONFIRMED OBJECTIVE FINDINGS above the typical"
+            " presentation. When a finding rules out the diagnosis the presentation"
+            " suggests, follow the finding.\n"
+            f"7. If the evidence above does not support any specific diagnosis,"
+            f" reply with exactly '{DIFFERENTIAL_SENTINEL} {ABSTENTION_SENTINEL}'"
+            f" and nothing else. Declining is correct when the note cannot"
+            f" support an answer; guessing is not.\n\n"
             f"=== OUTPUT ({n_diagnoses} lines, each beginning"
             f" '{DIFFERENTIAL_SENTINEL} ') ==="
         )
@@ -840,6 +853,13 @@ class NodeExpander:
         # against baselines whose raw text was searched line by line. One
         # retry with a harder instruction costs a single call on the case where
         # it matters and nothing on the cases where it does not.
+        # An explicit refusal is a complete answer, not a short one. Retrying
+        # it would badger the model out of the behaviour rule 7 asks for, and
+        # would turn a correct abstention into a fabricated diagnosis.
+        if detect_abstention(raw_output):
+            logger.info("[NodeExpander] Synthesis declined: evidence insufficient.")
+            return [ABSTENTION_SENTINEL]
+
         if len(diagnoses) < n_diagnoses:
             logger.info(
                 f"[NodeExpander] Synthesis parsed {len(diagnoses)}/{n_diagnoses} "
@@ -853,6 +873,9 @@ class NodeExpander:
                 f" no introduction, no bold, no numbering, no explanation."
             )
             retry_output = self._call_llm(retry_prompt)
+            if detect_abstention(retry_output):
+                logger.info("[NodeExpander] Synthesis declined on retry.")
+                return [ABSTENTION_SENTINEL]
             retry_diagnoses = parse_differential(retry_output, limit=n_diagnoses)
             # Keep whichever attempt yielded more usable candidates, merging the
             # first attempt's answers in behind rather than discarding them.

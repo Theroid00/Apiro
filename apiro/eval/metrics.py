@@ -49,6 +49,9 @@ __all__ = [
     "mcnemar_exact",
     "distractor_robustness",
     "compare_robustness",
+    "bias_trap_rate",
+    "compare_bias_traps",
+    "abstention_metrics",
     "ArmScores",
     "score_arm",
     "compare_arms",
@@ -495,6 +498,161 @@ def compare_robustness(
         "b_survived": int(np.count_nonzero(b_survived)),
         "mcnemar": mcnemar_exact(a_survived.tolist(), b_survived.tolist()),
     }
+
+
+# --------------------------------------------------------------------------- #
+# Counterfactual traps and abstention — the two research-grounded endpoints
+# --------------------------------------------------------------------------- #
+def bias_trap_rate(
+    control_outcomes: Sequence[bool],
+    trap_outcomes: Sequence[bool],
+    confidence: float = 0.95,
+) -> dict:
+    """P(wrong on the trap | right on the control).
+
+    The metric from MedEinst (arXiv:2601.06636). Inputs are per-pair and
+    aligned: index *i* is the same arm on the control and trap halves of one
+    counterfactual pair, which share a presenting syndrome but whose buried
+    discriminative evidence implies different diagnoses.
+
+    Conditioning on the control being right is what makes this sharp. It
+    isolates arms that *could* do the case from arms that could not, and asks
+    only whether flipping the evidence flipped the answer. A model reasoning
+    from statistical priors gets the control right for the wrong reason and
+    then fails the trap: its rate approaches 1.0. A model reading the evidence
+    holds near 0.0.
+
+    Unlike a distractor that leaves the answer unchanged, a trap cannot be
+    passed by ignoring the note — the prior-driven answer is wrong by
+    construction.
+
+    Returns:
+        ``n_pairs``, ``n_control_correct`` (the denominator),
+        ``trap_rate`` (None when the arm solved no control),
+        ``trap_rate_ci`` (Wilson), ``n_trapped``, and ``consistent`` — pairs
+        the arm got right in both directions, the only fully correct outcome.
+    """
+    control, trap = _validate_paired(control_outcomes, trap_outcomes)
+    n = control.size
+    n_control_correct = int(np.count_nonzero(control))
+    n_trapped = int(np.count_nonzero(control & ~trap))
+    consistent = int(np.count_nonzero(control & trap))
+
+    return {
+        "n_pairs": int(n),
+        "n_control_correct": n_control_correct,
+        "n_trapped": n_trapped,
+        "consistent": consistent,
+        "trap_rate": (n_trapped / n_control_correct) if n_control_correct else None,
+        "trap_rate_ci": (
+            wilson_interval(n_trapped, n_control_correct, confidence)
+            if n_control_correct else (0.0, 1.0)
+        ),
+        "control_accuracy": float(control.mean()) if n else 0.0,
+        "trap_accuracy": float(trap.mean()) if n else 0.0,
+    }
+
+
+def compare_bias_traps(
+    arm_a_control: Sequence[bool],
+    arm_a_trap: Sequence[bool],
+    arm_b_control: Sequence[bool],
+    arm_b_trap: Sequence[bool],
+) -> dict:
+    """Head-to-head trap survival, on pairs both arms got right on the control.
+
+    Restricting to shared controls removes baseline capability from the
+    comparison: a pair only one arm could solve says nothing about which is
+    less prior-driven. On that subset, McNemar tests whether one arm escapes
+    the trap more often than the other.
+    """
+    a_ctl, a_trap = _validate_paired(arm_a_control, arm_a_trap)
+    b_ctl, b_trap = _validate_paired(arm_b_control, arm_b_trap)
+    if a_ctl.shape != b_ctl.shape:
+        raise ValueError(
+            f"Both arms must be scored on the same pairs, got {a_ctl.size} and {b_ctl.size}."
+        )
+
+    comparable = a_ctl & b_ctl
+    n_comparable = int(np.count_nonzero(comparable))
+    if n_comparable == 0:
+        return {
+            "n_comparable": 0, "a_escaped": 0, "b_escaped": 0,
+            "mcnemar": mcnemar_exact([], []),
+        }
+    a_escaped = a_trap[comparable]
+    b_escaped = b_trap[comparable]
+    return {
+        "n_comparable": n_comparable,
+        "a_escaped": int(np.count_nonzero(a_escaped)),
+        "b_escaped": int(np.count_nonzero(b_escaped)),
+        "mcnemar": mcnemar_exact(a_escaped.tolist(), b_escaped.tolist()),
+    }
+
+
+def abstention_metrics(
+    abstained: Sequence[bool],
+    should_abstain: Sequence[bool],
+    correct_when_answered: Optional[Sequence[bool]] = None,
+) -> dict:
+    """Scoring for cases whose evidence was removed (MedAbstain, 2601.12471).
+
+    On an unanswerable case the only correct behaviour is to decline; naming a
+    diagnosis anyway is a confident fabrication, which is the failure mode this
+    architecture exists to prevent. On an answerable case, declining is a
+    missed opportunity rather than a safety failure — so the two directions are
+    reported separately rather than collapsed into one accuracy number.
+
+    Args:
+        abstained: Did the arm decline, per case?
+        should_abstain: Was the case unanswerable, per case?
+        correct_when_answered: Optional per-case correctness, used to compute
+            selective accuracy over the answered subset.
+
+    Returns:
+        ``fabrication_rate`` — answered a question with no answer, the number
+        that matters; ``abstention_recall`` — declined when it should have;
+        ``over_abstention_rate`` — declined when it need not have; plus
+        ``coverage`` and ``selective_accuracy`` when correctness is supplied.
+    """
+    abst, should = _validate_paired(abstained, should_abstain)
+    n = abst.size
+
+    n_unanswerable = int(np.count_nonzero(should))
+    n_answerable = int(n - n_unanswerable)
+    fabricated = int(np.count_nonzero(should & ~abst))
+    correctly_declined = int(np.count_nonzero(should & abst))
+    over_abstained = int(np.count_nonzero(~should & abst))
+
+    out = {
+        "n_cases": int(n),
+        "n_unanswerable": n_unanswerable,
+        "n_answerable": n_answerable,
+        "fabricated": fabricated,
+        "fabrication_rate": (fabricated / n_unanswerable) if n_unanswerable else None,
+        "fabrication_rate_ci": (
+            wilson_interval(fabricated, n_unanswerable) if n_unanswerable else (0.0, 1.0)
+        ),
+        "abstention_recall": (correctly_declined / n_unanswerable) if n_unanswerable else None,
+        "over_abstained": over_abstained,
+        "over_abstention_rate": (over_abstained / n_answerable) if n_answerable else None,
+        "coverage": float(np.count_nonzero(~abst) / n) if n else 0.0,
+    }
+
+    if correct_when_answered is not None:
+        correct = np.asarray(correct_when_answered, dtype=bool).ravel()
+        if correct.shape != abst.shape:
+            raise ValueError(
+                f"correct_when_answered has {correct.size} entries for {n} cases."
+            )
+        answered_answerable = (~abst) & (~should)
+        n_aa = int(np.count_nonzero(answered_answerable))
+        out["selective_accuracy"] = (
+            float(np.count_nonzero(correct & answered_answerable) / n_aa) if n_aa else None
+        )
+        out["n_answered_answerable"] = n_aa
+
+    return out
 
 
 # --------------------------------------------------------------------------- #

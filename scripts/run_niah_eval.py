@@ -50,7 +50,7 @@ from apiro.graph.node import Node
 from apiro.graph.traversal import ApiroTraversal
 from apiro.axioms.extractor import AxiomExtractor
 from apiro.config import N_DIFFERENTIAL, SATURATION_EXPLORATION_ONLY
-from apiro.parsing import parse_differential
+from apiro.parsing import ABSTENTION_SENTINEL, detect_abstention, parse_differential
 
 # The canonical NIAH families. Order here defines display order everywhere.
 NIAH_FAMILIES = [
@@ -456,7 +456,9 @@ def _evaluate_case(case, components, real_components, axiom_extractor):
         f"Based on the following clinical presentation, provide a list of your top "
         f"{N_DIFFERENTIAL} differential diagnoses, most likely first. Output ONLY the "
         f"{N_DIFFERENTIAL} diagnosis names, one per line, no numbering, no "
-        f"explanation:\n\n"
+        f"explanation.\n"
+        f"If the note does not contain enough information to identify a diagnosis, "
+        f"reply with exactly '{ABSTENTION_SENTINEL}' and nothing else.\n\n"
         f"{vignette}"
     )
     bare_output = llm_client.generate(prompt)
@@ -482,7 +484,9 @@ def _evaluate_case(case, components, real_components, axiom_extractor):
             f"Based on the following clinical presentation and the retrieved medical "
             f"context, provide your top {N_DIFFERENTIAL} differential diagnoses, most "
             f"likely first. Output ONLY the {N_DIFFERENTIAL} diagnosis names, one per "
-            f"line, no numbering, no explanation:\n\n"
+            f"line, no numbering, no explanation.\n"
+            f"If the note does not contain enough information to identify a diagnosis, "
+            f"reply with exactly '{ABSTENTION_SENTINEL}' and nothing else.\n\n"
             f"Vignette: {vignette}\n\nContext:\n{rag_context}"
         )
         rag_output = llm_client.generate(prompt_rag)
@@ -582,18 +586,27 @@ def _evaluate_case(case, components, real_components, axiom_extractor):
         # The curated wrong answer, where the family ships one. This is what
         # makes distractor selection directly measurable rather than inferred.
         "wrong_diagnosis": (case.get("metadata") or {}).get("wrong_diagnosis"),
-        # Matched-pair linkage (populated by build_niah_cases.py --paired).
+        # Matched-pair linkage (--paired) and counterfactual linkage
+        # (--counterfactual). pair_role is clean/adversarial or control/trap.
         "pair_id": case.get("pair_id"),
         "pair_role": case.get("pair_role"),
         "perturbation": case.get("perturbation"),
+        "unanswerable": bool((case.get("metadata") or {}).get("unanswerable")),
+        "prior_diagnosis": (case.get("metadata") or {}).get("prior_diagnosis"),
         "target": _target_display(case),
         "targets": targets,
         "bare_llm": {"success": bare_success, "output": bare_output,
-                     "candidates": bare_items},
+                     "candidates": bare_items,
+                     "abstained": detect_abstention(bare_output)},
         "rag": {"success": rag_success, "output": rag_output,
-                "candidates": rag_items},
+                "candidates": rag_items,
+                "abstained": detect_abstention(rag_output)},
         "apiro": {"success": apiro_success, "output": apiro_output,
-                  "candidates": list(apiro_output)},
+                  "candidates": list(apiro_output),
+                  # The engine's differential is already parsed, so scan the
+                  # joined candidates; an empty differential is not by itself
+                  # an abstention (it may be an unparseable answer).
+                  "abstained": detect_abstention("\n".join(apiro_output))},
         # Candidates offered per arm. If these are not equal, the accuracy
         # comparison is confounded by output formatting rather than reasoning.
         "n_candidates": {
@@ -814,6 +827,135 @@ def _distractor_selection_table(results, embedder=None, llm_client=None):
     return stats
 
 
+def _counterfactual_table(results):
+    """Bias Trap Rate — the sharpest test of whether evidence beats priors.
+
+    Control and trap share a presenting syndrome, so the statistical prior
+    points at the same diagnosis for both; only the buried discriminative
+    evidence differs, and in the trap it implies a different disease. A model
+    running on priors is right on the control and wrong on the trap.
+
+    Conditioning on the control being correct isolates the question: of the
+    cases an arm could do, how often did flipping the evidence fail to flip the
+    answer? Unlike a distractor that leaves the answer unchanged, a trap cannot
+    be passed by ignoring the note.
+
+    Design after MedEinst (arXiv:2601.06636).
+    """
+    from apiro.eval.metrics import bias_trap_rate, compare_bias_traps
+
+    pairs = {}
+    for r in results:
+        if r.get("pair_id") and r.get("pair_role") in ("control", "trap"):
+            pairs.setdefault(r["pair_id"], {})[r["pair_role"]] = r
+    complete = [v for v in pairs.values() if "control" in v and "trap" in v]
+    if not complete:
+        return None
+
+    labels = {"apiro": "Apiro", "rag": "Standard RAG", "bare_llm": "Bare LLM"}
+    outcomes = {
+        arm: ([bool(p["control"][arm]["success"]) for p in complete],
+              [bool(p["trap"][arm]["success"]) for p in complete])
+        for arm in ("apiro", "rag", "bare_llm")
+    }
+
+    print("\n" + "=" * 78)
+    print("  PRIMARY ENDPOINT — BIAS TRAP RATE (counterfactual pairs)")
+    print(f"  P(wrong on trap | right on control). Lower is better. "
+          f"{len(complete)} pairs")
+    print("=" * 78)
+    print(f"{'Arm':<16}{'control':>10}{'trap':>10}{'trapped':>10}"
+          f"{'trap rate':>12}{'95% CI':>20}")
+    print("-" * 78)
+    stats = {"n_pairs": len(complete), "arms": {}}
+    for arm in ("apiro", "rag", "bare_llm"):
+        t = bias_trap_rate(*outcomes[arm])
+        rate = "n/a" if t["trap_rate"] is None else f"{t['trap_rate'] * 100:.1f}%"
+        lo, hi = t["trap_rate_ci"]
+        print(f"{labels[arm]:<16}{t['control_accuracy'] * 100:>9.1f}%"
+              f"{t['trap_accuracy'] * 100:>9.1f}%"
+              f"{t['n_trapped']:>6}/{t['n_control_correct']:<3}"
+              f"{rate:>12}{f'[{lo * 100:.0f}%, {hi * 100:.0f}%]':>20}")
+        stats["arms"][arm] = t
+    print("-" * 78)
+    for challenger, baseline in (("apiro", "rag"), ("apiro", "bare_llm")):
+        cmp_ = compare_bias_traps(*outcomes[challenger], *outcomes[baseline])
+        if not cmp_["n_comparable"]:
+            print(f"  {labels[challenger]} vs {labels[baseline]}: no pair both got "
+                  f"right on the control — nothing comparable.")
+            continue
+        mcn = cmp_["mcnemar"]
+        verdict = "significant" if mcn["significant_at_05"] else "NOT significant"
+        print(f"  {labels[challenger]} vs {labels[baseline]}, on the "
+              f"{cmp_['n_comparable']} pairs BOTH got right on the control:")
+        print(f"      escaped the trap: {cmp_['a_escaped']} vs {cmp_['b_escaped']};"
+              f"  p = {mcn['p_value']:.4f} ({verdict})")
+        stats[f"{challenger}_vs_{baseline}"] = cmp_
+    print("=" * 78)
+    return stats
+
+
+def _abstention_table(results):
+    """Fabrication rate on cases whose discriminative evidence was removed.
+
+    On an unanswerable note the only correct behaviour is to decline. Naming a
+    diagnosis anyway is a confident fabrication — the failure this architecture
+    exists to prevent, and the one Pillar 3 has so far only inferred from a
+    heuristic confidence score rather than measured.
+
+    Answering when it need not have is reported separately: over-abstention is
+    a usefulness cost, not a safety failure, and collapsing the two into one
+    accuracy number hides which is happening.
+
+    Design after MedAbstain (arXiv:2601.12471).
+    """
+    from apiro.eval.metrics import abstention_metrics, mcnemar_exact
+
+    if not any(r.get("unanswerable") for r in results):
+        return None
+
+    labels = {"apiro": "Apiro", "rag": "Standard RAG", "bare_llm": "Bare LLM"}
+    should = [bool(r.get("unanswerable")) for r in results]
+
+    print("\n" + "=" * 78)
+    print("  ABSTENTION — cases with the discriminative evidence removed")
+    print(f"  Fabrication = named a diagnosis when none was supported. "
+          f"Lower is better.")
+    print("=" * 78)
+    print(f"{'Arm':<16}{'fabricated':>13}{'fab. rate':>12}{'95% CI':>20}"
+          f"{'over-abstain':>15}")
+    print("-" * 78)
+    stats, flags = {}, {}
+    for arm in ("apiro", "rag", "bare_llm"):
+        abst = [bool(r[arm].get("abstained")) for r in results]
+        flags[arm] = abst
+        a = abstention_metrics(
+            abst, should,
+            correct_when_answered=[bool(r[arm]["success"]) for r in results],
+        )
+        rate = "n/a" if a["fabrication_rate"] is None else f"{a['fabrication_rate'] * 100:.1f}%"
+        over = "n/a" if a["over_abstention_rate"] is None else f"{a['over_abstention_rate'] * 100:.1f}%"
+        lo, hi = a["fabrication_rate_ci"]
+        print(f"{labels[arm]:<16}{a['fabricated']:>8}/{a['n_unanswerable']:<4}"
+              f"{rate:>12}{f'[{lo * 100:.0f}%, {hi * 100:.0f}%]':>20}{over:>15}")
+        stats[arm] = a
+    print("-" * 78)
+    unanswerable_idx = [i for i, u in enumerate(should) if u]
+    for challenger, baseline in (("apiro", "rag"), ("apiro", "bare_llm")):
+        # Success direction: correctly declining on an unanswerable case.
+        mcn = mcnemar_exact(
+            [flags[challenger][i] for i in unanswerable_idx],
+            [flags[baseline][i] for i in unanswerable_idx],
+        )
+        verdict = "significant" if mcn["significant_at_05"] else "NOT significant"
+        print(f"  {labels[challenger]} declines where {labels[baseline]} fabricates: "
+              f"{mcn['a_only']} vs {mcn['b_only']} of {mcn['n_discordant']} "
+              f"discordant, p = {mcn['p_value']:.4f} ({verdict})")
+        stats[f"{challenger}_vs_{baseline}"] = mcn
+    print("=" * 78)
+    return stats
+
+
 def _resilience_table(results):
     """Matched-pair distractor resilience, when the case set was built --paired.
 
@@ -1026,6 +1168,8 @@ def run_evaluation(cases_path: str = "data/niah_cases.json", real_components: bo
     # On-thesis endpoints first: they test what the architecture claims, and
     # distractor selection is also the most statistically efficient of the
     # three (see docs/BENCHMARKING.md).
+    counterfactual = _counterfactual_table(results)
+    abstention = _abstention_table(results)
     distractor = _distractor_selection_table(
         results,
         embedder=components["embedder"],
@@ -1046,6 +1190,8 @@ def run_evaluation(cases_path: str = "data/niah_cases.json", real_components: bo
             "overall": overall,
             "per_family": per_family,
             "length_depth_matrix": matrix,
+            "counterfactual_traps": counterfactual,
+            "abstention": abstention,
             "distractor_selection": distractor,
             "resilience": resilience,
             "significance": significance,

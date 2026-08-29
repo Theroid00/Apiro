@@ -16,6 +16,7 @@ import pytest
 
 from apiro.parsing import (
     DIFFERENTIAL_SENTINEL,
+    detect_abstention,
     parse_claims,
     parse_differential,
     strip_scaffolding,
@@ -263,6 +264,56 @@ class TestParseClaims:
     def test_limit_and_dedupe(self):
         raw = "Claim about sepsis\nClaim about sepsis\nClaim about pneumonia\nClaim about asthma"
         assert parse_claims(raw, limit=2) == ["Claim about sepsis", "Claim about pneumonia"]
+
+
+# --------------------------------------------------------------------------- #
+# Abstention
+# --------------------------------------------------------------------------- #
+class TestDetectAbstention:
+    @pytest.mark.parametrize(
+        "reply",
+        [
+            "INSUFFICIENT EVIDENCE",
+            "DX: INSUFFICIENT EVIDENCE",
+            "There is insufficient information in this note to identify a diagnosis.",
+            "The note does not contain enough evidence to name a specific diagnosis.",
+            "We do not have enough information to proceed.",
+            "I cannot determine the diagnosis from the information provided.",
+            "Unable to determine a single diagnosis without further testing.",
+            "No specific diagnosis can be established from this note.",
+        ],
+    )
+    def test_recognises_a_refusal(self, reply):
+        assert detect_abstention(reply) is True
+
+    @pytest.mark.parametrize(
+        "reply",
+        [
+            "DX: Pulmonary embolism\nDX: Pneumonia",
+            "Acute appendicitis",
+            "",
+            # Must not fire on diagnoses whose NAMES contain the trigger words.
+            "Hemolytic anemia due to G6PD deficiency",
+            "Adrenal insufficiency",
+            "Primary adrenal insufficiency (Addison disease)",
+        ],
+    )
+    def test_does_not_fire_on_a_real_answer(self, reply):
+        assert detect_abstention(reply) is False
+
+    def test_a_refusal_parses_to_an_empty_differential(self):
+        # parse_differential correctly treats hedging as noise, so an
+        # abstaining reply yields no candidates. That is why abstention has to
+        # be detected on the raw text: an empty list alone cannot distinguish
+        # "declined" from "produced garbage".
+        raw = "There is insufficient information here."
+        assert parse_differential(raw, limit=3) == []
+        assert detect_abstention(raw) is True
+
+    def test_unparseable_garbage_is_not_an_abstention(self):
+        raw = "**Diagnosis 1:**\n**Diagnosis 2:**"
+        assert parse_differential(raw, limit=3) == []
+        assert detect_abstention(raw) is False
 
 
 # --------------------------------------------------------------------------- #

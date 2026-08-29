@@ -872,6 +872,320 @@ def build_negation_trap(
     )
 
 
+# ---------------------------------------------------------------------------
+# Counterfactual trap pairs  (design after MedEinst, arXiv:2601.06636)
+# ---------------------------------------------------------------------------
+#
+# WHY THIS SUPERSEDES THE MATCHED-PAIR DESIGN ABOVE
+#
+# build_matched_pair() holds the answer fixed and adds a distractor, so a model
+# that ignores the vignette entirely and pattern-matches the surface syndrome
+# scores 100% on both halves. It measures whether a distractor *derails* a
+# model; it cannot detect a model that was never reading the evidence.
+#
+# MedEinst's insight is to make the discriminative evidence *flip the answer*.
+# The control and the trap share a presenting syndrome, so the statistical
+# prior points at the same diagnosis for both; only the buried discriminative
+# finding differs, and in the trap it implies a different disease and
+# explicitly rules the prior one out. A model running on priors answers the
+# typical diagnosis twice: right on the control, wrong on the trap. It cannot
+# score well by ignoring the case.
+#
+# This is the sharpest possible test of Apiro's actual thesis. The engine
+# extracts discriminative findings as deterministic depth-0 anchors and prunes
+# hypotheses that contradict them — a trap case is precisely the situation
+# where anchors must override priors. If contradiction soft-pruning does
+# anything at all, it shows up here.
+#
+# Bias Trap Rate = P(wrong on trap | right on control). Lower is better.
+
+CONFUSABLE_PAIRS: List[Dict[str, str]] = [
+    {
+        "typical": "acute_myocardial_infarction",
+        "atypical": "aortic_dissection",
+        "presentation": "The patient presents to the emergency department with acute severe chest pain, diaphoresis and a sense of unease.",
+        "rules_out_typical": "Serial high-sensitivity troponins are flat at 4 ng/L and the ECG shows no ischaemic change.",
+    },
+    {
+        "typical": "bacterial_meningitis",
+        "atypical": "subarachnoid_hemorrhage",
+        "presentation": "The patient presents with severe headache, photophobia and neck discomfort.",
+        "rules_out_typical": "Cerebrospinal fluid is acellular with normal glucose and protein, and the patient has remained afebrile.",
+    },
+    {
+        "typical": "acute_appendicitis",
+        "atypical": "acute_mesenteric_ischemia",
+        "presentation": "The patient presents with acute abdominal pain, nausea and reduced appetite.",
+        "rules_out_typical": "Abdominal CT shows a normal-calibre appendix with no periappendiceal inflammation.",
+    },
+    {
+        "typical": "diabetic_ketoacidosis",
+        "atypical": "salicylate_toxicity",
+        "presentation": "The patient presents with deep rapid breathing, vomiting and clinical dehydration.",
+        "rules_out_typical": "Serum glucose is 96 mg/dL with negative serum and urine ketones.",
+    },
+    {
+        "typical": "acute_pancreatitis",
+        "atypical": "adrenal_crisis",
+        "presentation": "The patient presents with epigastric pain, repeated vomiting and hypotension.",
+        "rules_out_typical": "Serum lipase and amylase are both within normal limits.",
+    },
+    {
+        "typical": "thyroid_storm",
+        "atypical": "pheochromocytoma",
+        "presentation": "The patient presents with episodic palpitations, sweating, tremor and intense anxiety.",
+        "rules_out_typical": "TSH, free T4 and free T3 are all within normal reference limits.",
+    },
+    {
+        "typical": "pulmonary_embolism",
+        "atypical": "tension_pneumothorax",
+        "presentation": "The patient presents with sudden breathlessness and sharp pleuritic chest pain.",
+        "rules_out_typical": "CT pulmonary angiography shows no filling defect in any pulmonary artery.",
+    },
+    {
+        "typical": "hyperkalemia",
+        "atypical": "guillain_barre_syndrome",
+        "presentation": "The patient presents with progressive limb weakness and difficulty rising from a chair.",
+        "rules_out_typical": "Serum potassium is 4.1 mEq/L on two separate draws and the ECG is normal.",
+    },
+    {
+        "typical": "bacterial_meningitis",
+        "atypical": "carbon_monoxide_poisoning",
+        "presentation": "The patient presents with headache, nausea and increasing confusion over the course of the day.",
+        "rules_out_typical": "Lumbar puncture is unremarkable with no pleocytosis, and the patient has remained afebrile throughout.",
+    },
+    {
+        "typical": "subarachnoid_hemorrhage",
+        "atypical": "giant_cell_arteritis",
+        "presentation": "The patient is over 50 and presents with a new, severe, unilateral headache.",
+        "rules_out_typical": "Non-contrast head CT is normal and cerebrospinal fluid shows no xanthochromia.",
+    },
+]
+
+#: The answer for a case whose discriminative evidence has been removed. The
+#: only correct behaviour is to decline, so this doubles as the abstention
+#: label — see build_unanswerable() and apiro.parsing.ABSTENTION_SENTINEL.
+ABSTENTION_ANSWER = "insufficient evidence"
+
+COUNTERFACTUAL_FAMILY = "counterfactual_trap"
+UNANSWERABLE_FAMILY = "unanswerable"
+
+
+def validate_confusable_pairs() -> None:
+    """Both halves of every confusable pair must exist in NEEDLE_BANK."""
+    problems: List[str] = []
+    for pair in CONFUSABLE_PAIRS:
+        for role in ("typical", "atypical"):
+            if pair[role] not in NEEDLE_BANK:
+                problems.append(f"{pair[role]!r} ({role}) is not in NEEDLE_BANK")
+        if pair["typical"] == pair["atypical"]:
+            problems.append(f"pair {pair['typical']!r} is confusable with itself")
+    if problems:
+        raise ValueError("CONFUSABLE_PAIRS is inconsistent:\n  " + "\n  ".join(problems))
+
+
+def build_counterfactual_pair(
+    rng: random.Random,
+    counter: TokenCounter,
+    pair: Dict[str, str],
+    target_tokens: int,
+    depth: float,
+) -> List[NiahCase]:
+    """Build a (control, trap) pair whose correct answer differs.
+
+    Control: shared presentation + the *typical* diagnosis's discriminative
+    needle. Prior and evidence agree; the answer is the typical diagnosis.
+
+    Trap: the SAME presentation and the SAME haystack, but the typical
+    diagnosis is explicitly ruled out and the *atypical* diagnosis's
+    discriminative needle is buried in its place. Prior and evidence now
+    disagree, and the answer is the atypical diagnosis.
+
+    Returns:
+        ``[control_case, trap_case]`` sharing a ``pair_id``.
+    """
+    typical, atypical = pair["typical"], pair["atypical"]
+    _, typical_needle = _pick_needle(rng, typical)
+    _, atypical_needle = _pick_needle(rng, atypical)
+    presentation = pair["presentation"]
+    rule_out = pair["rules_out_typical"]
+
+    approx_hay = int((target_tokens * WORDS_PER_TOKEN) / 12) + 6
+    hay = build_hay(rng, approx_hay)
+
+    # The presenting syndrome sits at the top of both notes: it is the surface
+    # story a prior-following model latches onto, and it must be identical.
+    base = insert_at_depth(hay, [presentation], 0.02)
+    base = trim_to_target(counter, base, [base.index(presentation)], target_tokens)
+    insert_at = min(len(base), max(0, int(round(depth * len(base)))))
+
+    control_sentences = base[:insert_at] + [typical_needle] + base[insert_at:]
+    trap_sentences = base[:insert_at] + [rule_out, atypical_needle] + base[insert_at:]
+
+    control_context = " ".join(control_sentences)
+    trap_context = " ".join(trap_sentences)
+
+    pair_id = make_case_id(
+        COUNTERFACTUAL_FAMILY, f"{typical}->{atypical}", target_tokens, f"{depth}"
+    )
+    shared = dict(
+        family=COUNTERFACTUAL_FAMILY,
+        target_tokens=target_tokens,
+        depth_fraction=depth,
+        question=(
+            "Based only on the clinical note above, what is the single most likely "
+            "diagnosis? Weigh the specific findings in the note above the typical "
+            "presentation."
+        ),
+        pair_id=pair_id,
+        perturbation="counterfactual",
+    )
+
+    control = NiahCase(
+        case_id=f"{pair_id}-control",
+        diagnosis=typical,
+        approx_tokens=counter.count(control_context),
+        answer=_diagnosis_pretty(typical),
+        needles=[typical_needle],
+        distractors=[],
+        metadata={
+            "pair_role": "control",
+            "prior_diagnosis": _diagnosis_pretty(typical),
+            # On the control the prior IS correct, so there is no wrong answer
+            # to select; `wrong_diagnosis` is deliberately absent.
+        },
+        context=control_context,
+        pair_role="control",
+        **shared,
+    )
+    trap = NiahCase(
+        case_id=f"{pair_id}-trap",
+        diagnosis=atypical,
+        approx_tokens=counter.count(trap_context),
+        answer=_diagnosis_pretty(atypical),
+        needles=[atypical_needle, rule_out],
+        distractors=[presentation],
+        metadata={
+            "pair_role": "trap",
+            "prior_diagnosis": _diagnosis_pretty(typical),
+            # The prior-driven answer is now the WRONG answer, which makes the
+            # distractor-selection rate directly computable on trap cases.
+            "wrong_diagnosis": _diagnosis_pretty(typical),
+        },
+        context=trap_context,
+        pair_role="trap",
+        **shared,
+    )
+    return [control, trap]
+
+
+def build_unanswerable(
+    rng: random.Random,
+    counter: TokenCounter,
+    pair: Dict[str, str],
+    target_tokens: int,
+) -> NiahCase:
+    """Build a note whose discriminative evidence was never there.
+
+    The presenting syndrome is present; nothing that would distinguish between
+    the diagnoses it is compatible with is. The only correct behaviour is to
+    decline to name one.
+
+    This is the context-omission perturbation from MedAbstain
+    (arXiv:2601.12471), and it is the one design that tests Apiro's abstention
+    claim directly rather than reconstructing it post hoc from a heuristic
+    confidence score. It also needs no ground-truth diagnosis, so it is cheap
+    to scale.
+    """
+    presentation = pair["presentation"]
+    approx_hay = int((target_tokens * WORDS_PER_TOKEN) / 12) + 4
+    hay = build_hay(rng, approx_hay)
+    sentences = insert_at_depth(hay, [presentation], 0.02)
+    sentences = trim_to_target(counter, sentences, [sentences.index(presentation)], target_tokens)
+    context = " ".join(sentences)
+
+    return NiahCase(
+        case_id=make_case_id(
+            UNANSWERABLE_FAMILY, f"{pair['typical']}~{pair['atypical']}", target_tokens, "na"
+        ),
+        family=UNANSWERABLE_FAMILY,
+        diagnosis=ABSTENTION_ANSWER,
+        target_tokens=target_tokens,
+        approx_tokens=counter.count(context),
+        depth_fraction=None,
+        question=(
+            "Based only on the clinical note above, what is the single most likely "
+            "diagnosis? If the note does not contain enough information to identify "
+            "one, say so instead of guessing."
+        ),
+        answer=ABSTENTION_ANSWER,
+        needles=[],
+        distractors=[presentation],
+        metadata={
+            "unanswerable": True,
+            "compatible_with": [
+                _diagnosis_pretty(pair["typical"]), _diagnosis_pretty(pair["atypical"])
+            ],
+            "prior_diagnosis": _diagnosis_pretty(pair["typical"]),
+        },
+        context=context,
+    )
+
+
+def generate_counterfactual(
+    num_pairs: int,
+    lengths: List[int],
+    depths: List[float],
+    seed: int,
+    unanswerable_fraction: float = 0.25,
+) -> List[NiahCase]:
+    """Generate counterfactual (control, trap) pairs plus unanswerable cases."""
+    validate_banks()
+    validate_confusable_pairs()
+    rng = random.Random(seed)
+    counter = TokenCounter()
+
+    combos: List[Tuple[Dict[str, str], int, float]] = [
+        (pair, length, depth)
+        for pair in CONFUSABLE_PAIRS
+        for length in lengths
+        for depth in depths
+    ]
+    rng.shuffle(combos)
+
+    cases: List[NiahCase] = []
+    seen: set = set()
+    i = attempts = 0
+    max_attempts = max(len(combos) * 4, num_pairs * 8)
+    while len(cases) < num_pairs * 2 and attempts < max_attempts:
+        pair, length, depth = combos[i % len(combos)]
+        i += 1
+        attempts += 1
+        try:
+            built = build_counterfactual_pair(rng, counter, pair, length, depth)
+        except Exception as exc:  # defensive
+            print(f"[warn] skipping counterfactual {pair['typical']}: {exc}", file=sys.stderr)
+            continue
+        if built[0].pair_id in seen:
+            continue
+        seen.add(built[0].pair_id)
+        cases.extend(built)
+
+    n_unanswerable = int(round(num_pairs * unanswerable_fraction))
+    seen_ids: set = set()
+    for j in range(n_unanswerable * 4):
+        if len([c for c in cases if c.family == UNANSWERABLE_FAMILY]) >= n_unanswerable:
+            break
+        pair, length, _ = combos[j % len(combos)]
+        case = build_unanswerable(rng, counter, pair, length)
+        if case.case_id in seen_ids:
+            continue
+        seen_ids.add(case.case_id)
+        cases.append(case)
+
+    return cases
+
+
 PAIRED_FAMILY = "distractor_resilience"
 
 #: Perturbations a matched pair can apply. Each names the bank it draws from.
@@ -1157,6 +1471,8 @@ def summarize(cases: List[NiahCase]) -> Dict[str, object]:
     return {
         "total": len(cases),
         "n_matched_pairs": n_pairs,
+        "n_trap_cases": sum(1 for c in cases if c.pair_role == "trap"),
+        "n_unanswerable": sum(1 for c in cases if c.family == UNANSWERABLE_FAMILY),
         "by_family": by_family,
         "by_length": by_length,
         # Effective sample size is bounded by this, not by `total`: cases
@@ -1212,6 +1528,25 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help="Output JSON path (default: data/niah_cases.json).",
     )
     parser.add_argument(
+        "--counterfactual",
+        action="store_true",
+        help="Emit counterfactual (control, trap) pairs plus unanswerable cases. "
+             "The trap shares the control's presenting syndrome but its buried "
+             "discriminative evidence implies a DIFFERENT diagnosis, so a model "
+             "running on statistical priors answers the control correctly and "
+             "the trap incorrectly. This is the sharpest test of whether "
+             "evidence overrides priors. Design after MedEinst (2601.06636) and "
+             "MedAbstain (2601.12471).",
+    )
+    parser.add_argument(
+        "--unanswerable-fraction",
+        type=float,
+        default=0.25,
+        help="With --counterfactual: unanswerable cases as a fraction of pair "
+             "count (default: 0.25). These have the discriminative evidence "
+             "removed; the only correct answer is to decline.",
+    )
+    parser.add_argument(
         "--paired",
         action="store_true",
         help="Emit matched (clean, adversarial) pairs instead of single cases. "
@@ -1243,6 +1578,10 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
     if args.num_cases <= 0:
         parser.error("--num-cases must be a positive integer.")
+    if args.counterfactual and args.paired:
+        parser.error("--counterfactual and --paired are different designs; pick one.")
+    if not (0.0 <= args.unanswerable_fraction <= 1.0):
+        parser.error("--unanswerable-fraction must be within [0.0, 1.0].")
     for length in args.lengths:
         if length <= 0:
             parser.error("--lengths must all be positive integers.")
@@ -1255,7 +1594,15 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
 
-    if args.paired:
+    if args.counterfactual:
+        cases = generate_counterfactual(
+            num_pairs=args.num_cases,
+            lengths=args.lengths,
+            depths=args.depths,
+            seed=args.seed,
+            unanswerable_fraction=args.unanswerable_fraction,
+        )
+    elif args.paired:
         # --num-cases is read as a pair count here; the file holds twice that.
         cases = generate_pairs(
             num_pairs=args.num_cases,
@@ -1283,6 +1630,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             "depths": args.depths,
             "families": args.families,
             "paired": args.paired,
+            "counterfactual": args.counterfactual,
+            "unanswerable_fraction": args.unanswerable_fraction if args.counterfactual else None,
             "perturbations": args.perturbations if args.paired else None,
             "seed": args.seed,
         },

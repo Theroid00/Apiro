@@ -55,6 +55,8 @@ from __future__ import annotations
 import re
 
 __all__ = [
+    "ABSTENTION_SENTINEL",
+    "detect_abstention",
     "DIFFERENTIAL_SENTINEL",
     "parse_differential",
     "parse_claims",
@@ -68,6 +70,51 @@ __all__ = [
 DIFFERENTIAL_SENTINEL = "DX:"
 
 _SENTINEL_RE = re.compile(r"^\s*(?:\*+\s*)?DX\s*\d*\s*[:.\-]\s*", re.IGNORECASE)
+
+#: What every arm is told to answer when the note cannot support a diagnosis.
+#: Abstention has to be an explicit, detectable output rather than an inference
+#: from a confidence score — otherwise "knows when to defer" is unfalsifiable.
+ABSTENTION_SENTINEL = "INSUFFICIENT EVIDENCE"
+
+#: Ways a model declines. Deliberately broad: a model that hedges its way to a
+#: refusal has still declined, and scoring that as a wrong diagnosis would
+#: penalise exactly the behaviour the abstention benchmark rewards.
+_ABSTENTION_RE = re.compile(
+    r"\b("
+    r"insufficient\s+(?:evidence|information|data|detail)|"
+    # Up to two words may sit between the negation and "enough":
+    # "does not CONTAIN enough evidence", "do not HAVE enough information".
+    r"not\s+(?:\w+\s+){0,2}enough\s+(?:evidence|information|data|detail)|"
+    r"cannot\s+(?:be\s+)?determine|cannot\s+be\s+established|"
+    r"unable\s+to\s+determine|impossible\s+to\s+determine|"
+    r"no\s+(?:specific\s+)?diagnosis\s+can\s+be|"
+    r"cannot\s+identify\s+a\s+(?:single|specific)|"
+    r"further\s+(?:investigation|work-?up)\s+is\s+required\s+before|"
+    r"i\s+(?:do\s+not|don't)\s+know"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def detect_abstention(raw: str) -> bool:
+    """Did the model decline to name a diagnosis?
+
+    Scans the *raw* reply rather than the parsed candidates, because
+    :func:`parse_differential` treats hedging language as noise and drops it —
+    correctly, since "I cannot determine this" is not a diagnosis. That means
+    an abstaining model parses to an empty list, and an empty list alone cannot
+    distinguish "declined" from "produced unparseable garbage". This function
+    draws that distinction.
+
+    Args:
+        raw: The model's unmodified reply.
+
+    Returns:
+        True when the reply explicitly declines.
+    """
+    if not raw or not raw.strip():
+        return False
+    return bool(_ABSTENTION_RE.search(raw))
 
 # Leading list markers: "1." "1)" "-" "*" "•" "#".
 _LIST_MARKER_RE = re.compile(r"^\s*(?:\d+\s*[.)]|[-*•#>]+)\s*")

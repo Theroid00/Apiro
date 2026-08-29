@@ -16,6 +16,9 @@ import pytest
 from apiro.eval.metrics import (
     ArmScores,
     _normal_quantile,
+    abstention_metrics,
+    bias_trap_rate,
+    compare_bias_traps,
     bootstrap_proportion_ci,
     compare_arms,
     compare_robustness,
@@ -324,6 +327,105 @@ class TestPairedBootstrapDeltaCI:
     def test_mismatched_lengths_are_rejected(self):
         with pytest.raises(ValueError):
             paired_bootstrap_delta_ci([True, False], [True])
+
+
+# --------------------------------------------------------------------------- #
+# Counterfactual traps (MedEinst) and abstention (MedAbstain)
+# --------------------------------------------------------------------------- #
+class TestBiasTrapRate:
+    def test_a_prior_driven_model_is_trapped_every_time(self):
+        # Right on every control, wrong on every trap: the signature of
+        # answering from statistical priors rather than from the evidence.
+        t = bias_trap_rate([True] * 10, [False] * 10)
+        assert t["trap_rate"] == pytest.approx(1.0)
+        assert t["consistent"] == 0
+        assert t["n_trapped"] == 10
+
+    def test_an_evidence_driven_model_escapes_every_trap(self):
+        t = bias_trap_rate([True] * 10, [True] * 10)
+        assert t["trap_rate"] == pytest.approx(0.0)
+        assert t["consistent"] == 10
+
+    def test_denominator_is_controls_the_arm_got_right(self):
+        # A pair the arm failed on the control says nothing about whether
+        # flipping the evidence would have flipped its answer.
+        t = bias_trap_rate([True, True, False, False], [True, False, False, False])
+        assert t["n_control_correct"] == 2
+        assert t["trap_rate"] == pytest.approx(0.5)
+
+    def test_no_control_solved_is_undefined_not_a_crash(self):
+        t = bias_trap_rate([False, False], [False, False])
+        assert t["trap_rate"] is None
+        assert t["trap_rate_ci"] == (0.0, 1.0)
+
+    def test_trap_cannot_be_passed_by_ignoring_the_note(self):
+        # The property that makes this design stronger than a fixed-answer
+        # distractor: an arm that always says the prior diagnosis scores
+        # perfectly on controls and zero on traps.
+        always_prior_control = [True] * 8      # prior == truth on controls
+        always_prior_trap = [False] * 8        # prior != truth on traps
+        assert bias_trap_rate(always_prior_control, always_prior_trap)["trap_rate"] == 1.0
+
+    def test_mismatched_lengths_are_rejected(self):
+        with pytest.raises(ValueError):
+            bias_trap_rate([True, False], [True])
+
+
+class TestCompareBiasTraps:
+    def test_detects_a_large_gap(self):
+        c = compare_bias_traps([True] * 12, [True] * 12, [True] * 12, [False] * 12)
+        assert c["n_comparable"] == 12
+        assert c["a_escaped"] == 12 and c["b_escaped"] == 0
+        assert c["mcnemar"]["significant_at_05"] is True
+
+    def test_restricted_to_shared_correct_controls(self):
+        c = compare_bias_traps([True, True, False], [True, True, False],
+                               [True, False, False], [True, False, False])
+        assert c["n_comparable"] == 1
+
+    def test_no_shared_control_reports_nothing_comparable(self):
+        c = compare_bias_traps([True, False], [True, False],
+                               [False, True], [False, True])
+        assert c["n_comparable"] == 0
+
+    def test_arms_on_different_pair_counts_are_rejected(self):
+        with pytest.raises(ValueError):
+            compare_bias_traps([True], [True], [True, False], [True, False])
+
+
+class TestAbstentionMetrics:
+    SHOULD = [True] * 4 + [False] * 6          # 4 unanswerable, 6 answerable
+
+    def test_a_model_that_never_declines_fabricates_on_all_of_them(self):
+        a = abstention_metrics([False] * 10, self.SHOULD)
+        assert a["fabrication_rate"] == pytest.approx(1.0)
+        assert a["over_abstention_rate"] == pytest.approx(0.0)
+
+    def test_a_perfect_abstainer(self):
+        a = abstention_metrics([True] * 4 + [False] * 6, self.SHOULD)
+        assert a["fabrication_rate"] == pytest.approx(0.0)
+        assert a["abstention_recall"] == pytest.approx(1.0)
+        assert a["over_abstention_rate"] == pytest.approx(0.0)
+
+    def test_declining_everything_is_safe_but_useless(self):
+        # Zero fabrication and zero coverage. Reported separately on purpose:
+        # collapsing them into one accuracy number would hide which is which.
+        a = abstention_metrics([True] * 10, self.SHOULD)
+        assert a["fabrication_rate"] == pytest.approx(0.0)
+        assert a["over_abstention_rate"] == pytest.approx(1.0)
+        assert a["coverage"] == pytest.approx(0.0)
+
+    def test_selective_accuracy_is_over_answered_answerable_cases(self):
+        a = abstention_metrics(
+            [True] * 4 + [False] * 6, self.SHOULD,
+            correct_when_answered=[False] * 4 + [True] * 4 + [False] * 2,
+        )
+        assert a["n_answered_answerable"] == 6
+        assert a["selective_accuracy"] == pytest.approx(4 / 6)
+
+    def test_correctness_length_is_validated(self):
+        with pytest.raises(ValueError):
+            abstention_metrics([True], [True], correct_when_answered=[True, False])
 
 
 # --------------------------------------------------------------------------- #
