@@ -294,7 +294,16 @@ cp .env.example .env
 
 The `--real` flag runs the full pipeline against live model/retrieval backends (as opposed to cached/offline fixtures). `./run_eval.sh <target>` wraps all four.
 
-**CUPCase distractor-resilience benchmark** — *the external one*
+**DDXPlus** — *external, with a ranked reference differential*
+
+```bash
+python scripts/fetch_datasets.py --only ddxplus
+python scripts/run_ddxplus_eval.py --n 60
+```
+
+[DDXPlus](https://arxiv.org/abs/2205.09148) (CC-BY, 1.3M synthetic patients, 49 pathologies) is the only set here that ships a ground-truth **ranked differential** rather than a single label — which is what makes top-k and MRR meaningful, and enables a differential-overlap report (recall@5, precision@5, top-1 agreement) that single-label accuracy cannot produce. It is also the substrate [MedEinst](https://arxiv.org/abs/2601.06636) built its counterfactual traps from.
+
+**CUPCase distractor-resilience benchmark** — *external, with curated distractors*
 
 ```bash
 python scripts/run_cupcase_eval.py --n 50
@@ -324,6 +333,17 @@ python scripts/run_niah_eval.py --cases data/niah_cases.json --real
 ```
 
 The committed results were computed on 25 cases, which is not enough to resolve the differences between arms — generate more than the default before quoting a figure. The harness emits per-case verdicts, aggregate accuracy with Wilson intervals, per-family and length × depth breakdowns, and paired McNemar tests between every pair of arms.
+
+**Everything above runs from one command:**
+
+```bash
+./run_eval.sh --quick      # ~minutes — proves the pipeline works end to end
+./run_eval.sh              # the real run
+```
+
+It runs preflight checks, the offline test suite, the dataset downloads, case
+generation, all four benchmarks and the calibration pass, in dependency order,
+logging each stage to `data/logs/`. `./run_eval.sh --help` lists the stages.
 
 **Before running anything**, read [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md):
 it carries the power analysis (N = 25 gives 35% power at the observed effect;
@@ -384,6 +404,7 @@ Apiro/
 │   ├── corpus/
 │   │   ├── embedder.py          # LRU query & vector caching over ChromaDB
 │   │   ├── clinical_case_adapter.py  # CUPCase / VivaBench loaders (drives the CUPCase benchmark)
+│   │   ├── ddxplus_adapter.py       # DDXPlus rows -> readable notes + reference differential
 │   │   └── mimic_adapter.py     # MIMIC-III demo loader — available, no benchmark wired to it yet
 │   ├── entropy/engine.py        # Differential-breadth uncertainty signal
 │   ├── eval/
@@ -400,6 +421,8 @@ Apiro/
 │   └── llm_client.py            # Shared OllamaLLMClient
 ├── scripts/
 │   ├── app.py                            # Web UI (uvicorn scripts.app:app)
+│   ├── fetch_datasets.py                 # Download + schema-verify CUPCase and DDXPlus
+│   ├── run_ddxplus_eval.py               # DDXPlus benchmark (ranked reference differential)
 │   ├── investigate.py                    # CLI entry point
 │   ├── build_niah_cases.py               # Generates data/niah_cases.json
 │   ├── generate_pmc_cases.py             # Generates data/pmc_cases.json
@@ -419,7 +442,7 @@ Apiro/
 │   ├── BENCHMARKING.md          # What to run, in what order, and how to read it
 │   └── IMPROVEMENTS.md          # Known issues, fixed and open
 ├── Log.md                       # Chronological architecture history
-├── run_eval.sh                  # Benchmark wrapper: pmc | niah | cupcase | calibration
+├── run_eval.sh                  # The whole pipeline: ./run_eval.sh [--quick|--dry-run|<stage>]
 ├── requirements.txt
 └── README.md
 ```

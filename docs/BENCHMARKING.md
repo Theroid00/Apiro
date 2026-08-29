@@ -5,37 +5,61 @@ Ollama and a built ChromaDB corpus; the offline step needs neither.
 
 ---
 
-## TL;DR — the sequence
+## TL;DR — one command
 
 ```bash
-# 0. Offline. Seconds. Needs nothing but pytest.
-pytest
-
-# 1a. PRIMARY: counterfactual traps + unanswerable cases. Lead with this.
-python scripts/build_niah_cases.py --counterfactual --num-cases 40 --seed 7
-
-# 1b. Or the classic five-family set, at a size that can resolve an effect.
-#     python scripts/build_niah_cases.py --num-cases 120 --seed 7
-
-# 2. The main run. This is the one that matters.
-python scripts/run_niah_eval.py --cases data/niah_cases.json --real \
-    --out data/niah_eval_results.json
-
-# 3. Calibration over the run from step 2.
-python scripts/run_safety_calibration_eval.py --input data/niah_eval_results.json --tau 0.65
-
-# 4. External benchmark. Downloads CUPCase on first use.
-python scripts/run_cupcase_eval.py --n 60 --out data/cupcase_eval_results.json
+./run_eval.sh --quick      # ~minutes: proves the whole pipeline works
+./run_eval.sh              # the real run: hours
 ```
+
+That is everything — preflight, tests, dataset downloads, case generation, all
+four benchmarks, calibration. Stages run in dependency order, each logs to
+`data/logs/<stage>.log`, and the run stops at the first failure.
+
+**Do the `--quick` run first on a new machine.** It exercises every stage at a
+tiny N, so a broken Ollama, an empty corpus or a failed download surfaces in
+minutes instead of after a multi-hour run. Its numbers are meaningless — the
+script says so when it finishes.
+
+```bash
+./run_eval.sh --dry-run    # print the plan, execute nothing
+./run_eval.sh --help
+./run_eval.sh fetch niah   # single stages; order is enforced, not taken from argv
+```
+
+| Stage | What it does |
+|---|---|
+| `preflight` | python, imports, Ollama + model, corpus, **evaluator scoring probe** |
+| `test` | offline suite — no Ollama, no ChromaDB, no downloads |
+| `fetch` | download + verify CUPCase and DDXPlus, print their schema |
+| `generate` | build the C-NIAH counterfactual case set |
+| `niah` | bias trap rate, abstention, distractor selection |
+| `ddxplus` | external, ranked reference differential |
+| `cupcase` | external, curated per-case distractors |
+| `calibration` | ECE / Brier / risk-coverage |
+
+Size knobs are environment variables:
+
+```bash
+NIAH_PAIRS=80 DDXPLUS_N=120 CUPCASE_N=120 SEED=11 ./run_eval.sh
+```
+
+### The preflight probe worth knowing about
+
+Preflight fails the run if the evaluator cannot score `SAH`, `DKA` or
+`Hyperkalaemia`. That is not a style check: a checkout predating the synonym
+and spelling fix marks those correct answers wrong, depressing **every** arm by
+an artifact large enough to swamp the effect under test. Five seconds of
+checking beats discovering it in a results file.
 
 **Before trusting any number from step 2, read
 [Are the current test cases appropriate?](#are-the-current-test-cases-appropriate-partly)** —
 it records one defect that was silently depressing every arm (now fixed) and
 two limitations that are not fixable by editing the generator.
 
-Steps 2 and 4 are the long ones — budget roughly 2–4 minutes per case per arm
-on a local 8B model, so ~120 cases is a multi-hour run. Start with
-`--limit 10` to confirm the stack is healthy before committing to the full set.
+Budget roughly 2–4 minutes per case per arm on a local 8B model. The default
+sizes (40 counterfactual pairs = 90 C-NIAH cases, plus 60 DDXPlus and 60
+CUPCase) are a multi-hour run.
 
 ---
 
@@ -63,10 +87,10 @@ not — but the source data underneath them is.**
 | [MedAbstain](https://arxiv.org/abs/2601.12471) | Not locatable | Yes — context-omission + explicit abstention option | Reimplemented as `--unanswerable-fraction` |
 | [DyReMe](https://arxiv.org/html/2510.09275) | Generates dynamically by design | Principle only | Reflected in generating cases per run |
 | [CUPCase](https://huggingface.co/datasets/ofir408/CupCase) | **Yes** — public HF dataset, 3,562 cases, 3 curated distractors each | Distractor-selection rate | **Already wired**: `scripts/run_cupcase_eval.py` |
-| [DDXPlus](https://huggingface.co/datasets/aai530-group6/ddxplus) | **Yes** — CC-BY, 1.3M patients, 49 pathologies, structured symptoms + **ground-truth differential** | — | **Not yet wired. This is the highest-value remaining work.** |
+| [DDXPlus](https://huggingface.co/datasets/aai530-group6/ddxplus) | **Yes** — CC-BY, 1.3M patients, 49 pathologies, structured symptoms + **ground-truth differential** | Top-k, MRR, differential overlap | **Wired**: `scripts/run_ddxplus_eval.py` |
 
-So there are two real external datasets available today: CUPCase (wired) and
-DDXPlus (not). DDXPlus matters most, because:
+Both external datasets are now wired, and `./run_eval.sh fetch` downloads and
+schema-checks them. DDXPlus matters most, because:
 
 - It is the substrate MedEinst was built from, so counterfactual traps
   constructed on it are the reference design rather than an imitation of it.
@@ -76,6 +100,21 @@ DDXPlus (not). DDXPlus matters most, because:
 - It ships a ground-truth **differential** (a ranked list), not a single label,
   which is what makes top-k and MRR meaningful.
 - CC-BY. No access barrier.
+
+Its evidences arrive as opaque codes (`E_53`, `E_54_@_V_179`) and its
+pathologies as French names, so `apiro/corpus/ddxplus_adapter.py` resolves both
+through `release_evidences.json` / `release_conditions.json`. Mirrors disagree
+on those dictionaries' internal key names, so the adapter tries several
+spellings — but if it resolves nothing it **raises** rather than handing back
+vignettes containing only demographics. Check what you actually downloaded
+with:
+
+```bash
+python scripts/fetch_datasets.py --verify-only
+```
+
+If the schema differs from what the adapter expects, that command says so
+explicitly. Report the printed schema rather than working around it.
 
 ---
 
@@ -131,11 +170,12 @@ evidence that *the mechanism fires*, not evidence about clinical performance.
 | Does contradiction soft-pruning actually fire? | **Yes** — that is what it is built for |
 | Does discriminative evidence override the prior? | **Yes** — the counterfactual traps test exactly this |
 | Does the engine fabricate when evidence is absent? | **Yes** — unanswerable cases test this directly |
-| Is Apiro more accurate than RAG on real patients? | **No** — use CUPCase, and DDXPlus once wired |
+| Is Apiro more accurate than RAG on real patients? | **No** — use the CUPCase and DDXPlus stages |
 | Comparable to published MedEinst numbers? | **No** — different cases, different construction |
 
-Run it. Treat a positive result as "the mechanism works as designed", and go to
-CUPCase and DDXPlus for anything stronger.
+Run it. Treat a positive result as "the mechanism works as designed", and read
+the CUPCase and DDXPlus tables for anything stronger — those are external data
+and carry the external claim.
 
 ---
 
