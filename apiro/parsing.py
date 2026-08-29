@@ -136,13 +136,20 @@ MAX_LABEL_WORDS = 12
 MIN_LENGTH = 3
 
 
-def strip_scaffolding(line: str) -> str:
+def strip_scaffolding(line: str, keep_terminal_punctuation: bool = False) -> str:
     """Remove list markers, markdown emphasis and rank labels from one line.
 
     Applied repeatedly, because the real output nests them:
     ``"**Diagnosis 1:** Acute Coronary Syndrome"`` needs emphasis stripped
     before the rank label is visible, and the old single-pass strip left
     ``"*Diagnosis 1:**"`` behind as a "diagnosis".
+
+    Args:
+        line: One line of model output.
+        keep_terminal_punctuation: Leave a trailing ``. ; , :`` in place. A
+            diagnosis *label* should not carry one ("Sepsis." -> "Sepsis"), but
+            a clinical *claim* is a sentence and keeping its terminator matters
+            to callers that read the node text back.
     """
     text = line.strip()
     for _ in range(4):                      # bounded: each pass must shrink it
@@ -154,7 +161,7 @@ def strip_scaffolding(line: str) -> str:
         text = _EMPHASIS_RE.sub("", text).strip()
         if text == before:
             break
-    return text.strip(" .;,:")
+    return text.strip() if keep_terminal_punctuation else text.strip(" .;,:")
 
 
 def _is_noise(text: str) -> bool:
@@ -266,7 +273,8 @@ def parse_claims(raw: str, limit: int = 3) -> list[str]:
     seen: set[str] = set()
 
     for line in raw.strip().splitlines():
-        text = strip_scaffolding(line)
+        # A claim is a sentence: keep its terminator.
+        text = strip_scaffolding(line, keep_terminal_punctuation=True)
         if not text or text.startswith("```"):
             continue
         if _is_noise(text):

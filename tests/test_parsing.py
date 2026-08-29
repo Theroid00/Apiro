@@ -227,9 +227,11 @@ class TestParseClaims:
             "1. Right coronary artery occlusion is the most likely cause of inferior STEMI.\n"
             "2. Immediate primary PCI is indicated within 90 minutes of symptom onset."
         )
+        # Terminators are kept: a claim is a sentence, and tests/
+        # test_traversal_regressions.py reads the node text back.
         assert parse_claims(raw, limit=3) == [
-            "Right coronary artery occlusion is the most likely cause of inferior STEMI",
-            "Immediate primary PCI is indicated within 90 minutes of symptom onset",
+            "Right coronary artery occlusion is the most likely cause of inferior STEMI.",
+            "Immediate primary PCI is indicated within 90 minutes of symptom onset.",
         ]
 
     def test_does_not_truncate_at_a_colon(self):
@@ -242,6 +244,14 @@ class TestParseClaims:
 
     def test_strips_the_hypotheses_header(self):
         assert parse_claims("Hypotheses:\nSepsis is likely", limit=3) == ["Sepsis is likely"]
+
+    def test_a_claim_keeps_its_full_stop(self):
+        assert parse_claims("Only one real hypothesis here.", limit=3) == [
+            "Only one real hypothesis here."
+        ]
+
+    def test_a_label_does_not_keep_its_full_stop(self):
+        assert parse_differential("Sepsis.", limit=3) == ["Sepsis"]
 
     def test_rejects_meta_commentary(self):
         raw = "I will now generate three hypotheses.\nSepsis is likely given the fever"
