@@ -2,10 +2,16 @@
 """
 scripts/investigate.py
 ======================
-CLI runner for the Apiro AI Detective using the Hypothesis-Testing Engine.
+CLI runner for Apiro. Extracts deterministic clinical axioms from free-text
+findings, seeds the belief graph with them, and runs the entropy-first
+ApiroTraversal to a ranked differential.
+
+(The "Hypothesis-Testing Engine" this docstring used to name was purged in
+commit 8a001c7; ApiroTraversal is the only strategy in the codebase.)
 
 Usage:
   python scripts/investigate.py --findings "49yo female, dyspnea, history of breast cancer"
+  python scripts/investigate.py -f "..." --output data/graph_run.json
 """
 import argparse
 import sys
@@ -70,35 +76,7 @@ def build_components():
     axiom_extractor = AxiomExtractor()
     contradiction = ContradictionDetector()
 
-    class OllamaLLMClient:
-        def __init__(self, url, model):
-            self.url   = url
-            self.model = model
-        def generate(self, prompt: str) -> str:
-            import requests as req
-            payload = {
-                "model": self.model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {"temperature": 0.2, "num_predict": 180},
-            }
-            resp = req.post(f"{self.url}/api/generate", json=payload, timeout=90)
-            return resp.json().get("response", "")
-        def generate_with_logprobs(self, prompt: str) -> tuple[str, list]:
-            import requests as req
-            payload = {
-                "model": self.model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {"temperature": 0.2, "num_predict": 180},
-                "logprobs": True,
-            }
-            resp = req.post(f"{self.url}/api/generate", json=payload, timeout=90)
-            data = resp.json()
-            return data.get("response", ""), data.get("logprobs", [])
-        def chat(self, prompt: str) -> str:
-            return self.generate(prompt)
-
+    from apiro.llm_client import OllamaLLMClient
     llm_client = OllamaLLMClient(OLLAMA_BASE_URL, PRIMARY_MODEL)
     
     expander = NodeExpander(
@@ -169,15 +147,11 @@ def main():
     )
     parser.add_argument(
         "--max-depth", type=int, default=5,
-        help="Max traversal depth (legacy flag, kept for compat).",
-    )
-    parser.add_argument(
-        "--real-entropy", action="store_true",
-        help="Legacy flag (ignored).",
+        help="Max traversal depth.",
     )
     parser.add_argument(
         "--output", type=str, default=None,
-        help="Optional path to write the belief graph JSON (legacy flag).",
+        help="Optional path to write the belief graph as JSON.",
     )
     args = parser.parse_args()
 
@@ -212,7 +186,6 @@ def main():
     t0 = time.time()
     
     from apiro.graph.belief_graph import BeliefGraph
-    from apiro.graph.node import Node
     graph = BeliefGraph()
 
     # Extract deterministic axioms and seed the graph
@@ -231,6 +204,12 @@ def main():
     elapsed = time.time() - t0
 
     print_report(result, elapsed)
+
+    # --output was documented but never implemented; BeliefGraph.export_json
+    # has always been able to serve it.
+    if args.output:
+        graph.export_json(Path(args.output))
+        print(f"[+] Belief graph written to {args.output}\n")
 
 if __name__ == "__main__":
     main()

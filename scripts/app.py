@@ -68,7 +68,9 @@ DOMAIN_COLORS = {
 class InvestigationRequest(BaseModel):
     findings: str
     max_depth: int = 5
-    real_entropy: bool = False
+    # NOTE: a `real_entropy` field used to sit here. Nothing read it — the
+    # engine has had exactly one entropy path since the logprob engine was
+    # rewritten — so it was an API parameter that silently did nothing.
 
 
 # ---------------------------------------------------------------------------
@@ -1050,7 +1052,7 @@ async def run_investigation_stream(req: InvestigationRequest):
                 return
             graph = BeliefGraph()
             from apiro.axioms.seeding import build_seeds
-            seeds, axioms, enriched_vignette = build_seeds(req.findings, axiom_extractor)
+            seeds, _axioms, enriched_vignette = build_seeds(req.findings, axiom_extractor)
             traversal.run(
                 seed_nodes=seeds,
                 vignette=enriched_vignette,
@@ -1097,7 +1099,7 @@ def run_investigation(req: InvestigationRequest):
     t0 = time.time()
     try:
         from apiro.axioms.seeding import build_seeds
-        seeds, axioms, enriched_vignette = build_seeds(req.findings, axiom_extractor)
+        seeds, _axioms, enriched_vignette = build_seeds(req.findings, axiom_extractor)
         if not seeds:
             raise HTTPException(status_code=400, detail="Could not parse any valid findings")
 

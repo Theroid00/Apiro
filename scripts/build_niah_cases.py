@@ -29,7 +29,6 @@ import hashlib
 import json
 import os
 import random
-import re
 import sys
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
