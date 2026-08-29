@@ -31,6 +31,55 @@ on a local 8B model, so ~120 cases is a multi-hour run. Start with
 
 ---
 
+## Choose the endpoint before choosing N
+
+Aggregate top-3 accuracy is the wrong primary endpoint for this architecture.
+Apiro is not built to out-diagnose an 8B model in general; it is built to
+**reject distractors** and to **know when to abstain**. Aggregate accuracy
+buries that under the variance of case difficulty, which is large and unrelated
+to the claim.
+
+Three endpoints, with simulated power at equal compute (one traversal per
+case-run):
+
+| Endpoint | 40 runs | 60 runs | 100 runs | What it answers |
+|---|:---:|:---:|:---:|---|
+| **Distractor selection** | **76%** | **92%** | **100%** | Does it name the designed wrong answer? |
+| Aggregate top-3 accuracy | 56% | 77% | 95% | Is it more accurate overall? |
+| Matched-pair retention | 8% | 26% | 59% | Of what it could solve, what survives a distractor? |
+
+**Lead with distractor selection.** It is both the on-thesis endpoint and the
+most statistically efficient one: it conditions on nothing, so every case
+contributes, and it needs one run per case. `contradiction_needle` cases
+already carry `metadata.wrong_diagnosis`, and CUPCase ships three curated
+distractors per case, so no new data is needed.
+
+Runs needed for 80% power, by how large the true effect is:
+
+| Apiro selects a distractor | vs RAG at 40% | Case-runs for 80% power |
+|:---:|:---:|:---:|
+| 5% | 35 pt gap | 30 |
+| 10% | 30 pt gap | 40 |
+| 15% | 25 pt gap | 60 |
+| 20% | 20 pt gap | 90 |
+| 30% | 10 pt gap | >300 |
+
+**Matched-pair retention is the weakest of the three on power** — it costs two
+runs per pair and discards pairs either arm failed clean. Run it anyway, but as
+mechanism evidence rather than the headline: it is the only design that
+separates resilience from raw capability, because each pair is its own control.
+
+```bash
+python scripts/build_niah_cases.py --paired --num-cases 40 --seed 7
+```
+
+emits 40 matched pairs (80 cases): same haystack, same needle, same depth,
+differing only by an injected contradiction, red herring or negation.
+
+`run_niah_eval.py` prints all three tables. Read them in the order above.
+
+---
+
 ## Why N matters more than anything else
 
 Power analysis on the committed N = 25 result (Apiro wins 11 of the 15 cases
@@ -172,6 +221,9 @@ the one to lead with if it holds up.
   comparing two marginal intervals is the wrong test.
 - Report `n_candidates` alongside accuracy.
 - Report cases-per-diagnosis alongside N.
+- Name the primary endpoint **before** the run, not after. Reporting whichever
+  of three endpoints happened to reach p < 0.05 is how a null result gets
+  written up as a positive one.
 - If a comparison does not reach significance, say so. "Consistent with a
   substantial advantage, and underpowered to demonstrate one" is a defensible
   claim. "+28% lift" without a p-value is not.
