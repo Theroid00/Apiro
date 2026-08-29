@@ -579,6 +579,13 @@ def _evaluate_case(case, components, real_components, axiom_extractor):
         # Carried through so the significance report can state the effective
         # sample size. Cases sharing a diagnosis are near-duplicates.
         "diagnosis": case.get("diagnosis", "unknown"),
+        # The curated wrong answer, where the family ships one. This is what
+        # makes distractor selection directly measurable rather than inferred.
+        "wrong_diagnosis": (case.get("metadata") or {}).get("wrong_diagnosis"),
+        # Matched-pair linkage (populated by build_niah_cases.py --paired).
+        "pair_id": case.get("pair_id"),
+        "pair_role": case.get("pair_role"),
+        "perturbation": case.get("perturbation"),
         "target": _target_display(case),
         "targets": targets,
         "bare_llm": {"success": bare_success, "output": bare_output,
@@ -745,6 +752,137 @@ def _length_depth_matrix(results, arm="apiro"):
     return {"lengths": lengths, "depths": depths, "cells": matrix}
 
 
+def _distractor_selection_table(results, embedder=None, llm_client=None):
+    """How often does each arm name the curated WRONG diagnosis?
+
+    This is the architecture's actual claim, measured directly. Accuracy says
+    whether the right answer was found; this says whether the *designed* wrong
+    answer was chosen instead — which is what "rejects distractors instead of
+    rationalizing them" means operationally.
+
+    It is also the most statistically efficient endpoint available here: it
+    conditions on nothing (every case with a curated distractor contributes)
+    and it needs one traversal per case, so at equal compute it reaches
+    significance sooner than aggregate accuracy does.
+
+    Only families that ship an explicit wrong-diagnosis label contribute;
+    contradiction_needle does.
+    """
+    from apiro.eval.harness import make_matcher
+    from apiro.eval.metrics import mcnemar_exact, wilson_interval
+
+    scored = [r for r in results if r.get("wrong_diagnosis")]
+    if not scored:
+        return None
+
+    matcher = make_matcher(embedder=embedder, llm_client=llm_client)
+    labels = {"apiro": "Apiro", "rag": "Standard RAG", "bare_llm": "Bare LLM"}
+
+    picked = {}
+    for arm in ("apiro", "rag", "bare_llm"):
+        flags = []
+        for r in scored:
+            top = (r[arm].get("candidates") or [None])[0]
+            flags.append(bool(top) and matcher(str(top), r["wrong_diagnosis"]))
+        picked[arm] = flags
+
+    n = len(scored)
+    print("\n" + "=" * 78)
+    print("  PRIMARY ENDPOINT — DISTRACTOR SELECTION")
+    print(f"  Top-ranked answer is the curated WRONG diagnosis. Lower is better. N = {n}")
+    print("=" * 78)
+    for arm in ("apiro", "rag", "bare_llm"):
+        hits = sum(picked[arm])
+        low, high = wilson_interval(hits, n)
+        print(f"  {labels[arm]:<16}{hits:>3}/{n:<4}{hits / n * 100:>7.1f}%"
+              f"   95% CI [{low * 100:5.1f}%, {high * 100:5.1f}%]")
+
+    stats = {"n_cases": n, "rates": {a: sum(f) / n for a, f in picked.items()}}
+    print("-" * 78)
+    for challenger, baseline in (("apiro", "rag"), ("apiro", "bare_llm")):
+        # "Avoided the distractor" is the success direction here.
+        mcn = mcnemar_exact(
+            [not f for f in picked[challenger]],
+            [not f for f in picked[baseline]],
+        )
+        verdict = "significant" if mcn["significant_at_05"] else "NOT significant"
+        print(f"  {labels[challenger]} avoids it where {labels[baseline]} does not: "
+              f"{mcn['a_only']} vs {mcn['b_only']} of {mcn['n_discordant']} "
+              f"discordant, p = {mcn['p_value']:.4f} ({verdict})")
+        stats[f"{challenger}_vs_{baseline}"] = mcn
+    print("=" * 78)
+    return stats
+
+
+def _resilience_table(results):
+    """Matched-pair distractor resilience, when the case set was built --paired.
+
+    Each pair is the same haystack, needle and depth with and without an
+    adversarial sentence, so the pair is its own control and the variance of
+    case difficulty — large, and unrelated to the thesis — cancels out.
+
+    Retention, P(correct on adversarial | correct on clean), is the headline:
+    of the cases an arm could solve, how many survived the distractor?
+
+    Costs two runs per pair and discards pairs either arm failed clean, so it
+    is less statistically efficient than distractor selection above. It buys
+    interpretability instead: it separates resilience from raw capability,
+    which no single-condition metric can.
+    """
+    from apiro.eval.metrics import compare_robustness, distractor_robustness
+
+    pairs = {}
+    for r in results:
+        if r.get("pair_id") and r.get("pair_role"):
+            pairs.setdefault(r["pair_id"], {})[r["pair_role"]] = r
+    complete = [v for v in pairs.values() if "clean" in v and "adversarial" in v]
+    if not complete:
+        return None
+
+    labels = {"apiro": "Apiro", "rag": "Standard RAG", "bare_llm": "Bare LLM"}
+    outcomes = {
+        arm: (
+            [bool(p["clean"][arm]["success"]) for p in complete],
+            [bool(p["adversarial"][arm]["success"]) for p in complete],
+        )
+        for arm in ("apiro", "rag", "bare_llm")
+    }
+
+    print("\n" + "=" * 78)
+    print("  MATCHED-PAIR DISTRACTOR RESILIENCE")
+    print(f"  Same haystack, needle and depth ± one adversarial sentence. "
+          f"{len(complete)} pairs")
+    print("=" * 78)
+    print(f"{'Arm':<16}{'clean':>9}{'adversarial':>13}{'degradation':>13}"
+          f"{'broken':>9}{'retention':>11}")
+    print("-" * 78)
+    stats = {"n_pairs": len(complete), "arms": {}}
+    for arm in ("apiro", "rag", "bare_llm"):
+        rob = distractor_robustness(*outcomes[arm])
+        ret = "n/a" if rob["retention"] is None else f"{rob['retention'] * 100:.0f}%"
+        print(f"{labels[arm]:<16}{rob['clean_accuracy'] * 100:>8.1f}%"
+              f"{rob['adversarial_accuracy'] * 100:>12.1f}%"
+              f"{rob['degradation'] * 100:>+12.1f}pp"
+              f"{rob['broken']:>9}{ret:>11}")
+        stats["arms"][arm] = rob
+    print("-" * 78)
+    for challenger, baseline in (("apiro", "rag"), ("apiro", "bare_llm")):
+        cmp_ = compare_robustness(*outcomes[challenger], *outcomes[baseline])
+        if not cmp_["n_comparable"]:
+            print(f"  {labels[challenger]} vs {labels[baseline]}: no pair solved "
+                  f"clean by both — nothing comparable.")
+            continue
+        mcn = cmp_["mcnemar"]
+        verdict = "significant" if mcn["significant_at_05"] else "NOT significant"
+        print(f"  {labels[challenger]} vs {labels[baseline]}, on the "
+              f"{cmp_['n_comparable']} pairs BOTH solved clean:")
+        print(f"      survived the distractor: {cmp_['a_survived']} vs "
+              f"{cmp_['b_survived']};  p = {mcn['p_value']:.4f} ({verdict})")
+        stats[f"{challenger}_vs_{baseline}"] = cmp_
+    print("=" * 78)
+    return stats
+
+
 def _significance_table(results):
     """Paired significance of each arm against the two baselines.
 
@@ -885,6 +1023,15 @@ def run_evaluation(cases_path: str = "data/niah_cases.json", real_components: bo
     overall = _overall_table(results)
     per_family = _per_family_table(results)
     matrix = _length_depth_matrix(results, arm="apiro")
+    # On-thesis endpoints first: they test what the architecture claims, and
+    # distractor selection is also the most statistically efficient of the
+    # three (see docs/BENCHMARKING.md).
+    distractor = _distractor_selection_table(
+        results,
+        embedder=components["embedder"],
+        llm_client=components["llm_client"] if real_components else None,
+    )
+    resilience = _resilience_table(results)
     significance = _significance_table(results)
     diagnostics = _traversal_diagnostics(results)
 
@@ -899,6 +1046,8 @@ def run_evaluation(cases_path: str = "data/niah_cases.json", real_components: bo
             "overall": overall,
             "per_family": per_family,
             "length_depth_matrix": matrix,
+            "distractor_selection": distractor,
+            "resilience": resilience,
             "significance": significance,
             "diagnostics": diagnostics,
             "case_results": results,

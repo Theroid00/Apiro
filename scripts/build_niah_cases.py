@@ -546,6 +546,12 @@ class NiahCase:
     distractors: List[str] = field(default_factory=list)
     metadata: Dict[str, object] = field(default_factory=dict)
     context: str = ""
+    # Matched-pair fields, set only by build_matched_pair(). Two cases sharing
+    # a pair_id are identical except for the perturbation, so each pair is its
+    # own control and between-case variance drops out of the comparison.
+    pair_id: Optional[str] = None
+    pair_role: Optional[str] = None        # "clean" | "adversarial"
+    perturbation: Optional[str] = None     # contradiction | red_herring | negation
 
     def to_dict(self) -> Dict[str, object]:
         return asdict(self)
@@ -866,6 +872,117 @@ def build_negation_trap(
     )
 
 
+PAIRED_FAMILY = "distractor_resilience"
+
+#: Perturbations a matched pair can apply. Each names the bank it draws from.
+PERTURBATIONS = ("contradiction", "red_herring", "negation")
+
+
+def _perturbation_sentences(
+    rng: random.Random, diagnosis: str, perturbation: str
+) -> Tuple[List[str], Dict[str, object]]:
+    """The sentence(s) that turn a clean case into its adversarial twin."""
+    if perturbation == "contradiction":
+        contra = rng.choice(CONTRADICTION_BANK[diagnosis])
+        wrong = contra["wrong_diagnosis"]
+        return (
+            [f"The admitting team initially favored {wrong} as the working diagnosis.",
+             contra["contradiction"]],
+            {"wrong_diagnosis": wrong},
+        )
+    if perturbation == "red_herring":
+        return [rng.choice(RED_HERRING_BANK[diagnosis])], {}
+    if perturbation == "negation":
+        symptom = rng.choice(NEGATION_SYMPTOMS[diagnosis])
+        return (
+            [f"The patient explicitly reports no {symptom} at this time."],
+            {"negated_symptom": symptom},
+        )
+    raise ValueError(f"Unknown perturbation {perturbation!r}.")
+
+
+def build_matched_pair(
+    rng: random.Random,
+    counter: TokenCounter,
+    diagnosis: str,
+    target_tokens: int,
+    depth: float,
+    perturbation: str,
+) -> List[NiahCase]:
+    """Build a (clean, adversarial) pair differing ONLY by the perturbation.
+
+    This is the tightest design available for the question Apiro actually
+    claims to answer. Aggregate accuracy compares arms across different cases,
+    so it carries all the between-case variance of case difficulty — which is
+    large, and has nothing to do with distractor resilience. Here the same
+    haystack, the same needle and the same depth appear twice; the only
+    difference is the adversarial sentence. Each arm's *degradation* from clean
+    to adversarial isolates the effect, and each pair is its own control.
+
+    Returns:
+        ``[clean_case, adversarial_case]`` sharing a ``pair_id``.
+    """
+    kind, needle = _pick_needle(rng, diagnosis)
+    perturb_sentences, perturb_meta = _perturbation_sentences(rng, diagnosis, perturbation)
+
+    approx_hay = int((target_tokens * WORDS_PER_TOKEN) / 12) + 6
+    hay = build_hay(rng, approx_hay)
+
+    # Clean arm: hay + needle, trimmed to target.
+    clean_sentences = insert_at_depth(hay, [needle], depth)
+    clean_sentences = trim_to_target(
+        counter, clean_sentences, [clean_sentences.index(needle)], target_tokens
+    )
+    clean_context = " ".join(clean_sentences)
+
+    # Adversarial arm: the SAME trimmed sentence list, with the perturbation
+    # inserted just before the needle. Reusing the trimmed list (rather than
+    # re-trimming from scratch) is what keeps the haystacks identical — a
+    # second independent trim would silently change the distractor landscape
+    # and reintroduce the between-case variance this design exists to remove.
+    needle_idx = clean_sentences.index(needle)
+    adversarial_sentences = (
+        clean_sentences[:needle_idx] + list(perturb_sentences) + clean_sentences[needle_idx:]
+    )
+    adversarial_context = " ".join(adversarial_sentences)
+
+    answer = _diagnosis_pretty(diagnosis)
+    pair_id = make_case_id(
+        PAIRED_FAMILY, diagnosis, target_tokens, f"{depth}-{perturbation}-{needle}"
+    )
+    shared = dict(
+        family=PAIRED_FAMILY,
+        diagnosis=diagnosis,
+        target_tokens=target_tokens,
+        depth_fraction=depth,
+        question=QUESTION_TEMPLATES["single_needle"],
+        answer=answer,
+        needles=[needle],
+        pair_id=pair_id,
+        perturbation=perturbation,
+    )
+
+    clean = NiahCase(
+        case_id=f"{pair_id}-clean",
+        approx_tokens=counter.count(clean_context),
+        distractors=[],
+        metadata={"needle_kind": kind, "pair_role": "clean", **perturb_meta},
+        context=clean_context,
+        pair_role="clean",
+        **shared,
+    )
+    adversarial = NiahCase(
+        case_id=f"{pair_id}-adversarial",
+        approx_tokens=counter.count(adversarial_context),
+        distractors=list(perturb_sentences),
+        metadata={"needle_kind": kind, "pair_role": "adversarial", **perturb_meta},
+        context=adversarial_context,
+        pair_role="adversarial",
+        **shared,
+    )
+    return [clean, adversarial]
+
+
 FAMILY_BUILDERS: Dict[str, Callable[..., NiahCase]] = {
     "single_needle": build_single_needle,
     "contradiction_needle": build_contradiction_needle,
@@ -911,6 +1028,69 @@ def validate_banks() -> None:
         raise ValueError(
             "Clinical content banks are inconsistent:\n  " + "\n  ".join(problems)
         )
+
+
+def generate_pairs(
+    num_pairs: int,
+    lengths: List[int],
+    depths: List[float],
+    perturbations: List[str],
+    seed: int,
+) -> List[NiahCase]:
+    """Generate `num_pairs` matched (clean, adversarial) pairs.
+
+    Returns a flat list of 2 * num_pairs cases; the two halves of a pair are
+    linked by `pair_id`.
+    """
+    validate_banks()
+    rng = random.Random(seed)
+    counter = TokenCounter()
+    diagnoses = list(NEEDLE_BANK.keys())
+
+    combos: List[Tuple[str, int, float, str]] = [
+        (dx, length, depth, perturbation)
+        for perturbation in perturbations
+        for length in lengths
+        for depth in depths
+        for dx in diagnoses
+    ]
+    rng.shuffle(combos)
+
+    per_diagnosis = num_pairs / max(1, len(diagnoses))
+    if per_diagnosis > 8:
+        print(
+            f"[warn] {num_pairs} pairs over {len(diagnoses)} diagnoses is "
+            f"~{per_diagnosis:.0f} per diagnosis; pairs sharing a diagnosis are "
+            f"near-duplicates and will overstate significance.",
+            file=sys.stderr,
+        )
+
+    cases: List[NiahCase] = []
+    seen_pairs: set = set()
+    i = 0
+    attempts = 0
+    max_attempts = max(len(combos) * 4, num_pairs * 8)
+    while len(cases) < num_pairs * 2 and attempts < max_attempts:
+        dx, length, depth, perturbation = combos[i % len(combos)]
+        i += 1
+        attempts += 1
+        try:
+            pair = build_matched_pair(rng, counter, dx, length, depth, perturbation)
+        except Exception as exc:  # defensive: never let one combo abort the run
+            print(f"[warn] skipping pair {dx}/{perturbation}: {exc}", file=sys.stderr)
+            continue
+        if pair[0].pair_id in seen_pairs:
+            continue          # same needle drawn twice for the same combo
+        seen_pairs.add(pair[0].pair_id)
+        cases.extend(pair)
+
+    if len(cases) < num_pairs * 2:
+        print(
+            f"[warn] produced {len(cases) // 2}/{num_pairs} distinct pairs; the "
+            f"bank cannot supply more at these lengths/depths.",
+            file=sys.stderr,
+        )
+    return cases
 
 
 def generate_cases(
@@ -973,8 +1153,10 @@ def summarize(cases: List[NiahCase]) -> Dict[str, object]:
         by_family[c.family] = by_family.get(c.family, 0) + 1
         by_length[str(c.target_tokens)] = by_length.get(str(c.target_tokens), 0) + 1
         by_diagnosis[c.diagnosis] = by_diagnosis.get(c.diagnosis, 0) + 1
+    n_pairs = len({c.pair_id for c in cases if c.pair_id}) or 0
     return {
         "total": len(cases),
+        "n_matched_pairs": n_pairs,
         "by_family": by_family,
         "by_length": by_length,
         # Effective sample size is bounded by this, not by `total`: cases
@@ -1030,6 +1212,22 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help="Output JSON path (default: data/niah_cases.json).",
     )
     parser.add_argument(
+        "--paired",
+        action="store_true",
+        help="Emit matched (clean, adversarial) pairs instead of single cases. "
+             "Each pair shares a haystack, needle and depth and differs only by "
+             "the adversarial sentence, so every pair is its own control. This "
+             "is the design that isolates distractor resilience.",
+    )
+    parser.add_argument(
+        "--perturbations",
+        type=str,
+        nargs="+",
+        default=list(PERTURBATIONS),
+        choices=list(PERTURBATIONS),
+        help="With --paired: which perturbations to apply (default: all three).",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=42,
@@ -1057,13 +1255,23 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
 
-    cases = generate_cases(
-        num_cases=args.num_cases,
-        lengths=args.lengths,
-        depths=args.depths,
-        families=args.families,
-        seed=args.seed,
-    )
+    if args.paired:
+        # --num-cases is read as a pair count here; the file holds twice that.
+        cases = generate_pairs(
+            num_pairs=args.num_cases,
+            lengths=args.lengths,
+            depths=args.depths,
+            perturbations=args.perturbations,
+            seed=args.seed,
+        )
+    else:
+        cases = generate_cases(
+            num_cases=args.num_cases,
+            lengths=args.lengths,
+            depths=args.depths,
+            families=args.families,
+            seed=args.seed,
+        )
 
     payload = {
         "schema_version": SCHEMA_VERSION,
@@ -1074,6 +1282,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             "lengths": args.lengths,
             "depths": args.depths,
             "families": args.families,
+            "paired": args.paired,
+            "perturbations": args.perturbations if args.paired else None,
             "seed": args.seed,
         },
         "summary": summarize(cases),
@@ -1096,6 +1306,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         f"  by_length: {summary['by_length']}\n"
         f"  distinct diagnoses: {summary['n_distinct_diagnoses']} "
         f"({summary['cases_per_diagnosis']} cases each)"
+        + (f"\n  matched pairs: {summary['n_matched_pairs']}"
+           if summary["n_matched_pairs"] else "")
     )
     return 0
 

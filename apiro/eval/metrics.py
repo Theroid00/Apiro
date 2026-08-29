@@ -47,6 +47,8 @@ __all__ = [
     "bootstrap_proportion_ci",
     "paired_bootstrap_delta_ci",
     "mcnemar_exact",
+    "distractor_robustness",
+    "compare_robustness",
     "ArmScores",
     "score_arm",
     "compare_arms",
@@ -381,6 +383,117 @@ def mcnemar_exact(
         "n_discordant": n_discordant,
         "p_value": float(p_value),
         "significant_at_05": bool(p_value < 0.05),
+    }
+
+
+# --------------------------------------------------------------------------- #
+# Matched-pair distractor resilience — the on-thesis endpoint
+# --------------------------------------------------------------------------- #
+def distractor_robustness(
+    clean_outcomes: Sequence[bool],
+    adversarial_outcomes: Sequence[bool],
+    confidence: float = 0.95,
+    n_bootstrap: int = DEFAULT_N_BOOTSTRAP,
+    seed: int = DEFAULT_SEED,
+) -> dict:
+    """How much does one arm degrade when a distractor is added?
+
+    Inputs are per-*pair*, aligned: ``clean_outcomes[i]`` and
+    ``adversarial_outcomes[i]`` are the same arm on the same case with and
+    without the adversarial sentence.
+
+    This is the endpoint the architecture is actually about. Aggregate accuracy
+    compares arms across different cases and therefore carries all the variance
+    of case difficulty, which is large and unrelated to distractor resilience.
+    Here each pair is its own control, so that variance cancels.
+
+    ``retention`` — P(correct on adversarial | correct on clean) — is the
+    headline number: of the cases an arm could solve, what fraction survived
+    the distractor? A system whose claim is "rejects distractors instead of
+    rationalizing them" should have a retention near 1.0 even if its raw
+    accuracy is unremarkable.
+
+    Returns:
+        A dict with ``n_pairs``, ``clean_accuracy``, ``adversarial_accuracy``,
+        ``degradation`` (clean − adversarial, with a paired bootstrap CI),
+        ``broken`` (solved clean, lost adversarial), ``rescued`` (the reverse,
+        i.e. noise), ``retention`` and ``n_solvable`` (the retention
+        denominator).
+    """
+    clean, adversarial = _validate_paired(clean_outcomes, adversarial_outcomes)
+    n = clean.size
+    if n == 0:
+        return {
+            "n_pairs": 0, "clean_accuracy": 0.0, "adversarial_accuracy": 0.0,
+            "degradation": 0.0, "degradation_ci": (0.0, 0.0),
+            "broken": 0, "rescued": 0, "retention": None, "n_solvable": 0,
+        }
+
+    broken = int(np.count_nonzero(clean & ~adversarial))
+    rescued = int(np.count_nonzero(~clean & adversarial))
+    n_solvable = int(np.count_nonzero(clean))
+
+    delta = paired_bootstrap_delta_ci(
+        clean_outcomes, adversarial_outcomes,
+        confidence=confidence, n_bootstrap=n_bootstrap, seed=seed,
+    )
+
+    return {
+        "n_pairs": n,
+        "clean_accuracy": float(clean.mean()),
+        "adversarial_accuracy": float(adversarial.mean()),
+        "degradation": delta["delta"],
+        "degradation_ci": (delta["ci_low"], delta["ci_high"]),
+        "broken": broken,
+        "rescued": rescued,
+        "n_solvable": n_solvable,
+        "retention": (n_solvable - broken) / n_solvable if n_solvable else None,
+    }
+
+
+def compare_robustness(
+    arm_a_clean: Sequence[bool],
+    arm_a_adversarial: Sequence[bool],
+    arm_b_clean: Sequence[bool],
+    arm_b_adversarial: Sequence[bool],
+) -> dict:
+    """Which of two arms better survives the distractor, on shared ground?
+
+    Restricted to pairs **both** arms solved in the clean condition. A pair
+    neither arm could solve says nothing about distractor resilience, and a
+    pair only one arm solved confounds resilience with baseline capability —
+    including either would answer a different question.
+
+    On that subset, McNemar asks: among the cases where the two arms disagree
+    about surviving the distractor, is the split better than a coin?
+
+    Returns:
+        ``{"n_comparable", "a_survived", "b_survived", "mcnemar"}``, or
+        ``n_comparable = 0`` when the arms share no solvable pair.
+    """
+    a_clean, a_adv = _validate_paired(arm_a_clean, arm_a_adversarial)
+    b_clean, b_adv = _validate_paired(arm_b_clean, arm_b_adversarial)
+    if a_clean.shape != b_clean.shape:
+        raise ValueError(
+            f"Both arms must be scored on the same pairs, got {a_clean.size} "
+            f"and {b_clean.size}."
+        )
+
+    comparable = a_clean & b_clean
+    n_comparable = int(np.count_nonzero(comparable))
+    if n_comparable == 0:
+        return {
+            "n_comparable": 0, "a_survived": 0, "b_survived": 0,
+            "mcnemar": mcnemar_exact([], []),
+        }
+
+    a_survived = a_adv[comparable]
+    b_survived = b_adv[comparable]
+    return {
+        "n_comparable": n_comparable,
+        "a_survived": int(np.count_nonzero(a_survived)),
+        "b_survived": int(np.count_nonzero(b_survived)),
+        "mcnemar": mcnemar_exact(a_survived.tolist(), b_survived.tolist()),
     }
 
 

@@ -18,6 +18,8 @@ from apiro.eval.metrics import (
     _normal_quantile,
     bootstrap_proportion_ci,
     compare_arms,
+    compare_robustness,
+    distractor_robustness,
     distractor_selection_rate,
     first_hit_rank,
     mcnemar_exact,
@@ -322,6 +324,93 @@ class TestPairedBootstrapDeltaCI:
     def test_mismatched_lengths_are_rejected(self):
         with pytest.raises(ValueError):
             paired_bootstrap_delta_ci([True, False], [True])
+
+
+# --------------------------------------------------------------------------- #
+# Matched-pair distractor resilience
+# --------------------------------------------------------------------------- #
+class TestDistractorRobustness:
+    def test_a_perfectly_robust_arm_loses_nothing(self):
+        clean = [True] * 8 + [False] * 2
+        r = distractor_robustness(clean, clean)
+        assert r["broken"] == 0
+        assert r["degradation"] == pytest.approx(0.0)
+        assert r["retention"] == pytest.approx(1.0)
+
+    def test_a_fragile_arm_is_separated_despite_equal_clean_accuracy(self):
+        # The whole point of the paired design: both arms solve 8/10 clean, so
+        # aggregate accuracy on the clean condition cannot tell them apart.
+        clean = [True] * 8 + [False] * 2
+        fragile = [True] * 3 + [False] * 7
+        r = distractor_robustness(clean, fragile)
+        assert r["clean_accuracy"] == pytest.approx(0.8)
+        assert r["broken"] == 5
+        assert r["retention"] == pytest.approx(5 / 8)
+        assert r["degradation"] == pytest.approx(0.5)
+
+    def test_retention_denominator_is_the_solvable_set(self):
+        # Cases the arm never solved clean cannot be "broken" by a distractor
+        # and must not dilute the rate.
+        r = distractor_robustness([True, True, False, False], [True, False, False, False])
+        assert r["n_solvable"] == 2
+        assert r["retention"] == pytest.approx(0.5)
+
+    def test_rescued_cases_are_counted_separately(self):
+        # Right on adversarial, wrong on clean: noise, not resilience.
+        r = distractor_robustness([False, True], [True, True])
+        assert r["rescued"] == 1
+        assert r["broken"] == 0
+
+    def test_degradation_ci_brackets_the_estimate(self):
+        clean = [True] * 8 + [False] * 2
+        adv = [True] * 3 + [False] * 7
+        r = distractor_robustness(clean, adv)
+        assert r["degradation_ci"][0] <= r["degradation"] <= r["degradation_ci"][1]
+
+    def test_empty_input(self):
+        r = distractor_robustness([], [])
+        assert r["n_pairs"] == 0
+        assert r["retention"] is None
+
+    def test_mismatched_lengths_are_rejected(self):
+        with pytest.raises(ValueError):
+            distractor_robustness([True, False], [True])
+
+
+class TestCompareRobustness:
+    def test_restricted_to_pairs_both_arms_solved_clean(self):
+        # Arm A solves 3, arm B solves 2; only 2 are comparable. Including the
+        # third would confound resilience with baseline capability.
+        a_clean = [True, True, True, False]
+        b_clean = [True, True, False, False]
+        result = compare_robustness(a_clean, a_clean, b_clean, b_clean)
+        assert result["n_comparable"] == 2
+
+    def test_detects_a_robustness_gap(self):
+        a_clean = [True] * 10
+        a_adv = [True] * 10                 # survives everything
+        b_clean = [True] * 10
+        b_adv = [False] * 10                # survives nothing
+        result = compare_robustness(a_clean, a_adv, b_clean, b_adv)
+        assert result["n_comparable"] == 10
+        assert result["a_survived"] == 10
+        assert result["b_survived"] == 0
+        assert result["mcnemar"]["significant_at_05"] is True
+
+    def test_identical_arms_are_not_separated(self):
+        clean = [True] * 6
+        adv = [True, True, False, True, False, True]
+        result = compare_robustness(clean, adv, clean, adv)
+        assert result["mcnemar"]["p_value"] == 1.0
+
+    def test_no_shared_solvable_pair_reports_nothing_comparable(self):
+        result = compare_robustness([True, False], [True, False],
+                                    [False, True], [False, True])
+        assert result["n_comparable"] == 0
+
+    def test_arms_scored_on_different_pair_counts_are_rejected(self):
+        with pytest.raises(ValueError):
+            compare_robustness([True], [True], [True, False], [True, False])
 
 
 # --------------------------------------------------------------------------- #
