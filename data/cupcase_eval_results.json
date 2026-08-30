@@ -1,0 +1,719 @@
+{
+  "benchmark": "cupcase",
+  "dataset": "ofir408/CupCase",
+  "n_requested": 10,
+  "n_completed": 10,
+  "sample_seed": 42,
+  "n_differential": 5,
+  "corpus_documents": 100000,
+  "scores": {
+    "apiro": {
+      "arm": "apiro",
+      "n_cases": 10,
+      "ranks": [
+        null,
+        null,
+        null,
+        null,
+        2,
+        5,
+        4,
+        null,
+        null,
+        1
+      ],
+      "top_k": {
+        "1": 0.1,
+        "3": 0.2,
+        "5": 0.4
+      },
+      "mrr": 0.195,
+      "top1_ci": [
+        0.0178762130747335,
+        0.40415002707422054
+      ],
+      "top3_ci": [
+        0.0566821514015734,
+        0.5098375287101421
+      ],
+      "distractor_rate": 0.1,
+      "n_distractor_cases": 10
+    },
+    "rag": {
+      "arm": "rag",
+      "n_cases": 10,
+      "ranks": [
+        null,
+        null,
+        null,
+        null,
+        1,
+        1,
+        1,
+        null,
+        null,
+        null
+      ],
+      "top_k": {
+        "1": 0.3,
+        "3": 0.3,
+        "5": 0.3
+      },
+      "mrr": 0.3,
+      "top1_ci": [
+        0.10779126731943314,
+        0.6032218527550438
+      ],
+      "top3_ci": [
+        0.10779126731943314,
+        0.6032218527550438
+      ],
+      "distractor_rate": 0.2,
+      "n_distractor_cases": 10
+    },
+    "bare_llm": {
+      "arm": "bare_llm",
+      "n_cases": 10,
+      "ranks": [
+        1,
+        1,
+        null,
+        2,
+        1,
+        1,
+        1,
+        null,
+        null,
+        null
+      ],
+      "top_k": {
+        "1": 0.5,
+        "3": 0.6,
+        "5": 0.6
+      },
+      "mrr": 0.55,
+      "top1_ci": [
+        0.2365930903591401,
+        0.7634069096408599
+      ],
+      "top3_ci": [
+        0.31267376954840886,
+        0.8318196704143527
+      ],
+      "distractor_rate": 0.4,
+      "n_distractor_cases": 10
+    }
+  },
+  "comparisons": {
+    "apiro": {
+      "vs": "bare_llm",
+      "k": 3,
+      "delta_ci": {
+        "delta": -0.39999999999999997,
+        "ci_low": -0.8,
+        "ci_high": 0.0,
+        "n_cases": 10,
+        "excludes_zero": false
+      },
+      "mcnemar": {
+        "n_cases": 10,
+        "a_only": 1,
+        "b_only": 5,
+        "n_discordant": 6,
+        "p_value": 0.21875,
+        "significant_at_05": false
+      }
+    },
+    "rag": {
+      "vs": "bare_llm",
+      "k": 3,
+      "delta_ci": {
+        "delta": -0.3,
+        "ci_low": -0.6000000000000001,
+        "ci_high": 0.0,
+        "n_cases": 10,
+        "excludes_zero": false
+      },
+      "mcnemar": {
+        "n_cases": 10,
+        "a_only": 0,
+        "b_only": 3,
+        "n_discordant": 3,
+        "p_value": 0.25,
+        "significant_at_05": false
+      }
+    }
+  },
+  "case_results": [
+    {
+      "case_id": "cupcase_0000",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "Osteoporosis.",
+      "distractors": [
+        "Osteolysis",
+        "Osteophyte",
+        "Osteonecrosis"
+      ],
+      "n_axioms": 9,
+      "predictions": {
+        "bare_llm": [
+          "Osteoporosis",
+          "Herniated disc",
+          "Spinal stenosis",
+          "Spondylosis",
+          "Rheumatoid arthritis"
+        ],
+        "rag": [
+          "Thoracic-disc protrusions",
+          "Lumbar monoradiculopathy due to unilateral facet hypertrophy",
+          "Idiopathic erythromelalgia",
+          "Spinal cord tumor",
+          "Epidural abscess"
+        ],
+        "apiro": [
+          "Degenerative disc disease",
+          "Spinal stenosis",
+          "Spondylosis with facet hypertrophy",
+          "Lateral recess stenosis",
+          "Degenerative spondylolisthesis"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Osteoporosis\nHerniated disc\nSpinal stenosis\nSpondylosis\nRheumatoid arthritis",
+        "rag": "Thoracic-disc protrusions\nLumbar monoradiculopathy due to unilateral facet hypertrophy\nIdiopathic erythromelalgia\nSpinal cord tumor\nEpidural abscess",
+        "apiro": [
+          "Degenerative disc disease",
+          "Spinal stenosis",
+          "Spondylosis with facet hypertrophy",
+          "Lateral recess stenosis",
+          "Degenerative spondylolisthesis"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 50,
+        "total_edges": 44,
+        "seed_nodes": 9,
+        "explored_nodes": 14,
+        "max_depth_reached": 6,
+        "rabbit_holes": 1,
+        "contradictions": 16,
+        "duration_seconds": 97.43
+      }
+    },
+    {
+      "case_id": "cupcase_0001",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "Intestinal obstruction due to Ascaris lumbricoides.",
+      "distractors": [
+        "Complete intestinal obstruction, unspecified as to cause",
+        "Unspecified intestinal obstruction",
+        "Other complete intestinal obstruction"
+      ],
+      "n_axioms": 9,
+      "predictions": {
+        "bare_llm": [
+          "Intestinal Obstruction",
+          "Typhoid Fever",
+          "Intussusception",
+          "Gastroenteritis",
+          "Cystic Fibrosis"
+        ],
+        "rag": [
+          "Intussusception",
+          "Pyloric stenosis",
+          "Appendicitis",
+          "Meckel diverticulum",
+          "Bacterial gastroenteritis"
+        ],
+        "apiro": [
+          "Intestinal Malrotation",
+          "Colonic Volvulus",
+          "Mesenteric Venous Thrombosis",
+          "Ulcerative Colitis",
+          "Celiac Disease"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Intestinal Obstruction\nTyphoid Fever\nIntussusception\nGastroenteritis\nCystic Fibrosis",
+        "rag": "Intussusception\nPyloric stenosis\nAppendicitis\nMeckel diverticulum\nBacterial gastroenteritis",
+        "apiro": [
+          "Intestinal Malrotation",
+          "Colonic Volvulus",
+          "Mesenteric Venous Thrombosis",
+          "Ulcerative Colitis",
+          "Celiac Disease"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 44,
+        "total_edges": 40,
+        "seed_nodes": 9,
+        "explored_nodes": 8,
+        "max_depth_reached": 6,
+        "rabbit_holes": 2,
+        "contradictions": 22,
+        "duration_seconds": 65.08
+      }
+    },
+    {
+      "case_id": "cupcase_0002",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "multiple cardiac rhabdomyomas that occurred in the absence of TSC.",
+      "distractors": [
+        "Other injury of heart without hemopericardium, subsequent encounter",
+        "Laceration of heart without hemopericardium, subsequent encounter",
+        "Poisoning by cardiac-stimulant glycosides and drugs of similar action, undetermined, subsequent encounter"
+      ],
+      "n_axioms": 7,
+      "predictions": {
+        "bare_llm": [
+          "Monochorionic Diamniotic Twin Pregnancy",
+          "Vanishing Twin Syndrome",
+          "Selective Fetal Growth Restriction",
+          "Gestational Diabetes Mellitus",
+          "Preeclampsia"
+        ],
+        "rag": [
+          "Monochorionic Diamniotic Twin Pregnancy",
+          "Dizygotic Twin Pregnancy with Discordant Sexes",
+          "Vanishing Twin Syndrome",
+          "Partial Molar Pregnancy",
+          "Monoamniotic Twin Pregnancy"
+        ],
+        "apiro": [
+          "Chorioamnionitis",
+          "Twin-to-Twin Transfusion Syndrome",
+          "Placenta Previa",
+          "Monoamniotic Twins",
+          "Dizygosity"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Monochorionic Diamniotic Twin Pregnancy\nVanishing Twin Syndrome\nSelective Fetal Growth Restriction\nGestational Diabetes Mellitus\nPreeclampsia",
+        "rag": "Monochorionic Diamniotic Twin Pregnancy\nDizygotic Twin Pregnancy with Discordant Sexes\nVanishing Twin Syndrome\nPartial Molar Pregnancy\nMonoamniotic Twin Pregnancy",
+        "apiro": [
+          "Chorioamnionitis",
+          "Twin-to-Twin Transfusion Syndrome",
+          "Placenta Previa",
+          "Monoamniotic Twins",
+          "Dizygosity"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 32,
+        "total_edges": 25,
+        "seed_nodes": 7,
+        "explored_nodes": 8,
+        "max_depth_reached": 6,
+        "rabbit_holes": 3,
+        "contradictions": 19,
+        "duration_seconds": 60.4
+      }
+    },
+    {
+      "case_id": "cupcase_0003",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "Primary aldosteronism and secondary Cushing's syndrome.",
+      "distractors": [
+        "Primary hyperaldosteronism",
+        "Cushing's syndrome",
+        "Other Cushing's syndrome"
+      ],
+      "n_axioms": 10,
+      "predictions": {
+        "bare_llm": [
+          "Renal Cell Carcinoma",
+          "Adrenal Cortical Adenoma",
+          "Pheochromocytoma",
+          "Hypertensive Nephrosclerosis",
+          "Angiomyolipoma"
+        ],
+        "rag": [
+          "Renal Cell Carcinoma",
+          "Malignant Hypertension",
+          "Systemic Sclerosis",
+          "Adrenal Gland Disorder (e.g. Conn's Syndrome)",
+          "Glomerulonephritis"
+        ],
+        "apiro": [
+          "Pheochromocytoma",
+          "Adrenal adenoma",
+          "Renal cell carcinoma",
+          "Multiple endocrine neoplasia type 2 (MEN2) syndrome",
+          "Paraganglioma"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Renal Cell Carcinoma\nAdrenal Cortical Adenoma\nPheochromocytoma\nHypertensive Nephrosclerosis\nAngiomyolipoma",
+        "rag": "Renal Cell Carcinoma\nMalignant Hypertension\nSystemic Sclerosis\nAdrenal Gland Disorder (e.g. Conn's Syndrome)\nGlomerulonephritis",
+        "apiro": [
+          "Pheochromocytoma",
+          "Adrenal adenoma",
+          "Renal cell carcinoma",
+          "Multiple endocrine neoplasia type 2 (MEN2) syndrome",
+          "Paraganglioma"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 37,
+        "total_edges": 29,
+        "seed_nodes": 10,
+        "explored_nodes": 9,
+        "max_depth_reached": 3,
+        "rabbit_holes": 3,
+        "contradictions": 16,
+        "duration_seconds": 74.99
+      }
+    },
+    {
+      "case_id": "cupcase_0004",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "Acute myocardial infarction.",
+      "distractors": [
+        "Acute myocardial infarction, unspecified",
+        "Acute myocarditis",
+        "Old myocardial infarction"
+      ],
+      "n_axioms": 6,
+      "predictions": {
+        "bare_llm": [
+          "Acute Coronary Syndrome",
+          "Myocardial Infarction",
+          "Pulmonary Embolism",
+          "Aortic Dissection",
+          "Gastroesophageal Reflux Disease"
+        ],
+        "rag": [
+          "Acute Coronary Syndrome",
+          "Myocardial Infarction",
+          "Pulmonary Embolism",
+          "Aortic Dissection",
+          "Unstable Angina"
+        ],
+        "apiro": [
+          "Pulmonary Embolism",
+          "Acute Myocardial Infarction",
+          "Chronic Thromboembolic Pulmonary Hypertension",
+          "Deep Vein Thrombosis",
+          "None of the above diagnoses are supported by sufficient evidence"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Acute Coronary Syndrome\nMyocardial Infarction\nPulmonary Embolism\nAortic Dissection\nGastroesophageal Reflux Disease",
+        "rag": "Acute Coronary Syndrome\nMyocardial Infarction\nPulmonary Embolism\nAortic Dissection\nUnstable Angina",
+        "apiro": [
+          "Pulmonary Embolism",
+          "Acute Myocardial Infarction",
+          "Chronic Thromboembolic Pulmonary Hypertension",
+          "Deep Vein Thrombosis",
+          "None of the above diagnoses are supported by sufficient evidence"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 29,
+        "total_edges": 24,
+        "seed_nodes": 6,
+        "explored_nodes": 8,
+        "max_depth_reached": 5,
+        "rabbit_holes": 5,
+        "contradictions": 10,
+        "duration_seconds": 56.25
+      }
+    },
+    {
+      "case_id": "cupcase_0005",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "Electrical burn injury.",
+      "distractors": [
+        "Intentional self-harm by electrocution",
+        "Electrocution, subsequent encounter",
+        "Electrocution, initial encounter"
+      ],
+      "n_axioms": 7,
+      "predictions": {
+        "bare_llm": [
+          "Electrical Burn",
+          "Thermal Burn",
+          "Cardiac Arrest",
+          "Seizure Disorder",
+          "Syncope"
+        ],
+        "rag": [
+          "Electrical Burn",
+          "Inhalation Injury",
+          "Child Abuse",
+          "Scald Burns",
+          "Carbon Monoxide Poisoning"
+        ],
+        "apiro": [
+          "Cardiac Tamponade",
+          "Esophageal Rupture",
+          "Pericardial Effusion",
+          "Compressive Cardiogenic Shock",
+          "Electrolysis Reaction-Induced Burns"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Electrical Burn\nThermal Burn\nCardiac Arrest\nSeizure Disorder\nSyncope",
+        "rag": "Electrical Burn\nInhalation Injury\nChild Abuse\nScald Burns\nCarbon Monoxide Poisoning",
+        "apiro": [
+          "Cardiac Tamponade",
+          "Esophageal Rupture",
+          "Pericardial Effusion",
+          "Compressive Cardiogenic Shock",
+          "Electrolysis Reaction-Induced Burns"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 46,
+        "total_edges": 39,
+        "seed_nodes": 7,
+        "explored_nodes": 14,
+        "max_depth_reached": 6,
+        "rabbit_holes": 9,
+        "contradictions": 30,
+        "duration_seconds": 103.19
+      }
+    },
+    {
+      "case_id": "cupcase_0006",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "Myasthenia Gravis (MG) and Primary Biliary Cholangitis (PBC).",
+      "distractors": [
+        "Primary biliary cirrhosis",
+        "Myasthenia gravis and other myoneural disorders",
+        "Myasthenia gravis with (acute) exacerbation"
+      ],
+      "n_axioms": 9,
+      "predictions": {
+        "bare_llm": [
+          "Myasthenia Gravis",
+          "Guillain-Barre Syndrome",
+          "Botulism",
+          "Lambert-Eaton Myasthenic Syndrome",
+          "Multiple Sclerosis"
+        ],
+        "rag": [
+          "Myasthenia Gravis",
+          "Bulbar Palsy",
+          "Adams-Oliver Syndrome",
+          "Episodic Ataxia",
+          "Progressive Bulbar Palsy"
+        ],
+        "apiro": [
+          "Multiple Myeloma",
+          "Amyotrophic Lateral Sclerosis",
+          "Guillain-Barr\u00e9 Syndrome",
+          "Myasthenia Gravis",
+          "Progressive Supranuclear Palsy"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Myasthenia Gravis\nGuillain-Barre Syndrome\nBotulism\nLambert-Eaton Myasthenic Syndrome\nMultiple Sclerosis",
+        "rag": "Myasthenia Gravis\nBulbar Palsy\nAdams-Oliver Syndrome\nEpisodic Ataxia\nProgressive Bulbar Palsy",
+        "apiro": [
+          "Multiple Myeloma",
+          "Amyotrophic Lateral Sclerosis",
+          "Guillain-Barr\u00e9 Syndrome",
+          "Myasthenia Gravis",
+          "Progressive Supranuclear Palsy"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 46,
+        "total_edges": 38,
+        "seed_nodes": 9,
+        "explored_nodes": 10,
+        "max_depth_reached": 6,
+        "rabbit_holes": 11,
+        "contradictions": 28,
+        "duration_seconds": 95.01
+      }
+    },
+    {
+      "case_id": "cupcase_0007",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "Eosinophilic pustular folliculitis (EP).",
+      "distractors": [
+        "Eosinophilic esophagitis",
+        "Diffuse (eosinophilic) fasciitis",
+        "Eosinophilic colitis"
+      ],
+      "n_axioms": 14,
+      "predictions": {
+        "bare_llm": [
+          "Kaposi's Sarcoma",
+          "Seborrheic Dermatitis",
+          "Pityriasis Rosea",
+          "Dyshidrotic Eczema",
+          "Psoriasis"
+        ],
+        "rag": [
+          "Kaposi's Sarcoma",
+          "Histoplasmosis",
+          "Lymphoma",
+          "Tuberculosis",
+          "Progressive Multifocal Leukoencephalopathy"
+        ],
+        "apiro": [
+          "Kaposi's sarcoma",
+          "Secondary syphilis",
+          "Cryptococcal meningitis",
+          "Chronic mucocutaneous candidiasis",
+          "Disseminated tuberculosis"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Kaposi's Sarcoma\nSeborrheic Dermatitis\nPityriasis Rosea\nDyshidrotic Eczema\nPsoriasis",
+        "rag": "Kaposi's Sarcoma\nHistoplasmosis\nLymphoma\nTuberculosis\nProgressive Multifocal Leukoencephalopathy",
+        "apiro": [
+          "Kaposi's sarcoma",
+          "Secondary syphilis",
+          "Cryptococcal meningitis",
+          "Chronic mucocutaneous candidiasis",
+          "Disseminated tuberculosis"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 41,
+        "total_edges": 31,
+        "seed_nodes": 14,
+        "explored_nodes": 8,
+        "max_depth_reached": 3,
+        "rabbit_holes": 11,
+        "contradictions": 18,
+        "duration_seconds": 113.26
+      }
+    },
+    {
+      "case_id": "cupcase_0008",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "Splenic cystic lymphangioma.",
+      "distractors": [
+        "Burkitt lymphoma, spleen",
+        "Malignant neoplasm of splenic flexure",
+        "Diffuse follicle center lymphoma, spleen"
+      ],
+      "n_axioms": 10,
+      "predictions": {
+        "bare_llm": [
+          "Hodgkin Lymphoma",
+          "Non-Hodgkin Lymphoma",
+          "Leukemia",
+          "Mantle Cell Lymphoma",
+          "Hairy Cell Leukemia"
+        ],
+        "rag": [
+          "Hypersplenism",
+          "Congestive Splenomegaly",
+          "Lymphoma",
+          "Thalassemia Syndrome",
+          "Hereditary Spherocytosis"
+        ],
+        "apiro": [
+          "Liver Cirrhosis",
+          "Myelofibrosis",
+          "Beta-thalassemia major",
+          "Lymphoma",
+          "Hypersplenism due to portal hypertension"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Hodgkin Lymphoma\nNon-Hodgkin Lymphoma\nLeukemia\nMantle Cell Lymphoma\nHairy Cell Leukemia",
+        "rag": "Hypersplenism\nCongestive Splenomegaly\nLymphoma\nThalassemia Syndrome\nHereditary Spherocytosis",
+        "apiro": [
+          "Liver Cirrhosis",
+          "Myelofibrosis",
+          "Beta-thalassemia major",
+          "Lymphoma",
+          "Hypersplenism due to portal hypertension"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 35,
+        "total_edges": 27,
+        "seed_nodes": 10,
+        "explored_nodes": 8,
+        "max_depth_reached": 4,
+        "rabbit_holes": 11,
+        "contradictions": 15,
+        "duration_seconds": 79.86
+      }
+    },
+    {
+      "case_id": "cupcase_0009",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "Mast Cell Activation Syndrome (MCAS).",
+      "distractors": [
+        "Monoclonal mast cell activation syndrome",
+        "Idiopathic mast cell activation syndrome",
+        "Other mast cell activation disorder"
+      ],
+      "n_axioms": 11,
+      "predictions": {
+        "bare_llm": [
+          "Carney complex",
+          "Mastocytosis",
+          "Hereditary angioedema",
+          "Erythromelalgia",
+          "Carcinoid syndrome"
+        ],
+        "rag": [
+          "Anaphylaxis",
+          "Hypersensitivity Reaction",
+          "Hereditary Angioedema (HAE)",
+          "Vasovagal Collapse",
+          "Septic Shock"
+        ],
+        "apiro": [
+          "Mast Cell Activation Syndrome",
+          "Hereditary Angioedema",
+          "Carcinoid Syndrome",
+          "Systemic Mastocytosis",
+          "Pheochromocytoma"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Carney complex\nMastocytosis\nHereditary angioedema\nErythromelalgia\nCarcinoid syndrome",
+        "rag": "Anaphylaxis\nHypersensitivity Reaction\nHereditary Angioedema (HAE)\nVasovagal Collapse\nSeptic Shock",
+        "apiro": [
+          "Mast Cell Activation Syndrome",
+          "Hereditary Angioedema",
+          "Carcinoid Syndrome",
+          "Systemic Mastocytosis",
+          "Pheochromocytoma"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 41,
+        "total_edges": 33,
+        "seed_nodes": 11,
+        "explored_nodes": 14,
+        "max_depth_reached": 6,
+        "rabbit_holes": 11,
+        "contradictions": 23,
+        "duration_seconds": 110.1
+      }
+    }
+  ]
+}
