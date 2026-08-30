@@ -128,6 +128,31 @@ class TestDistractorSelectionRate:
             exact_matcher, top_n=2,
         ) is True
 
+    def test_a_correct_answer_is_never_a_trap_capture(self):
+        # CUPCase ships distractors that overlap the ground truth — e.g. truth
+        # "Myasthenia Gravis (MG) and ..." with "Myasthenia Gravis" among the
+        # distractors. Without the ground_truth guard the metric penalises an
+        # arm for being right, which is how "Apiro selects 4x fewer
+        # distractors" got reported when Apiro was simply wrong more often.
+        assert distractor_selection_rate(
+            ["Myasthenia gravis"], ["Myasthenia gravis", "Lambert-Eaton"],
+            exact_matcher, ground_truth="Myasthenia gravis",
+        ) is False
+
+    def test_a_genuine_capture_is_still_detected(self):
+        assert distractor_selection_rate(
+            ["Lambert-Eaton"], ["Lambert-Eaton"],
+            exact_matcher, ground_truth="Myasthenia gravis",
+        ) is True
+
+    def test_a_case_whose_distractors_all_match_the_truth_is_excluded(self):
+        # Nothing on such a case can distinguish a trap capture from a correct
+        # answer, so it must not contribute to the denominator either.
+        assert distractor_selection_rate(
+            ["Anything at all"], ["Myasthenia gravis"],
+            exact_matcher, ground_truth="Myasthenia gravis",
+        ) is None
+
     def test_none_when_case_ships_no_distractors(self):
         # None, not False: a case with no distractors cannot contribute to the
         # rate, and counting it as a non-selection would dilute the denominator.

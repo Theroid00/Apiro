@@ -156,6 +156,7 @@ def distractor_selection_rate(
     distractors: Sequence[str],
     matcher: Matcher,
     top_n: int = 1,
+    ground_truth: Optional[str] = None,
 ) -> Optional[bool]:
     """Did the model's top-``top_n`` output name one of the case's distractors?
 
@@ -170,15 +171,42 @@ def distractor_selection_rate(
         distractors: Curated plausible-but-wrong diagnoses for this case.
         matcher: Predicate deciding clinical equivalence.
         top_n: How many of the model's leading predictions to inspect.
+        ground_truth: The correct answer. **Pass this whenever it is known.**
+            A prediction that matches both a distractor and the truth is a
+            correct answer, not a trap capture, and counting it as one
+            penalises an arm for being right.
 
     Returns:
-        ``True``/``False``, or ``None`` when the case ships no distractors and
-        therefore cannot contribute to the rate.
+        ``True``/``False``, or ``None`` when the case cannot contribute — no
+        distractors, or every distractor is itself a match for the ground
+        truth, which makes "picked a distractor" undefined for that case.
+
+    Note:
+        Curated distractor lists are not always disjoint from the answer. In
+        CUPCase, for example, the ground truth "Intestinal obstruction due to
+        Ascaris lumbricoides" ships distractors "Unspecified intestinal
+        obstruction" and "Other complete intestinal obstruction" — ICD-level
+        near-misses rather than clinically wrong alternatives. On such a case
+        this returns ``None``: naming the distractor there is a *granularity*
+        error, not the failure this metric exists to detect, and scoring it as
+        one would misreport what the number means.
     """
     usable = clean_predictions(distractors)
     if not usable:
         return None
+
+    if ground_truth is not None and str(ground_truth).strip():
+        # Drop distractors that are themselves matches for the truth; if that
+        # empties the list, the case cannot discriminate and is excluded.
+        usable = [d for d in usable if not matcher(d, ground_truth)]
+        if not usable:
+            return None
+
     for prediction in clean_predictions(predictions)[:top_n]:
+        if ground_truth is not None and matcher(prediction, ground_truth):
+            # Correct answers are never trap captures, whatever else they
+            # happen to resemble.
+            continue
         if any(matcher(prediction, d) for d in usable):
             return True
     return False
@@ -750,8 +778,10 @@ def score_arm(
     n_distractor_cases = 0
     if distractors_per_case is not None:
         flags = [
-            distractor_selection_rate(preds, dists, matcher)
-            for preds, dists in zip(predictions_per_case, distractors_per_case)
+            distractor_selection_rate(preds, dists, matcher, ground_truth=truth)
+            for preds, dists, truth in zip(
+                predictions_per_case, distractors_per_case, ground_truths
+            )
         ]
         scored = [f for f in flags if f is not None]
         n_distractor_cases = len(scored)

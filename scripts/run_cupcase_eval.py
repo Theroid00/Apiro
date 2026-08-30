@@ -321,6 +321,11 @@ def run_evaluation(
     ground_truths = [r["ground_truth"] for r in results]
     distractors = [r["distractors"] for r in results]
 
+    # score_arm passes each case's ground truth into the distractor check, so
+    # a correct answer that happens to resemble a curated distractor is not
+    # counted as a trap capture. On CUPCase that matters a lot: its distractors
+    # are ICD-level near-misses of the answer, not clinically wrong
+    # alternatives (see apiro/eval/metrics.distractor_selection_rate).
     scores = {
         arm: score_arm(
             arm,
