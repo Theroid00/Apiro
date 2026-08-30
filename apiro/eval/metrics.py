@@ -52,6 +52,7 @@ __all__ = [
     "bias_trap_rate",
     "compare_bias_traps",
     "abstention_metrics",
+    "signal_health",
     "ArmScores",
     "score_arm",
     "compare_arms",
@@ -681,6 +682,64 @@ def abstention_metrics(
         out["n_answered_answerable"] = n_aa
 
     return out
+
+
+# --------------------------------------------------------------------------- #
+# Signal health — is the engine's own uncertainty score doing anything?
+# --------------------------------------------------------------------------- #
+def signal_health(values: Sequence[float], top_share_warn: float = 0.40) -> dict:
+    """Is a scalar signal discriminating, or has it collapsed?
+
+    The entropy score orders the frontier, ranks the synthesis and drives
+    saturation. If it is near-constant, all three are reading noise — and
+    nothing in the pipeline notices, because every stage still runs.
+
+    That is not hypothetical. On the 2026-08-30 run, 64.3% of 3,782 generated
+    hypotheses carried an identical 0.10, and it took a post-hoc dig through
+    the traversal logs to see it. Reporting this alongside accuracy makes a
+    degenerate signal visible in the run that produced it.
+
+    Args:
+        values: Every score the signal emitted during a run.
+        top_share_warn: Flag ``degenerate`` when one value holds at least this
+            share of the mass.
+
+    Returns:
+        ``n``, ``n_distinct``, ``modal_value``, ``modal_share``, ``mean``,
+        ``stdev``, ``normalized_entropy`` (1.0 = perfectly spread, 0.0 = one
+        value), ``degenerate``, and ``distribution``.
+    """
+    clean = [float(v) for v in values if v is not None]
+    n = len(clean)
+    if n == 0:
+        return {"n": 0, "n_distinct": 0, "modal_value": None, "modal_share": None,
+                "mean": None, "stdev": None, "normalized_entropy": None,
+                "degenerate": False, "distribution": {}}
+
+    counts: dict[float, int] = {}
+    for v in clean:
+        key = round(v, 4)
+        counts[key] = counts.get(key, 0) + 1
+
+    modal_value, modal_count = max(counts.items(), key=lambda kv: kv[1])
+    modal_share = modal_count / n
+
+    # Shannon entropy of the value distribution, normalized by log(n_distinct).
+    probs = np.array([c / n for c in counts.values()], dtype=np.float64)
+    raw = float(-(probs * np.log(probs)).sum())
+    norm = raw / math.log(len(counts)) if len(counts) > 1 else 0.0
+
+    return {
+        "n": n,
+        "n_distinct": len(counts),
+        "modal_value": modal_value,
+        "modal_share": modal_share,
+        "mean": float(np.mean(clean)),
+        "stdev": float(np.std(clean)),
+        "normalized_entropy": norm,
+        "degenerate": modal_share >= top_share_warn,
+        "distribution": {str(k): v for k, v in sorted(counts.items())},
+    }
 
 
 # --------------------------------------------------------------------------- #

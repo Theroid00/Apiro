@@ -40,6 +40,7 @@ from apiro.parsing import (
     parse_differential,
 )
 from apiro.config import (
+    ENTROPY_SIGNAL,
     RAG_DOMAIN_FILTER,
     N_CHILD_HYPOTHESES,
     N_DIFFERENTIAL,
@@ -518,7 +519,12 @@ class NodeExpander:
 
         return hypotheses
 
-    def _batch_entropy(self, hypotheses: list[str], chunks: list[str]) -> list[float]:
+    def _batch_entropy(
+        self,
+        hypotheses: list[str],
+        chunks: list[str],
+        case_context: str = "",
+    ) -> list[tuple[float, float | None]]:
         """
         Score entropy for all hypotheses concurrently.
 
@@ -527,18 +533,33 @@ class NodeExpander:
         but share the already-retrieved RAG chunks, avoiding redundant context
         construction and letting the caller reuse the same chunk list.
 
+        Under config.ENTROPY_SIGNAL == "posterior" this asks how confident the
+        model is that each hypothesis is the primary diagnosis FOR THIS
+        PATIENT, and returns both the entropy and that confidence. Under
+        "breadth" it uses the original diagnostic-breadth question and returns
+        no confidence — see apiro/entropy/engine.py for why the default moved.
+
         Falls back to ln(2) (max binary uncertainty) on any failure so the node
         stays high-priority in the frontier.
+
+        Returns:
+            One ``(entropy, confidence_or_None)`` per hypothesis, in order.
         """
         DEFAULT = 0.693  # ln(2) — max binary uncertainty fallback
-        
-        def _score_hyp(hyp: str) -> float:
+
+        def _score_hyp(hyp: str) -> tuple[float, float | None]:
             try:
+                if (ENTROPY_SIGNAL == "posterior"
+                        and hasattr(self.entropy_engine, "score_hypothesis")):
+                    scored = self.entropy_engine.score_hypothesis(hyp, case_context)
+                    if scored is not None:
+                        return scored
+                    return DEFAULT, None
                 prompt = self.entropy_engine._build_verification_prompt(hyp, chunks)
                 val = self.entropy_engine.temperature_corrected_entropy(prompt)
-                return val if val is not None else DEFAULT
+                return (val if val is not None else DEFAULT), None
             except Exception:
-                return DEFAULT
+                return DEFAULT, None
 
         if not hypotheses:
             return []
@@ -584,12 +605,14 @@ class NodeExpander:
         # distinct diagnoses could explain the claim and maps that count
         # through a fixed table. This is a bounded uncertainty heuristic,
         # not Shannon entropy computed over a token probability distribution.
-        entropies = self._batch_entropy(hypotheses, chunks)
+        scored = self._batch_entropy(
+            hypotheses, chunks, case_context=self._sanitize_vignette(vignette) or node.claim
+        )
 
         new_nodes = []
 
         for i, hypothesis in enumerate(hypotheses):
-            entropy = entropies[i]
+            entropy, confidence = scored[i]
 
             domain = classify_domain(hypothesis, embedder=getattr(self.chroma_client, '_emb', None))
 
@@ -624,6 +647,10 @@ class NodeExpander:
                 domain=domain,
                 depth=node.depth + 1,
                 parent_id=node.id,
+                # Belief, kept separately from uncertainty. The entropy map is
+                # symmetric about p = 0.5, so H alone cannot tell "confidently
+                # yes" from "confidently no" — and synthesis needs that.
+                metadata=({"confidence": confidence} if confidence is not None else {}),
             )
 
             # Step 5d: Create the edge
@@ -743,8 +770,20 @@ class NodeExpander:
         # with one diagnosis narrows the differential, a claim compatible with
         # ten does not. Deeper claims break ties.
         def specificity(n: Node) -> tuple:
+            """Sort key: most believable first, most specific as the tiebreak.
+
+            When a node carries a posterior confidence, rank by that
+            descending. Ranking by ascending entropy alone would put a
+            confidently RULED OUT hypothesis at the top of the differential,
+            because the entropy map is symmetric — H = 0.234 is both 5% and 95%
+            confidence. Nodes without a confidence (the "breadth" signal, or a
+            failed elicitation) fall back to the old ascending-entropy order.
+            """
             h = n.entropy_score if n.entropy_score is not None else 0.693
-            return (round(h, 4), -n.depth)
+            confidence = (n.metadata or {}).get("confidence")
+            if confidence is None:
+                return (1, round(h, 4), -n.depth)
+            return (0, -round(float(confidence), 4), -n.depth)
 
         explored.sort(key=specificity)
         contradicted.sort(key=specificity)

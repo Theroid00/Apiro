@@ -67,6 +67,23 @@ N_CHILD_HYPOTHESES  = 3                # child nodes generated per expansion
 # Apiro at 3 parsed slots, so the arms were not answering the same question.
 N_DIFFERENTIAL = 3
 
+# Which uncertainty signal scores depth >= 1 nodes.
+#
+#   "posterior" — verbalized confidence that this hypothesis is the primary
+#                 diagnosis FOR THIS PATIENT, mapped through binary Shannon
+#                 entropy. Continuous.
+#   "breadth"   — the original: "how many diagnoses could cause this finding?"
+#
+# Default changed to "posterior" because "breadth" is measurably degenerate on
+# depth >= 1 nodes, which are diagnoses rather than findings: 64.3% of 3,782
+# generated hypotheses in the 2026-08-30 run scored an identical 0.10, so the
+# frontier ordering, the synthesis ranking and the saturation window were all
+# reading a near-constant. Depth-0 axioms ARE findings and keep using breadth.
+#
+# NOTE: "posterior" is a fix for a measured degeneracy, not a measured accuracy
+# gain. Set to "breadth" to reproduce runs before 2026-08-31.
+ENTROPY_SIGNAL = "posterior"
+
 # BeliefGraph construction defaults. These were previously hard-coded in the
 # BeliefGraph constructor and unreachable from config.
 GRAPH_MAX_NODES = 200

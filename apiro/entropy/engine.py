@@ -31,6 +31,7 @@ ARCHITECTURE:
 """
 
 import logging
+import math
 import time
 from typing import Optional
 
@@ -55,6 +56,58 @@ _COUNT_TO_ENTROPY: dict[int, float] = {
     5: 0.65,   # five → very high uncertainty
 }
 _DEFAULT_HIGH = 0.693   # ln(2) — max binary uncertainty, used for >= 6 diagnoses
+
+# ---------------------------------------------------------------------------
+# Posterior uncertainty — the signal for depth >= 1 nodes
+# ---------------------------------------------------------------------------
+#
+# WHY A SECOND SIGNAL EXISTS
+#
+# differential_breadth_entropy asks "how many distinct primary diagnoses could
+# plausibly cause this finding?". That is the right question for a depth-0
+# axiom, which IS a finding ("Potassium 5.6 mmol/L"). It is the wrong question
+# for a depth >= 1 node, because by then the claim is already a full diagnostic
+# hypothesis:
+#
+#     "Pulmonary embolism with associated pleuritic chest pain and cough..."
+#
+# The honest answer to "how many diagnoses explain that?" is one. So the signal
+# collapses. Measured over 3,782 generated hypotheses in the 2026-08-30 run:
+#
+#     H = 0.10  ("one diagnosis")   64.3%
+#     H >= 0.65 ("many")            29.6%
+#     everything else                6.1%
+#
+# Two-thirds of nodes carry an identical score. The frontier is ordered by that
+# score, synthesis ranks by it, and saturation is measured on it — so the
+# entropy-guided traversal was, for most nodes, not guided by entropy. It was
+# measuring *whether a claim is phrased as a diagnosis*, not how uncertain the
+# engine is.
+#
+# For a hypothesis the quantity that actually varies is posterior uncertainty:
+# given THIS patient, how confident are we that THIS is the primary diagnosis?
+# That is a verbalized-confidence elicitation, and it varies continuously.
+#
+# NOT YET VALIDATED. This is a fix for a measured degeneracy, not a measured
+# accuracy improvement. config.ENTROPY_SIGNAL switches back to "breadth".
+
+HYPOTHESIS_CONFIDENCE_PROMPT = """\
+You are a clinical diagnostician. Given a patient and a candidate diagnosis, \
+state how confident you are that this is the patient's PRIMARY diagnosis.
+
+=== PATIENT ===
+{case_context}
+
+=== CANDIDATE DIAGNOSIS ===
+{claim}
+
+Instructions:
+- Answer with ONLY an integer from 0 to 100.
+- 100 means certain this is the primary diagnosis; 0 means certainly not.
+- Consider how well it explains ALL the findings, not just some of them.
+- Judge this specific patient, not how common the disease is in general.
+
+Confidence (0-100):"""
 
 
 DIFFERENTIAL_BREADTH_PROMPT = """\
@@ -111,6 +164,124 @@ class EntropyEngine:
     ) -> Optional[float]:
         """Legacy entry point — delegates to differential_breadth_entropy()."""
         return self.differential_breadth_entropy(claim)
+
+    def hypothesis_uncertainty(
+        self,
+        claim: str,
+        case_context: str = "",
+    ) -> Optional[float]:
+        """Posterior uncertainty that `claim` is the primary diagnosis.
+
+        Elicits a 0-100 confidence and maps it onto the same [0.05, 0.693]
+        range the breadth signal uses, so every consumer (frontier ordering,
+        synthesis ranking, saturation) keeps working unchanged.
+
+        The map is the binary Shannon entropy of the stated confidence,
+        rescaled: H(p) = -p·log2(p) - (1-p)·log2(1-p), which is 0 at p = 0 or
+        1 and maximal at p = 0.5. A hypothesis the model is confident about
+        (p -> 1) and one it has ruled out (p -> 0) are both *low* uncertainty;
+        a coin-flip is high. That is the correct shape for an
+        uncertainty-chasing frontier, and unlike the breadth signal it is
+        continuous — its value moves with the model's actual belief instead of
+        collapsing onto "one diagnosis".
+
+        Args:
+            claim: The candidate diagnosis.
+            case_context: The patient. Without it the question degenerates back
+                into a general-knowledge one, so callers should always pass it.
+
+        Returns:
+            Entropy in [0.05, 0.693], or None on total failure.
+        """
+        if not claim or claim.startswith("["):
+            return _DEFAULT_HIGH
+
+        key = f"hyp::{case_context[:200]}::{claim.strip().lower()}"
+        if key in self._cache:
+            return self._cache[key]
+
+        result = self.score_hypothesis(claim, case_context)
+        if result is None:
+            return _DEFAULT_HIGH
+        score, _confidence = result
+        self._cache[key] = score
+        return score
+
+    def score_hypothesis(
+        self,
+        claim: str,
+        case_context: str = "",
+    ) -> Optional[tuple[float, float]]:
+        """Return ``(entropy, confidence)`` for a candidate diagnosis.
+
+        Both halves are needed by different consumers, and deriving one from
+        the other is impossible: the entropy map is symmetric about p = 0.5, so
+        H = 0.234 means either 5% or 95% confidence.
+
+        That matters. The frontier wants *uncertainty* — chase the coin-flips.
+        Synthesis wants *belief* — lead with what the engine thinks is true. If
+        synthesis ranked by ascending entropy alone it would put a confidently
+        ruled-out hypothesis (p -> 0, H -> 0.05) at the top of the
+        differential, which is the opposite of the intent.
+
+        Returns:
+            ``(entropy in [0.05, 0.693], confidence in [0, 1])``, or None on
+            total failure.
+        """
+        raw = self._query_confidence(claim, case_context)
+        if raw is None:
+            return None
+        p = min(max(raw / 100.0, 1e-6), 1 - 1e-6)
+        binary_entropy = -(p * math.log2(p) + (1 - p) * math.log2(1 - p))  # [0, 1]
+        entropy = round(0.05 + binary_entropy * (_DEFAULT_HIGH - 0.05), 4)
+        logger.debug(
+            f"[EntropyEngine] '{claim[:50]}' → confidence={raw} → H={entropy:.3f}"
+        )
+        return entropy, round(p, 4)
+
+    def _query_confidence(self, claim: str, case_context: str) -> Optional[int]:
+        """Ask for a 0-100 confidence. Returns None on failure."""
+        prompt = HYPOTHESIS_CONFIDENCE_PROMPT.format(
+            case_context=(case_context or "(not provided)").strip()[:3000],
+            claim=claim.strip(),
+        )
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {"temperature": 0.0, "num_predict": 8},
+        }
+        for attempt in range(self.retries):
+            try:
+                resp = requests.post(
+                    f"{self.ollama_url}/api/generate", json=payload, timeout=self.timeout
+                )
+                resp.raise_for_status()
+                raw = resp.json().get("response", "").strip()
+                value = self._parse_confidence(raw)
+                if value is not None:
+                    return value
+                logger.debug(
+                    f"[EntropyEngine] Unparseable confidence {raw[:40]!r} "
+                    f"(attempt {attempt + 1}/{self.retries})."
+                )
+            except requests.exceptions.Timeout:
+                time.sleep(3 * (attempt + 1))
+            except Exception as e:
+                logger.warning(f"[EntropyEngine] Confidence query failed "
+                               f"(attempt {attempt + 1}): {e}")
+                time.sleep(2 * (attempt + 1))
+        return None
+
+    @staticmethod
+    def _parse_confidence(raw: str) -> Optional[int]:
+        """First integer in [0, 100] from the reply."""
+        import re
+        for match in re.finditer(r"\b(\d{1,3})\b", raw):
+            value = int(match.group(1))
+            if 0 <= value <= 100:
+                return value
+        return None
 
     def differential_breadth_entropy(self, claim: str) -> Optional[float]:
         """

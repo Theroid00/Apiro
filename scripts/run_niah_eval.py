@@ -1094,6 +1094,51 @@ def _significance_table(results):
     return stats
 
 
+def _signal_health_table(log_dir="data"):
+    """Is the engine's entropy score discriminating, or has it collapsed?
+
+    Read from the traversal logs the run just wrote. The frontier ordering, the
+    synthesis ranking and the saturation window all read this one number, so a
+    degenerate signal silently disables three mechanisms at once while every
+    stage still appears to run. It cost a full benchmark round to notice.
+    """
+    import glob
+    from apiro.eval.metrics import signal_health
+
+    values = []
+    for path in glob.glob(f"{log_dir}/traversal_log_*.jsonl"):
+        try:
+            for line in open(path):
+                event = json.loads(line)
+                if event.get("event") == "node_expanded" and event.get("entropy") is not None:
+                    values.append(event["entropy"])
+        except Exception:  # noqa: BLE001 - a malformed log must not fail the report
+            continue
+    if not values:
+        return None
+
+    h = signal_health(values)
+    print("\n" + "=" * 78)
+    print("  ENTROPY SIGNAL HEALTH")
+    print("=" * 78)
+    print(f"  generated hypotheses scored : {h['n']}")
+    print(f"  distinct values             : {h['n_distinct']}")
+    print(f"  most common value           : {h['modal_value']} "
+          f"({h['modal_share'] * 100:.1f}% of all nodes)")
+    print(f"  mean / stdev                : {h['mean']:.3f} / {h['stdev']:.3f}")
+    print(f"  normalized entropy          : {h['normalized_entropy']:.3f} "
+          f"(1.0 = fully spread, 0.0 = constant)")
+    if h["degenerate"]:
+        print()
+        print("  *** DEGENERATE ***  One value covers "
+              f"{h['modal_share'] * 100:.0f}% of nodes.")
+        print("  The frontier ordering, the synthesis ranking and the saturation")
+        print("  window all read this score. Treat any traversal result below as")
+        print("  measuring a system whose central mechanism was not active.")
+    print("=" * 78)
+    return h
+
+
 def _traversal_diagnostics(results):
     stop_reasons: dict[str, int] = {}
     explored = []
@@ -1181,6 +1226,7 @@ def run_evaluation(cases_path: str = "data/niah_cases.json", real_components: bo
     # On-thesis endpoints first: they test what the architecture claims, and
     # distractor selection is also the most statistically efficient of the
     # three (see docs/BENCHMARKING.md).
+    signal = _signal_health_table()
     counterfactual = _counterfactual_table(results)
     abstention = _abstention_table(results)
     distractor = _distractor_selection_table(
@@ -1203,6 +1249,7 @@ def run_evaluation(cases_path: str = "data/niah_cases.json", real_components: bo
             "overall": overall,
             "per_family": per_family,
             "length_depth_matrix": matrix,
+            "signal_health": signal,
             "counterfactual_traps": counterfactual,
             "abstention": abstention,
             "distractor_selection": distractor,

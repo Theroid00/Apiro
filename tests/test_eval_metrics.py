@@ -30,6 +30,7 @@ from apiro.eval.metrics import (
     paired_bootstrap_delta_ci,
     reciprocal_rank,
     score_arm,
+    signal_health,
     top_k_accuracy,
     wilson_interval,
 )
@@ -352,6 +353,45 @@ class TestPairedBootstrapDeltaCI:
     def test_mismatched_lengths_are_rejected(self):
         with pytest.raises(ValueError):
             paired_bootstrap_delta_ci([True, False], [True])
+
+
+# --------------------------------------------------------------------------- #
+# Signal health
+# --------------------------------------------------------------------------- #
+class TestSignalHealth:
+    def test_a_constant_signal_is_degenerate(self):
+        h = signal_health([0.1] * 100)
+        assert h["degenerate"] is True
+        assert h["n_distinct"] == 1
+        assert h["modal_share"] == pytest.approx(1.0)
+        assert h["normalized_entropy"] == pytest.approx(0.0)
+
+    def test_a_spread_signal_is_not(self):
+        h = signal_health([i / 100 for i in range(100)])
+        assert h["degenerate"] is False
+        assert h["normalized_entropy"] == pytest.approx(1.0, abs=1e-9)
+
+    def test_reproduces_the_measured_collapse(self):
+        # The real shape from the 2026-08-30 run: 64% at one value.
+        values = [0.10] * 643 + [0.65] * 178 + [0.693] * 118 + [0.25] * 32 + [0.05] * 29
+        h = signal_health(values)
+        assert h["modal_value"] == pytest.approx(0.10)
+        assert h["modal_share"] == pytest.approx(0.643, abs=0.01)
+        assert h["degenerate"] is True
+
+    def test_threshold_is_configurable(self):
+        values = [0.1] * 45 + [0.2] * 55
+        assert signal_health(values, top_share_warn=0.50)["degenerate"] is True
+        assert signal_health(values, top_share_warn=0.60)["degenerate"] is False
+
+    def test_empty_and_none_are_safe(self):
+        assert signal_health([])["n"] == 0
+        assert signal_health([None, None])["n"] == 0
+        assert signal_health([0.1, None, 0.2])["n"] == 2
+
+    def test_distribution_is_json_safe(self):
+        import json
+        json.dumps(signal_health([0.1, 0.2, 0.2]))
 
 
 # --------------------------------------------------------------------------- #
