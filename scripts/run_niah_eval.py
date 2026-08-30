@@ -1150,6 +1150,19 @@ def run_evaluation(cases_path: str = "data/niah_cases.json", real_components: bo
     else:
         components = _build_stub_components()
 
+    # Offer abstention to the Apiro arm only when the case set actually
+    # contains cases with no answer. On an all-answerable set the option costs
+    # accuracy and buys nothing measurable — it produced a 50% over-abstention
+    # rate on the 2026-08-30 run.
+    has_unanswerable = any((c.get("metadata") or {}).get("unanswerable") for c in cases)
+    expander = getattr(components["traversal"], "expander", None)
+    if expander is not None and hasattr(expander, "allow_abstention"):
+        expander.allow_abstention = has_unanswerable
+    logger.info(
+        f"Abstention {'ENABLED' if has_unanswerable else 'disabled'} "
+        f"({'unanswerable cases present' if has_unanswerable else 'every case is answerable'})."
+    )
+
     axiom_extractor = AxiomExtractor()
     results = []
 

@@ -216,6 +216,12 @@ def _is_noise(text: str) -> bool:
     if len(text) < MIN_LENGTH:
         return True
     lowered = text.lower()
+    # A refusal is not a diagnosis. Callers detect abstention on the RAW reply
+    # via detect_abstention(); letting the sentinel through here would put
+    # "INSUFFICIENT EVIDENCE" into a ranked differential as though it were a
+    # candidate, and score it against the ground truth.
+    if _ABSTENTION_RE.search(lowered) or lowered == ABSTENTION_SENTINEL.lower():
+        return True
     if _HEADER_ONLY_RE.match(lowered):
         return True
     if any(phrase in lowered for phrase in _META_PHRASES):

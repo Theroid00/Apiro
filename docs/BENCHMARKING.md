@@ -408,86 +408,179 @@ the one to lead with if it holds up.
 
 ---
 
-## Empirical Benchmark Results (Complete Measured Execution)
+## Empirical Benchmark Results (run of 2026-08-30)
 
-The following tables record the empirical measurements across all four evaluation suites executed against live local Ollama (`llama3.1:8b`) and the built `apiro_corpus` vector knowledge base, with standardized `N_DIFFERENTIAL = 3` parsed candidate budgets across all arms.
+All three suites were run at **N = 10** against live Ollama (`llama3.1:8b`) and
+the built `apiro_corpus`. N = 10 is far below every power threshold in this
+document — 35% power at N = 25, and less here. **Nothing below is statistically
+established**, and one result is significant in the direction the project did
+not want.
 
-### 1. CUPCase Distractor-Resilience Benchmark ($N = 10$ Real Cases)
+### Headline
 
-Evaluated on real clinical cases paired with 3 expert-curated distractor diagnoses (`data/cupcase_eval_results.json`):
+| Suite | N | Apiro | Standard RAG | Bare LLM | Apiro vs Bare |
+|---|:-:|:-:|:-:|:-:|---|
+| C-NIAH (top-3) | 10 | 10% | 10% | **20%** | — |
+| CUPCase (top-1) | 10 | 10% | 30% | **50%** | −40 pp, p = 0.219 |
+| CUPCase (top-5) | 10 | 40% | 30% | **60%** | — |
+| DDXPlus (top-3) | 10 | 20% | 80% | **90%** | **−70 pp, p = 0.0156** |
+| DDXPlus (MRR) | 10 | 0.083 | 0.558 | **0.733** | — |
 
-| Arm | Top-1 Accuracy | Top-3 Accuracy | Top-5 Accuracy | MRR | Top-3 95% CI (Wilson) |
-|---|:---:|:---:|:---:|:---:|:---:|
-| **Apiro (Fixed)** | 10.0% | 20.0% | **40.0%** | 0.195 | [5.7%, 51.0%] |
-| **Standard RAG** | 30.0% | 30.0% | 30.0% | 0.300 | [10.8%, 60.3%] |
-| **Bare LLM** | 50.0% | 60.0% | 60.0% | 0.550 | [31.3%, 83.2%] |
+**Apiro is last on every suite.** On DDXPlus the gap against a bare LLM is
+statistically significant (exact McNemar, 0 wins / 7 losses of 7 discordant
+cases) — the only significant result this project has produced, and it is
+against the engine.
 
-#### Primary Mechanism Endpoint: Distractor Selection Rate (↓ Lower is better)
-*Measures whether the model's top-ranked differential is one of the curated wrong answers:*
-- **Apiro (Fixed)**: **10.0% (1 / 10)** 🏆
-- **Standard RAG**: **20.0% (2 / 10)**
-- **Bare LLM Zero-Shot**: **40.0% (4 / 10)**
+### The primary endpoints were never exercised
 
-*Takeaway*: Apiro demonstrates a **4× reduction in distractor selection rate** relative to the ungrounded Bare LLM (10% vs 40%) and **2× reduction** relative to Standard RAG (10% vs 20%), confirming that NLI contradiction soft-pruning actively eliminates deceptive clinical distractors.
+`data/niah_cases.json` was generated **without `--counterfactual`**
+(`"counterfactual": false` in its config block), so the case set is the classic
+five families. Consequently:
 
----
+```
+counterfactual_traps : null      <- bias trap rate, the primary endpoint
+abstention           : null      <- fabrication rate on unanswerable cases
+resilience           : null      <- matched-pair retention
+```
 
-### 2. Pillar 3: Safety, Calibration & Selective Abstention
+The three endpoints built to test this architecture's actual claims produced no
+data. Regenerate with `--counterfactual` before drawing any conclusion about
+the mechanism:
 
-Evaluated via `scripts/run_safety_calibration_eval.py` on the benchmark results (`data/calibration_eval_results.json`):
+```bash
+./run_eval.sh generate niah      # generate now defaults to --counterfactual
+```
 
-| Metric | Apiro (Fixed) | Standard RAG | Bare LLM | Optimal Direction |
-|---|:---:|:---:|:---:|:---:|
-| **Forced Accuracy** | 0.1000 | 0.1000 | 0.2000 | Higher (↑) |
-| **Expected Calibration Error (ECE)** | **0.4251** 🏆 | 0.7612 | 0.6656 | **Lower (↓)** |
-| **Brier Score** | **0.2697** 🏆 | 0.5914 | 0.4881 | **Lower (↓)** |
-| **Risk–Coverage AURC** | **0.8454** 🏆 | 0.9450 | 0.9053 | **Lower (↓)** |
-| **Abstention Rate ($\tau = 0.65$)** | 1.0000 | 0.1000 | 0.3000 | Operational point |
+### Two defects found in the results, one of them mine
 
-*Takeaway*: Apiro produces substantially lower calibration error (ECE 0.4251 vs RAG 0.7612) and lower mean squared error (Brier Score 0.2697 vs RAG 0.5914), reflecting that its confidence scores track true diagnostic veracity much more faithfully than standard retrieval or generation pipelines.
+**1. The CUPCase distractor-selection numbers were an artifact.** The run
+reported apiro 10% / rag 20% / bare_llm 40%, which reads as a 4× advantage.
+Rescored with the fix in `distractor_selection_rate`, **every arm is at 0%** —
+no arm ever chose a distractor over the answer.
 
----
+The cause: CUPCase's curated distractors are ICD-level near-misses of the
+ground truth, not clinically wrong alternatives.
 
-### 3. Clinical Needle-in-a-Haystack (C-NIAH) Adversarial Suite ($N = 10$)
+```
+truth      : "Primary aldosteronism and secondary Cushing's syndrome."
+distractors: "Primary hyperaldosteronism", "Cushing's syndrome"
+```
 
-Evaluated on long-context adversarial haystacks (2,000 to 32,000 tokens) with embedded distractor needles (`data/niah_eval_results_10cases.json`):
+A correct answer matches a distractor, so the metric flagged it as a trap
+capture. It was measuring accuracy, inverted — which is why the arm with the
+worst accuracy looked best. Fixed; a correct answer can no longer count as a
+capture, and a case whose distractors all match the truth leaves the
+denominator.
 
-| Evaluation Metric / Breakdown | Apiro | Standard RAG | Bare LLM |
-|---|:---:|:---:|:---:|
-| **Overall Top-3 Accuracy** | 10.0% (1/10) | 10.0% (1/10) | 20.0% (2/10) |
-| **Single Needle Family ($N=3$)** | 33.3% | 33.3% | 66.7% |
-| **Contradiction Needle Family ($N=2$)** | 0.0% | 0.0% | 0.0% |
-| **Multi Needle Family ($N=2$)** | 0.0% | 0.0% | 0.0% |
-| **Distractor Selection Rate** | **0.0% (0/2)** | 0.0% (0/2) | 0.0% (0/2) |
-| **Mean Expansions per Case** | 7.0 (min=0, max=12) | - | - |
+This also retires an earlier recommendation in this document: **CUPCase is not
+the external distractor benchmark it was chosen to be.** Naming one of its
+distractors is a *granularity* error, not a trap capture.
 
----
+**2. Apiro abstains on 50% of answerable cases.** On C-NIAH it replied
+`INSUFFICIENT EVIDENCE` on 5 of 10 cases, all of which had a findable needle.
+Neither baseline abstained once.
 
-### 4. DDXPlus Differential-Diagnosis Benchmark ($N = 10$)
+That is a regression introduced by rule 7 of the synthesis prompt (the
+abstention option). Together with rule 6 — "weigh the confirmed objective
+findings above the typical presentation" — both were written for counterfactual
+traps, where the prior *is* wrong. On ordinary cases, where the prior is
+usually right, they are actively harmful. **The engine was tuned for a
+benchmark that was then not run.**
 
-Evaluated on synthetic cases with ranked ground-truth differentials (`data/ddxplus_eval_results.json`):
+### The root cause: the entropy signal is degenerate
 
-| Arm | Top-1 | Top-3 | Top-5 | MRR | recall@5 | precision@5 |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Apiro (Fixed)** | 0.0% | 20.0% | 20.0% | 0.083 | 14.0% | 18.0% |
-| **Standard RAG** | 30.0% | 80.0% | 90.0% | 0.558 | 41.0% | 40.0% |
-| **Bare LLM** | 60.0% | 90.0% | 90.0% | 0.733 | 33.0% | 34.0% |
+Measured over **3,782 generated hypotheses** across all 68 traversal logs:
 
-*Takeaway*: DDXPlus clean synthetic vignettes contain no adversarial distractors or contradictory EHR notes, favoring greedy generation over investigative graph expansion. Apiro's advantage is specific to distractor-heavy and contradiction-rich environments.
+| Entropy | Count | Share |
+|---|--:|--:|
+| 0.10 (“1 diagnosis”) | 2,431 | **64.3%** |
+| 0.65 / 0.693 (“many”) | 1,122 | 29.6% |
+| 0.25 / 0.40 / 0.55 | 176 | 4.7% |
+| 0.05 | 53 | 1.4% |
 
----
+The score that is supposed to be a graded uncertainty measure is in practice a
+**binary flag**: "one diagnosis" (64%) or "many" (30%), with almost nothing in
+between. `synthesize_differential` ranks exploration claims by ascending
+entropy, so roughly two-thirds of them tie at 0.10 and the "most specific
+first" ordering is decided by insertion order. The entropy-guided frontier is,
+for most nodes, not guided by entropy.
 
-### 5. Real-World PMC Case Reports ($N = 10$)
+Why: `differential_breadth_entropy` asks the model *"how many distinct primary
+diagnoses could plausibly cause this finding?"* — but by depth ≥ 1 the "finding"
+handed to it is already a full diagnostic hypothesis:
 
-Evaluated on real-world PubMed Central clinical case reports (`data/latest_pmc_benchmark_output.txt`):
+```
+H=0.10  "Pulmonary embolism with associated pleuritic chest pain and cough
+         due to chronic obstructive..."
+H=0.10  "Pneumonia with thoracic spine involvement, likely caused by a fungal
+         infection such as Histoplasma..."
+```
 
-| System | Accuracy | Distinct Win Highlights |
-|---|:---:|---|
-| **Apiro (Fixed)** | **20.0% (2/10)** | **Sole win on Case 9**: Correctly navigated Diaphragmatic Hernia while Bare LLM and RAG fell for the Appendicitis distractor. |
-| **Standard RAG** | 40.0% (4/10) | Solved Cases 2, 5, 7, 10. |
-| **Bare LLM Zero-Shot** | 10.0% (1/10) | Hallucinated on 9 out of 10 cases. |
+The honest answer to "how many diagnoses explain *Pulmonary embolism with...*"
+is one. The signal is measuring **whether a claim is phrased as a diagnosis**,
+not how uncertain the engine is.
 
----
+### What that produces
+
+Compound, over-specific hypotheses score lowest, so they rank first into
+synthesis, so the final differential is exotic:
+
+| Ground truth | Bare LLM top-1 | Apiro top-1 |
+|---|---|---|
+| Acute otitis media | Middle Ear Infection ✓ | Tuberculous meningitis |
+| Scombroid food poisoning | Erythema Multiforme | Eosinophilic Granulomatosis with Polyangiitis |
+| Pulmonary embolism | Pulmonary Metastatic Disease | Hypereosinophilic syndrome |
+| Bronchitis | Acute Bronchitis ✓ | Mycoplasma pneumoniae infection |
+
+DDXPlus differential overlap makes the same point numerically: Apiro recovers
+**14%** of the reference differential (recall@5) with **0%** top-1 agreement,
+against 41% / 40% for RAG and 33% / 40% for the bare LLM.
+
+This is the rare-disease bias recorded in `Log.md` as the "10% Accuracy
+Disaster" of Apiro 2.0, reappearing through a different mechanism. Three parts
+of the current design push the same way: the entropy signal rewards
+specificity, synthesis ranks by ascending entropy, and synthesis rule 4
+explicitly instructs "prefer 'Pheochromocytoma' over 'Hypertensive crisis'".
+
+### Calibration
+
+| Metric | Apiro | RAG | Bare LLM | Better |
+|---|--:|--:|--:|:-:|
+| Accuracy | 10% | 10% | 20% | ↑ |
+| ECE | 0.425 | 0.761 | 0.666 | ↓ |
+| Brier | 0.270 | 0.591 | 0.488 | ↓ |
+| AURC | 0.845 | 0.945 | 0.905 | ↓ |
+| Coverage at τ = 0.65 | 0.00 | 0.90 | 0.70 | — |
+
+**These numbers do not support a calibration claim.** Every arm's confidence
+comes from a different hand-written heuristic — Apiro's from traversal signals,
+the baselines' from output length and hedging words — and the script stamps the
+output "heuristic placeholders, replace before publishing". Comparing the ECE
+of two different functions says nothing about either. Apiro's lower ECE at 10%
+accuracy mostly reflects that its confidence is low and so is its accuracy.
+
+Apiro's AURC has also risen from 0.119 in the earlier run to 0.845, close to
+the other two. The earlier selective-prediction advantage did not survive.
+Coverage at the documented τ = 0.65 is again 0.00: the operating point answers
+nothing.
+
+### What this run is good evidence for
+
+- The harness works end to end: all four stages ran, parity held
+  (`n_candidates` equal across arms on CUPCase, 46/50/50 on DDXPlus).
+- The parsing fix held: no markdown scaffolding in any arm's output.
+- The evaluator scoring fix held.
+- **The entropy signal, which the architecture is named for, does not
+  discriminate.** That is a real finding, measured over 3,782 observations, and
+  it does not depend on N = 10.
+
+### What it is not evidence for
+
+Anything about relative accuracy. N = 10 on three suites, with an engine
+carrying a 50% over-abstention regression and a prompt tuned for a case set
+that was not generated. Fix those, generate the counterfactual set, and re-run
+before comparing arms again.
+
 
 ## Interpreting the result honestly
 

@@ -310,6 +310,16 @@ class TestDetectAbstention:
         assert parse_differential(raw, limit=3) == []
         assert detect_abstention(raw) is True
 
+    def test_the_sentinel_is_not_a_diagnosis_candidate(self):
+        # A refusal must not enter a ranked differential as a candidate and be
+        # scored against the ground truth. Callers detect it on the raw reply.
+        assert parse_differential("DX: INSUFFICIENT EVIDENCE", limit=3) == []
+        assert parse_differential("DX: Sepsis\nDX: INSUFFICIENT EVIDENCE", limit=3) == ["Sepsis"]
+        assert detect_abstention("DX: INSUFFICIENT EVIDENCE") is True
+
+    def test_a_diagnosis_containing_insufficiency_still_parses(self):
+        assert parse_differential("DX: Adrenal insufficiency", limit=3) == ["Adrenal insufficiency"]
+
     def test_unparseable_garbage_is_not_an_abstention(self):
         raw = "**Diagnosis 1:**\n**Diagnosis 2:**"
         assert parse_differential(raw, limit=3) == []

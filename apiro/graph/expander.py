@@ -291,6 +291,7 @@ class NodeExpander:
         inline_contradiction_check: bool = False,
         n_children: int = N_CHILD_HYPOTHESES,
         n_diagnoses: int = N_DIFFERENTIAL,
+        allow_abstention: bool = False,
     ):
         self.entropy_engine = entropy_engine
         self.chroma_client = chroma_client
@@ -309,6 +310,16 @@ class NodeExpander:
         # Size of the final differential. A harness that lets its baselines
         # offer five candidates must let this arm offer five too.
         self.n_diagnoses = n_diagnoses
+        # Whether synthesis may decline to answer. OFF by default.
+        #
+        # Offering it unconditionally was a regression: on the 2026-08-30
+        # C-NIAH run the engine replied INSUFFICIENT EVIDENCE on 5 of 10
+        # cases that all had a findable needle, while neither baseline
+        # abstained once. An abstention option belongs on a benchmark that
+        # contains unanswerable cases (build_niah_cases.py --counterfactual)
+        # and nowhere else — on an answerable case it converts a possible hit
+        # into a guaranteed miss.
+        self.allow_abstention = allow_abstention
 
     @staticmethod
     def _generate_node_id(parent_id: str, index: int) -> str:
@@ -834,11 +845,14 @@ class NodeExpander:
             "6. Weigh the CONFIRMED OBJECTIVE FINDINGS above the typical"
             " presentation. When a finding rules out the diagnosis the presentation"
             " suggests, follow the finding.\n"
-            f"7. If the evidence above does not support any specific diagnosis,"
-            f" reply with exactly '{DIFFERENTIAL_SENTINEL} {ABSTENTION_SENTINEL}'"
-            f" and nothing else. Declining is correct when the note cannot"
-            f" support an answer; guessing is not.\n\n"
-            f"=== OUTPUT ({n_diagnoses} lines, each beginning"
+            + (
+                f"7. If the evidence above does not support any specific diagnosis,"
+                f" reply with exactly '{DIFFERENTIAL_SENTINEL} {ABSTENTION_SENTINEL}'"
+                f" and nothing else. Declining is correct when the note cannot"
+                f" support an answer; guessing is not.\n"
+                if self.allow_abstention else ""
+            )
+            + f"\n=== OUTPUT ({n_diagnoses} lines, each beginning"
             f" '{DIFFERENTIAL_SENTINEL} ') ==="
         )
 
@@ -855,8 +869,10 @@ class NodeExpander:
         # it matters and nothing on the cases where it does not.
         # An explicit refusal is a complete answer, not a short one. Retrying
         # it would badger the model out of the behaviour rule 7 asks for, and
-        # would turn a correct abstention into a fabricated diagnosis.
-        if detect_abstention(raw_output):
+        # would turn a correct abstention into a fabricated diagnosis. Only
+        # honoured when abstention was offered: otherwise an unprompted hedge
+        # ("I cannot determine...") would silently discard the differential.
+        if self.allow_abstention and detect_abstention(raw_output):
             logger.info("[NodeExpander] Synthesis declined: evidence insufficient.")
             return [ABSTENTION_SENTINEL]
 
@@ -873,7 +889,7 @@ class NodeExpander:
                 f" no introduction, no bold, no numbering, no explanation."
             )
             retry_output = self._call_llm(retry_prompt)
-            if detect_abstention(retry_output):
+            if self.allow_abstention and detect_abstention(retry_output):
                 logger.info("[NodeExpander] Synthesis declined on retry.")
                 return [ABSTENTION_SENTINEL]
             retry_diagnoses = parse_differential(retry_output, limit=n_diagnoses)

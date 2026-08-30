@@ -172,6 +172,70 @@ class TestSynthesisContext:
 
 # ── Parser must not fabricate placeholder hypotheses ──────────────────────────
 
+class TestAbstentionIsOptIn:
+    """Abstention must be offered deliberately, never by default.
+
+    On the 2026-08-30 C-NIAH run the engine replied INSUFFICIENT EVIDENCE on 5
+    of 10 cases that all had a findable needle, while neither baseline
+    abstained once. On an answerable case the option converts a possible hit
+    into a guaranteed miss, so it belongs only on a case set that contains
+    unanswerable cases.
+    """
+
+    def test_the_option_is_absent_from_the_prompt_by_default(self):
+        llm = _RecordingLLM()
+        _expander(llm).synthesize_differential(_graph_for_synthesis())
+        assert "INSUFFICIENT EVIDENCE" not in llm.prompts[0]
+
+    def test_the_option_appears_when_opted_in(self):
+        from apiro.graph.expander import NodeExpander, StubEntropyEngine, StubChromaClient
+        llm = _RecordingLLM()
+        NodeExpander(entropy_engine=StubEntropyEngine(), chroma_client=StubChromaClient(),
+                     llm_client=llm, allow_abstention=True
+                     ).synthesize_differential(_graph_for_synthesis())
+        assert "INSUFFICIENT EVIDENCE" in llm.prompts[0]
+
+    def test_an_unprompted_refusal_is_retried_not_honoured(self):
+        from apiro.graph.expander import NodeExpander, StubEntropyEngine, StubChromaClient
+
+        class _RefuseThenAnswer:
+            def __init__(self):
+                self.n = 0
+            def chat(self, prompt):
+                self.n += 1
+                if self.n == 1:
+                    return "DX: INSUFFICIENT EVIDENCE"
+                return "DX: Acute pancreatitis\nDX: Cholangitis\nDX: Peptic ulcer"
+            def generate(self, prompt):
+                return self.chat(prompt)
+
+        llm = _RefuseThenAnswer()
+        out = NodeExpander(entropy_engine=StubEntropyEngine(), chroma_client=StubChromaClient(),
+                           llm_client=llm).synthesize_differential(_graph_for_synthesis())
+        assert out == ["Acute pancreatitis", "Cholangitis", "Peptic ulcer"]
+        assert llm.n == 2                      # refused, then re-prompted
+
+    def test_an_opted_in_refusal_is_honoured_without_badgering(self):
+        from apiro.graph.expander import NodeExpander, StubEntropyEngine, StubChromaClient
+        from apiro.parsing import ABSTENTION_SENTINEL
+
+        class _AlwaysRefuse:
+            def __init__(self):
+                self.n = 0
+            def chat(self, prompt):
+                self.n += 1
+                return "DX: INSUFFICIENT EVIDENCE"
+            def generate(self, prompt):
+                return self.chat(prompt)
+
+        llm = _AlwaysRefuse()
+        out = NodeExpander(entropy_engine=StubEntropyEngine(), chroma_client=StubChromaClient(),
+                           llm_client=llm, allow_abstention=True
+                           ).synthesize_differential(_graph_for_synthesis())
+        assert out == [ABSTENTION_SENTINEL]
+        assert llm.n == 1                      # a refusal is a complete answer
+
+
 class TestHypothesisParsing:
     def test_no_placeholder_padding_by_default(self):
         llm = _RecordingLLM()
