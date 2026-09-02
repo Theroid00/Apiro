@@ -1,0 +1,419 @@
+{
+  "benchmark": "cupcase",
+  "dataset": "ofir408/CupCase",
+  "n_requested": 5,
+  "n_completed": 5,
+  "sample_seed": 42,
+  "n_differential": 5,
+  "corpus_documents": 100000,
+  "scores": {
+    "apiro": {
+      "arm": "apiro",
+      "n_cases": 5,
+      "ranks": [
+        null,
+        1,
+        null,
+        3,
+        1
+      ],
+      "top_k": {
+        "1": 0.4,
+        "3": 0.6,
+        "5": 0.6
+      },
+      "mrr": 0.4666666666666666,
+      "top1_ci": [
+        0.11762077412107164,
+        0.7692757189147998
+      ],
+      "top3_ci": [
+        0.2307242810852,
+        0.8823792258789283
+      ],
+      "distractor_rate": 0.0,
+      "n_distractor_cases": 5
+    },
+    "rag": {
+      "arm": "rag",
+      "n_cases": 5,
+      "ranks": [
+        2,
+        null,
+        null,
+        null,
+        1
+      ],
+      "top_k": {
+        "1": 0.2,
+        "3": 0.4,
+        "5": 0.4
+      },
+      "mrr": 0.3,
+      "top1_ci": [
+        0.03622410859085168,
+        0.6244653705167631
+      ],
+      "top3_ci": [
+        0.11762077412107164,
+        0.7692757189147998
+      ],
+      "distractor_rate": 0.0,
+      "n_distractor_cases": 5
+    },
+    "bare_llm": {
+      "arm": "bare_llm",
+      "n_cases": 5,
+      "ranks": [
+        1,
+        1,
+        null,
+        2,
+        1
+      ],
+      "top_k": {
+        "1": 0.6,
+        "3": 0.8,
+        "5": 0.8
+      },
+      "mrr": 0.7,
+      "top1_ci": [
+        0.2307242810852,
+        0.8823792258789283
+      ],
+      "top3_ci": [
+        0.3755346294832369,
+        0.9637758914091483
+      ],
+      "distractor_rate": 0.0,
+      "n_distractor_cases": 5
+    }
+  },
+  "comparisons": {
+    "apiro": {
+      "vs": "bare_llm",
+      "k": 3,
+      "delta_ci": {
+        "delta": -0.20000000000000007,
+        "ci_low": -0.6000000000000001,
+        "ci_high": 0.0,
+        "n_cases": 5,
+        "excludes_zero": false
+      },
+      "mcnemar": {
+        "n_cases": 5,
+        "a_only": 0,
+        "b_only": 1,
+        "n_discordant": 1,
+        "p_value": 1.0,
+        "significant_at_05": false
+      }
+    },
+    "rag": {
+      "vs": "bare_llm",
+      "k": 3,
+      "delta_ci": {
+        "delta": -0.4,
+        "ci_low": -0.8,
+        "ci_high": 0.0,
+        "n_cases": 5,
+        "excludes_zero": false
+      },
+      "mcnemar": {
+        "n_cases": 5,
+        "a_only": 0,
+        "b_only": 2,
+        "n_discordant": 2,
+        "p_value": 0.5,
+        "significant_at_05": false
+      }
+    }
+  },
+  "case_results": [
+    {
+      "case_id": "cupcase_0000",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "Osteoporosis.",
+      "distractors": [
+        "Osteolysis",
+        "Osteophyte",
+        "Osteonecrosis"
+      ],
+      "n_axioms": 9,
+      "predictions": {
+        "bare_llm": [
+          "Osteoporosis",
+          "Herniated disc",
+          "Spinal stenosis",
+          "Spondylosis",
+          "Multiple myeloma"
+        ],
+        "rag": [
+          "Herniated disc",
+          "Osteoporosis",
+          "Spinal stenosis",
+          "Spondylolisthesis",
+          "Thoracic outlet syndrome"
+        ],
+        "apiro": [
+          "Vertebral osteomyelitis",
+          "Thoracic or lumbar spine fractures",
+          "Degenerative disc disease",
+          "Spondylolisthesis at the thoracolumbar junction",
+          "Herniated thoracic disc causing radiculopathy and referred pain"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Osteoporosis\nHerniated disc\nSpinal stenosis\nSpondylosis\nMultiple myeloma",
+        "rag": "Herniated disc\nOsteoporosis\nSpinal stenosis\nSpondylolisthesis\nThoracic outlet syndrome",
+        "apiro": [
+          "Vertebral osteomyelitis",
+          "Thoracic or lumbar spine fractures",
+          "Degenerative disc disease",
+          "Spondylolisthesis at the thoracolumbar junction",
+          "Herniated thoracic disc causing radiculopathy and referred pain"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 39,
+        "total_edges": 32,
+        "seed_nodes": 9,
+        "explored_nodes": 8,
+        "max_depth_reached": 4,
+        "rabbit_holes": 1,
+        "contradictions": 17,
+        "duration_seconds": 68.75
+      }
+    },
+    {
+      "case_id": "cupcase_0001",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "Intestinal obstruction due to Ascaris lumbricoides.",
+      "distractors": [
+        "Complete intestinal obstruction, unspecified as to cause",
+        "Unspecified intestinal obstruction",
+        "Other complete intestinal obstruction"
+      ],
+      "n_axioms": 9,
+      "predictions": {
+        "bare_llm": [
+          "Intestinal Obstruction",
+          "Typhoid Fever",
+          "Intussusception",
+          "Gastroenteritis",
+          "Intestinal Worm Infestation"
+        ],
+        "rag": [
+          "Intussusception",
+          "Pyloric stenosis",
+          "Appendicitis",
+          "Meckel diverticulum",
+          "Bacterial gastroenteritis"
+        ],
+        "apiro": [
+          "Ascariasis",
+          "Pyloric Stenosis",
+          "Intestinal Obstruction",
+          "Inflammatory Bowel Disease",
+          "Gastroenteritis"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Intestinal Obstruction\nTyphoid Fever\nIntussusception\nGastroenteritis\nIntestinal Worm Infestation",
+        "rag": "Intussusception\nPyloric stenosis\nAppendicitis\nMeckel diverticulum\nBacterial gastroenteritis",
+        "apiro": [
+          "Ascariasis",
+          "Pyloric Stenosis",
+          "Intestinal Obstruction",
+          "Inflammatory Bowel Disease",
+          "Gastroenteritis"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 57,
+        "total_edges": 52,
+        "seed_nodes": 9,
+        "explored_nodes": 14,
+        "max_depth_reached": 6,
+        "rabbit_holes": 1,
+        "contradictions": 29,
+        "duration_seconds": 108.39
+      }
+    },
+    {
+      "case_id": "cupcase_0002",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "multiple cardiac rhabdomyomas that occurred in the absence of TSC.",
+      "distractors": [
+        "Other injury of heart without hemopericardium, subsequent encounter",
+        "Laceration of heart without hemopericardium, subsequent encounter",
+        "Poisoning by cardiac-stimulant glycosides and drugs of similar action, undetermined, subsequent encounter"
+      ],
+      "n_axioms": 7,
+      "predictions": {
+        "bare_llm": [
+          "Twin-to-Twin Transfusion Syndrome",
+          "Selective Intrauterine Growth Restriction",
+          "Monochorionic Diamniotic Twin Pregnancy",
+          "Dichorionic-Diamniotic Twin Pregnancy (already diagnosed)",
+          "Vanishing Twin Syndrome"
+        ],
+        "rag": [
+          "Monochorionic Diamniotic Twin Pregnancy",
+          "Dizygotic Twin Pregnancy with Discordant Sexes",
+          "Vanishing Twin Syndrome",
+          "Complete Diploid Molar Pregnancy",
+          "Monoamniotic Monochorionic Twin Pregnancy"
+        ],
+        "apiro": [
+          "Dizygotic twin growth restriction",
+          "Twin-to-twin transfusion syndrome",
+          "Multifetal growth restriction",
+          "Chorionic fusion disorder",
+          "Heterokaryotypic dizygosity"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Twin-to-Twin Transfusion Syndrome\nSelective Intrauterine Growth Restriction\nMonochorionic Diamniotic Twin Pregnancy\nDichorionic-Diamniotic Twin Pregnancy (already diagnosed)\nVanishing Twin Syndrome",
+        "rag": "Monochorionic Diamniotic Twin Pregnancy\nDizygotic Twin Pregnancy with Discordant Sexes\nVanishing Twin Syndrome\nComplete Diploid Molar Pregnancy\nMonoamniotic Monochorionic Twin Pregnancy",
+        "apiro": [
+          "Dizygotic twin growth restriction",
+          "Twin-to-twin transfusion syndrome",
+          "Multifetal growth restriction",
+          "Chorionic fusion disorder",
+          "Heterokaryotypic dizygosity"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 32,
+        "total_edges": 28,
+        "seed_nodes": 7,
+        "explored_nodes": 8,
+        "max_depth_reached": 5,
+        "rabbit_holes": 3,
+        "contradictions": 17,
+        "duration_seconds": 71.56
+      }
+    },
+    {
+      "case_id": "cupcase_0003",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "Primary aldosteronism and secondary Cushing's syndrome.",
+      "distractors": [
+        "Primary hyperaldosteronism",
+        "Cushing's syndrome",
+        "Other Cushing's syndrome"
+      ],
+      "n_axioms": 10,
+      "predictions": {
+        "bare_llm": [
+          "Renal Cell Carcinoma",
+          "Adrenal Cortical Adenoma",
+          "Pheochromocytoma",
+          "Hypertensive Nephrosclerosis",
+          "Angiomyolipoma"
+        ],
+        "rag": [
+          "Renal Cell Carcinoma",
+          "Malignant Hypertension",
+          "Systemic Sclerosis",
+          "Thiazide-Induced Hypokalemia with Renal Failure",
+          "Glomerulonephritis"
+        ],
+        "apiro": [
+          "Pheochromocytoma",
+          "Renal Cell Carcinoma",
+          "Adrenal Cortical Adenoma",
+          "Metastatic Neuroendocrine Tumor",
+          "Bilateral Micronodular Hyperplasia"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Renal Cell Carcinoma\nAdrenal Cortical Adenoma\nPheochromocytoma\nHypertensive Nephrosclerosis\nAngiomyolipoma",
+        "rag": "Renal Cell Carcinoma\nMalignant Hypertension\nSystemic Sclerosis\nThiazide-Induced Hypokalemia with Renal Failure\nGlomerulonephritis",
+        "apiro": [
+          "Pheochromocytoma",
+          "Renal Cell Carcinoma",
+          "Adrenal Cortical Adenoma",
+          "Metastatic Neuroendocrine Tumor",
+          "Bilateral Micronodular Hyperplasia"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 45,
+        "total_edges": 41,
+        "seed_nodes": 10,
+        "explored_nodes": 14,
+        "max_depth_reached": 5,
+        "rabbit_holes": 4,
+        "contradictions": 27,
+        "duration_seconds": 121.44
+      }
+    },
+    {
+      "case_id": "cupcase_0004",
+      "source": "cupcase",
+      "specialty": "unknown",
+      "ground_truth": "Acute myocardial infarction.",
+      "distractors": [
+        "Acute myocardial infarction, unspecified",
+        "Acute myocarditis",
+        "Old myocardial infarction"
+      ],
+      "n_axioms": 6,
+      "predictions": {
+        "bare_llm": [
+          "Acute Coronary Syndrome",
+          "Myocardial Infarction",
+          "Pulmonary Embolism",
+          "Aortic Dissection",
+          "Pericarditis"
+        ],
+        "rag": [
+          "Acute Coronary Syndrome",
+          "Myocardial Infarction",
+          "Pulmonary Embolism",
+          "Aortic Dissection",
+          "Unstable Angina"
+        ],
+        "apiro": [
+          "Acute Myocardial Infarction",
+          "Unstable Angina Pectoris",
+          "Pulmonary Embolism",
+          "Atrial Fibrillation",
+          "Hypertensive Crisis"
+        ]
+      },
+      "raw_output": {
+        "bare_llm": "Acute Coronary Syndrome\nMyocardial Infarction\nPulmonary Embolism\nAortic Dissection\nPericarditis",
+        "rag": "Acute Coronary Syndrome\nMyocardial Infarction\nPulmonary Embolism\nAortic Dissection\nUnstable Angina",
+        "apiro": [
+          "Acute Myocardial Infarction",
+          "Unstable Angina Pectoris",
+          "Pulmonary Embolism",
+          "Atrial Fibrillation",
+          "Hypertensive Crisis"
+        ]
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 29,
+        "total_edges": 23,
+        "seed_nodes": 6,
+        "explored_nodes": 8,
+        "max_depth_reached": 6,
+        "rabbit_holes": 4,
+        "contradictions": 15,
+        "duration_seconds": 106.47
+      }
+    }
+  ]
+}
