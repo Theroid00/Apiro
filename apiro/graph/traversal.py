@@ -24,6 +24,7 @@ from apiro.config import (
     CONTRADICTION_PENALTY,
     SATURATION_MIN_EXPLORATION,
     MAX_EXPLORATION_EXPANSIONS,
+    LOG_DIR,
 )
 from apiro.graph.belief_graph import BudgetExceededError
 from apiro.graph.critic import CriticEngine
@@ -68,13 +69,13 @@ class ApiroTraversal:
         saturation,
         rabbit_hole,
         contradiction,
-        log_dir: str = "data",
+        log_dir: str | None = None,
     ):
         self.expander    = expander
         self.saturation  = saturation
         self.rabbit_hole = rabbit_hole
         self.contradiction = contradiction
-        self.log_dir     = log_dir
+        self.log_dir     = str(log_dir) if log_dir else str(LOG_DIR)
         self._traversal_log: list[dict] = []
         self.critic = CriticEngine(llm_client=expander.llm_client)
 
