@@ -49,6 +49,8 @@ DATASETS_DIR = PROJECT_ROOT / "data" / "datasets"
 
 CUPCASE_REPO = "ofir408/CupCase"
 DDXPLUS_REPO = "aai530-group6/ddxplus"
+MEDEINST_REPO = "zhui711/MedEinst"
+MEDDISTRACT_REPO = "KrithikV/MedDistractQA"
 
 #: Files the DDXPlus adapter needs. The two JSONs are the dictionaries that
 #: turn opaque evidence codes ("E_53", "E_54_@_V_179") into English text —
@@ -224,6 +226,26 @@ def fetch_cupcase(force: bool, verify_only: bool) -> bool:
     return True
 
 
+def fetch_hf_rows(repo: str, split: str, expected: set[str], force: bool) -> bool:
+    """Warm and schema-check a row-oriented Hugging Face dataset."""
+    _require("datasets")
+    from datasets import load_dataset
+    print(f"\n--- {repo} ---")
+    try:
+        ds = load_dataset(repo, split=split, download_mode=(
+            "force_redownload" if force else "reuse_dataset_if_exists"))
+    except Exception as exc:
+        logger.error(f"  Failed to load {repo}: {exc}")
+        return False
+    missing = expected - set(ds.column_names)
+    print(f"  rows: {len(ds):,}")
+    print(f"  columns: {list(ds.column_names)}")
+    if missing:
+        logger.error(f"  SCHEMA MISMATCH: missing {sorted(missing)}")
+        return False
+    return True
+
+
 # --------------------------------------------------------------------------- #
 # CLI
 # --------------------------------------------------------------------------- #
@@ -231,7 +253,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Download and verify the external benchmark datasets."
     )
-    parser.add_argument("--only", choices=("cupcase", "ddxplus"), default=None,
+    parser.add_argument("--only", choices=("cupcase", "ddxplus", "medeinst", "meddistract"), default=None,
                         help="Fetch just one dataset (default: both).")
     parser.add_argument("--splits", nargs="+", default=["test"],
                         choices=list(DDXPLUS_SPLIT_FILES),
@@ -258,6 +280,22 @@ def main() -> int:
         else:
             logger.info(f"Fetching CUPCase ({CUPCASE_REPO})")
             results["cupcase"] = fetch_cupcase(args.force, args.verify_only)
+    if args.only in (None, "medeinst"):
+        if args.verify_only:
+            logger.info("Skipping MedEinst cache inspection in --verify-only mode.")
+        else:
+            results["medeinst"] = fetch_hf_rows(
+                MEDEINST_REPO, "test", {"case_id", "case_type", "narrative", "ground_truth"}, args.force
+            )
+    if args.only in (None, "meddistract"):
+        if args.verify_only:
+            logger.info("Skipping MedDistractQA cache inspection in --verify-only mode.")
+        else:
+            results["meddistract"] = fetch_hf_rows(
+                MEDDISTRACT_REPO, "train",
+                {"question", "question_choices", "correct_answer", "distracting_sentence", "medical_competency"},
+                args.force,
+            )
 
     print("\n" + "=" * 64)
     for name, ok in results.items():

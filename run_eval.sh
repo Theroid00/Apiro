@@ -10,9 +10,12 @@
 # Stages, in dependency order:
 #   preflight   python, package imports, Ollama reachable, corpus non-empty
 #   test        offline test suite — no Ollama, no ChromaDB, no downloads
-#   fetch       download + verify CUPCase and DDXPlus
+#   fetch       download + verify external datasets
 #   generate    build the C-NIAH counterfactual case set
 #   niah        C-NIAH: bias trap rate, abstention, distractor selection
+#   medeinst    MedEinst: external paired counterfactual Bias Trap Rate
+#   meddistract MedDistractQA: clean/distracted diagnosis-pair retention
+#   mint        MINT-style incremental run (requires MINT_DATASET=/path.json)
 #   ddxplus     DDXPlus: external, ranked reference differential
 #   cupcase     CUPCase: external, curated per-case distractors
 #   calibration ECE / Brier / risk-coverage over the C-NIAH results
@@ -31,12 +34,15 @@ QUICK=0
 DRY_RUN=0
 STAGES=()
 
-ALL_STAGES=(preflight test fetch generate niah ddxplus cupcase calibration)
+ALL_STAGES=(preflight test fetch generate niah medeinst meddistract ddxplus cupcase mint calibration)
 
 # ── Tunables (env-overridable) ──────────────────────────────────────────────
 NIAH_PAIRS="${NIAH_PAIRS:-40}"      # counterfactual pairs -> 2x cases + unanswerable
 DDXPLUS_N="${DDXPLUS_N:-60}"
 CUPCASE_N="${CUPCASE_N:-60}"
+MEDEINST_PAIRS="${MEDEINST_PAIRS:-60}"
+MEDDISTRACT_N="${MEDDISTRACT_N:-100}"
+MINT_DATASET="${MINT_DATASET:-}"
 SEED="${SEED:-7}"
 TAU="${TAU:-0.65}"
 
@@ -72,7 +78,7 @@ if [[ $QUICK -eq 1 ]]; then
     # Small enough to finish in minutes. Proves the pipeline end to end; far
     # too small to support any claim — see the power analysis in
     # docs/BENCHMARKING.md.
-    NIAH_PAIRS=4; DDXPLUS_N=4; CUPCASE_N=4
+    NIAH_PAIRS=4; DDXPLUS_N=4; CUPCASE_N=4; MEDEINST_PAIRS=4; MEDDISTRACT_N=4
 fi
 
 mkdir -p "$LOG_DIR"
@@ -215,6 +221,28 @@ stage_niah() {
     run niah "$PY" scripts/run_niah_eval.py \
         --cases data/niah_cases.json --real --out data/niah_eval_results.json
     ok "data/niah_eval_results.json"
+}
+
+stage_medeinst() {
+    banner "MEDEINST — paired counterfactual Bias Trap Rate  (pairs=$MEDEINST_PAIRS)"
+    run medeinst "$PY" scripts/run_medeinst_eval.py --n-pairs "$MEDEINST_PAIRS" --seed "$SEED"
+    ok "MedEinst immutable run"
+}
+
+stage_meddistract() {
+    banner "MEDDISTRACTQA — diagnosis-only clean/distracted pairs  (N=$MEDDISTRACT_N)"
+    run meddistract "$PY" scripts/run_meddistractqa_eval.py --n "$MEDDISTRACT_N" --seed "$SEED"
+    ok "MedDistractQA immutable run"
+}
+
+stage_mint() {
+    banner "MINT — incremental evidence and commitment behavior"
+    if [[ -z "$MINT_DATASET" ]]; then
+        warn "MINT_DATASET is unset; paper has no linked public dataset, skipping optional stage."
+        return
+    fi
+    run mint "$PY" scripts/run_mint_eval.py --dataset-json "$MINT_DATASET" --seed "$SEED"
+    ok "MINT immutable run"
 }
 
 stage_ddxplus() {

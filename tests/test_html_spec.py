@@ -366,32 +366,20 @@ def test_tc_1_2_chunk_schema_validation():
     TC-1.2: Every chunk must have all required metadata fields populated correctly.
     Validates a sample of chunks from ChromaDB (if populated) or falls back to synthetic validation.
     """
-    from apiro.corpus.embedder import Embedder
-    try:
-        embedder = Embedder()
-        count = embedder.count
-    except Exception:
-        count = 0
-
-    if count > 0:
-        # Query a sample from ChromaDB
-        results = embedder._collection.get(limit=100)
-        metadatas = results.get("metadatas", [])
-        documents = results.get("documents", [])
-        ids = results.get("ids", [])
-    else:
-        # Fallback synthetic chunks for offline validation
-        metadatas = [
-            {
-                "source_db": "pubmed",
-                "pmid": "123456",
-                "medical_domain": "pathophysiology",
-                "evidence_level": 2,
-                "condition_tags": "myocardial infarction, chest pain",
-            }
-        ] * 10
-        documents = ["Patient presents with acute chest pain and elevated cardiac enzymes."] * 10
-        ids = [f"chunk_{i}" for i in range(10)]
+    # Unit tests must not change behavior based on a developer's local corpus.
+    # The live store has its own explicit scripts/validate_corpus.py command.
+    count = 0
+    metadatas = [
+        {
+            "source_db": "pubmed",
+            "pmid": "123456",
+            "medical_domain": "pathophysiology",
+            "evidence_level": 2,
+            "condition_tags": "myocardial infarction, chest pain",
+        }
+    ] * 10
+    documents = ["Patient presents with acute chest pain and elevated cardiac enzymes."] * 10
+    ids = [f"chunk_{i}" for i in range(10)]
 
     assert len(ids) == len(set(ids)), "chunk_ids must be unique"
     
