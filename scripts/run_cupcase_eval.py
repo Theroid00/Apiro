@@ -50,6 +50,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import sys
@@ -109,12 +110,12 @@ def _evaluate_case(case: dict, components, max_depth: int) -> dict:
     ground_truth = case["ground_truth"]
     distractors = [d for d in case.get("distractors", []) if d and str(d).strip()]
 
-    # The adapter turns the narrative into PatientFindings; the narrative
-    # itself is what the two baselines read, so all three arms see the same
-    # source text.
-    vignette = "\n".join(
-        f.get("value", "") for f in case.get("findings", []) if f.get("value")
-    ).strip() or case.get("description", "")
+    # Derived findings seed the graph; all arms reason over the unchanged
+    # source narrative. Reconstructing this from findings used to discard
+    # everything after character 400.
+    vignette = case.get("narrative", "").strip()
+    if not vignette:
+        raise ValueError(f"CUPCase {case_id} has no source narrative")
 
     logger.info(f"\nCase {case_id} — truth={ground_truth!r}, {len(distractors)} distractor(s)")
 
@@ -155,6 +156,11 @@ def _evaluate_case(case: dict, components, max_depth: int) -> dict:
         "specialty": case.get("specialty", "unknown"),
         "ground_truth": ground_truth,
         "distractors": distractors,
+        "input": {
+            "sha256": hashlib.sha256(vignette.encode("utf-8")).hexdigest(),
+            "characters": len(vignette),
+            "approx_tokens": round(len(vignette.split()) / 0.75),
+        },
         "n_axioms": len(axioms),
         "predictions": {
             "bare_llm": bare_preds,

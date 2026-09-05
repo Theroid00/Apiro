@@ -49,6 +49,7 @@ class TraversalResult:
     duration_seconds:    float
     synthesis:           list[str]        # Final differential diagnosis
     saturation_status:   Optional[object] = None  # SaturationStatus if stop was saturation
+    stage_timings:       Optional[dict[str, float]] = None
 
 
 class ApiroTraversal:
@@ -381,17 +382,19 @@ class ApiroTraversal:
 
 
         # ── Wrap up ───────────────────────────────────────────────────────────
-        duration = round(time.time() - start_time, 2)
+        traversal_finished = time.time()
 
         # ── Synthesize differential ───────────────────────────────────────────
         # The vignette is passed through: the bare-LLM baseline reads the whole
         # case, so the synthesizer must too — otherwise Apiro argues its final
         # answer from graph fragments alone.
+        synthesis_started = time.time()
         try:
             synthesis = self.expander.synthesize_differential(graph, vignette=vignette)
         except TypeError:
             # Back-compat with expanders whose signature predates `vignette`.
             synthesis = self.expander.synthesize_differential(graph)
+        synthesis_finished = time.time()
 
         self._log({
             "event":            "traversal_complete",
@@ -399,10 +402,19 @@ class ApiroTraversal:
             "total_nodes":      graph.node_count(),
             "total_edges":      len(graph.edges),
             "synthesis":        synthesis,
-            "duration_seconds": duration,
+            "duration_seconds": round(synthesis_finished - start_time, 2),
         })
 
+        log_started = time.time()
         self._write_log(case_name)
+        finished = time.time()
+        duration = round(finished - start_time, 2)
+        stage_timings = {
+            "traversal_seconds": round(traversal_finished - start_time, 4),
+            "synthesis_seconds": round(synthesis_finished - synthesis_started, 4),
+            "log_write_seconds": round(finished - log_started, 4),
+            "total_seconds": round(finished - start_time, 4),
+        }
 
         sat_status = self.saturation.get_status(graph) if stop_reason == "saturation" else None
 
@@ -416,6 +428,7 @@ class ApiroTraversal:
             duration_seconds=duration,
             synthesis=synthesis,
             saturation_status=sat_status,
+            stage_timings=stage_timings,
         )
 
         logger.info(

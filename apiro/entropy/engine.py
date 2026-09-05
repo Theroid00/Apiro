@@ -30,6 +30,7 @@ ARCHITECTURE:
     Ollama anyway).
 """
 
+import hashlib
 import logging
 import math
 import time
@@ -40,6 +41,7 @@ import requests
 from apiro.config import (
     OLLAMA_BASE_URL, PRIMARY_MODEL,
 )
+from apiro.context import select_clinical_context
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +145,7 @@ class EntropyEngine:
         self.timeout = timeout
         self.retries = retries
         self._cache: dict[str, float] = {}  # claim → entropy score
+        self._context_audit: dict[str, dict] = {}
 
     # ------------------------------------------------------------------
     # Public API (interface-compatible with old EntropyEngine)
@@ -196,7 +199,9 @@ class EntropyEngine:
         if not claim or claim.startswith("["):
             return _DEFAULT_HIGH
 
-        key = f"hyp::{case_context[:200]}::{claim.strip().lower()}"
+        selected = select_clinical_context(case_context, claim)
+        context_hash = hashlib.sha256(selected.text.encode("utf-8")).hexdigest()
+        key = f"hyp::v2::{self.model}::{context_hash}::{claim.strip().lower()}"
         if key in self._cache:
             return self._cache[key]
 
@@ -241,8 +246,10 @@ class EntropyEngine:
 
     def _query_confidence(self, claim: str, case_context: str) -> Optional[int]:
         """Ask for a 0-100 confidence. Returns None on failure."""
+        selected = select_clinical_context(case_context, claim)
+        self._context_audit[claim] = selected.to_dict()
         prompt = HYPOTHESIS_CONFIDENCE_PROMPT.format(
-            case_context=(case_context or "(not provided)").strip()[:3000],
+            case_context=selected.text or "(not provided)",
             claim=claim.strip(),
         )
         payload = {
