@@ -21,6 +21,38 @@ DATASET = "zhui711/MedEinst"
 REVISION = "354f4b5"
 
 
+def print_summary(scores: dict, n_pairs: int, source: Path | None = None) -> None:
+    """Print primary rank-1 MedEinst metrics and secondary top-3 accuracy."""
+    width = 122
+    print("\n" + "=" * width)
+    print(f"       MEDEINST PAIRED ADVERSARIAL BENCHMARK (N = {n_pairs} pairs)")
+    if source is not None:
+        print(f"       Rescored from: {source}")
+    print("=" * width)
+    print(
+        f"{'Arm':<14} {'Control@1':>10} {'Trap@1':>9} {'BTR':>9} "
+        f"{'Trapped':>9} {'BTR 95% CI':>15} {'Pair@1':>9} "
+        f"{'Control@3':>11} {'Trap@3':>9} {'Pair@3':>9}"
+    )
+    print("-" * width)
+    for arm, metrics in scores.items():
+        btr = metrics["bias_trap_rate"]
+        btr_text = "N/A" if btr is None else f"{btr * 100:.1f}%"
+        lo, hi = metrics["bias_trap_rate_ci"]
+        ci_text = f"[{lo * 100:.1f}, {hi * 100:.1f}]"
+        trapped_text = f"{metrics['n_bias_traps']}/{metrics['n_control_correct']}"
+        print(
+            f"{arm:<14} {metrics['control_accuracy'] * 100:>9.1f}%"
+            f" {metrics['trap_accuracy'] * 100:>8.1f}% {btr_text:>9}"
+            f" {trapped_text:>9} {ci_text:>15}"
+            f" {metrics['pair_resilience'] * 100:>8.1f}%"
+            f" {metrics['top3_control_accuracy'] * 100:>10.1f}%"
+            f" {metrics['top3_trap_accuracy'] * 100:>8.1f}%"
+            f" {metrics['top3_pair_resilience'] * 100:>8.1f}%"
+        )
+    print("=" * width + "\n")
+
+
 def load_rows(split: str, dataset_json: Path | None = None) -> list[dict]:
     if dataset_json:
         with dataset_json.open(encoding="utf-8") as handle:
@@ -53,10 +85,26 @@ def main(argv=None) -> int:
     parser.add_argument("--max-depth", type=int, default=6)
     parser.add_argument("--dataset-json", type=Path)
     parser.add_argument("--runs-dir", type=Path, default=ROOT / "data" / "runs")
+    parser.add_argument(
+        "--rescore-results",
+        type=Path,
+        help="Recompute metrics from a saved results.json without model calls.",
+    )
     parser.add_argument("--describe-only", action="store_true")
     args = parser.parse_args(argv)
     if args.n_pairs < 1:
         parser.error("--n-pairs must be positive")
+
+    if args.rescore_results is not None:
+        with args.rescore_results.open(encoding="utf-8") as handle:
+            prior = json.load(handle)
+        records = prior.get("case_results")
+        if not isinstance(records, list):
+            parser.error("--rescore-results must contain a case_results list")
+        scores = score_medeinst(records, make_matcher())
+        n_pairs = len({str(row["case_id"]) for row in records})
+        print_summary(scores, n_pairs, source=args.rescore_results)
+        return 0
 
     selected = select_pairs(load_rows(args.split, args.dataset_json), args.n_pairs, args.seed)
     if args.describe_only:
@@ -84,9 +132,11 @@ def main(argv=None) -> int:
             "ground_truth": row["ground_truth"], **evaluated,
         })
     matcher = make_matcher()
-    payload = {"manifest": manifest, "scores": score_medeinst(records, matcher), "case_results": records}
+    scores = score_medeinst(records, matcher)
+    payload = {"manifest": manifest, "scores": scores, "case_results": records}
     (run_dir / "results.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    print(f"Saved MedEinst run to {run_dir}")
+    print(f"\nSaved MedEinst run to {run_dir}")
+    print_summary(scores, len(selected) // 2)
     return 0
 
 

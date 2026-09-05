@@ -11,7 +11,13 @@ ARMS = ("apiro", "rag", "bare_llm")
 
 
 def score_medeinst(records: list[dict], matcher, arms=ARMS) -> dict:
-    """Compute MedEinst's exact control-diagnosis retention trap endpoint."""
+    """Compute MedEinst's rank-1 control-diagnosis retention endpoint.
+
+    MedEinst defines an Einstellung trap as ``f(control) == control_truth``
+    and ``f(trap) == control_truth``. Since ``f`` is one diagnosis, the
+    primary endpoint must use the first prediction. Top-3 measures are kept as
+    secondary Apiro differential-quality diagnostics.
+    """
     grouped = defaultdict(dict)
     for record in records:
         grouped[str(record["case_id"])][record["case_type"]] = record
@@ -20,6 +26,7 @@ def score_medeinst(records: list[dict], matcher, arms=ARMS) -> dict:
     output = {}
     for arm in arms:
         control_correct, trap_correct, retained = [], [], []
+        control_top3, trap_top3 = [], []
         rank_changes = []
         for control, trap in pairs:
             control_preds = control["predictions"][arm]
@@ -27,9 +34,20 @@ def score_medeinst(records: list[dict], matcher, arms=ARMS) -> dict:
             ctl_rank = first_hit_rank(control_preds, control["ground_truth"], matcher)
             trap_rank = first_hit_rank(trap_preds, trap["ground_truth"], matcher)
             retained_rank = first_hit_rank(trap_preds, control["ground_truth"], matcher)
-            control_correct.append(ctl_rank is not None)
-            trap_correct.append(trap_rank is not None)
-            retained.append(ctl_rank is not None and retained_rank is not None and trap_rank is None)
+            ctl_top1 = bool(control_preds) and matcher(
+                control_preds[0], control["ground_truth"]
+            )
+            trap_top1 = bool(trap_preds) and matcher(
+                trap_preds[0], trap["ground_truth"]
+            )
+            retained_top1 = bool(trap_preds) and matcher(
+                trap_preds[0], control["ground_truth"]
+            )
+            control_correct.append(ctl_top1)
+            trap_correct.append(trap_top1)
+            retained.append(ctl_top1 and retained_top1)
+            control_top3.append(ctl_rank is not None)
+            trap_top3.append(trap_rank is not None)
             rank_changes.append({
                 "case_id": control["case_id"],
                 "control_truth_rank_control": ctl_rank,
@@ -39,6 +57,8 @@ def score_medeinst(records: list[dict], matcher, arms=ARMS) -> dict:
         eligible = sum(control_correct)
         trapped = sum(retained)
         both = sum(c and t for c, t in zip(control_correct, trap_correct))
+        trap_errors = sum(c and not t for c, t in zip(control_correct, trap_correct))
+        both_top3 = sum(c and t for c, t in zip(control_top3, trap_top3))
         output[arm] = {
             "n_pairs": len(pairs),
             "n_control_correct": eligible,
@@ -48,6 +68,10 @@ def score_medeinst(records: list[dict], matcher, arms=ARMS) -> dict:
             "control_accuracy": sum(control_correct) / len(pairs) if pairs else 0.0,
             "trap_accuracy": sum(trap_correct) / len(pairs) if pairs else 0.0,
             "pair_resilience": both / len(pairs) if pairs else 0.0,
+            "conditional_trap_error_rate": trap_errors / eligible if eligible else None,
+            "top3_control_accuracy": sum(control_top3) / len(pairs) if pairs else 0.0,
+            "top3_trap_accuracy": sum(trap_top3) / len(pairs) if pairs else 0.0,
+            "top3_pair_resilience": both_top3 / len(pairs) if pairs else 0.0,
             "rank_transitions": rank_changes,
         }
     return output

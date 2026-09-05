@@ -307,9 +307,15 @@ The `--real` flag runs the full pipeline against live model/retrieval backends. 
 python scripts/fetch_datasets.py --only medeinst
 python scripts/run_medeinst_eval.py --n-pairs 60
 python scripts/run_medeinst_eval.py --dataset-json tests/fixtures/medeinst_smoke.jsonl --describe-only
+python scripts/run_medeinst_eval.py --rescore-results data/runs/<run-id>/results.json
 ```
 
-MedEinst provides paired control and counterfactual trap narratives. The primary endpoint is the conditional Bias Trap Rate: among controls an arm solves, how often does its trap prediction retain the control diagnosis after discriminative evidence changes the correct answer? The runner also stores pair resilience and diagnosis-rank transitions.
+MedEinst provides paired control and counterfactual trap narratives. Its
+primary endpoint is rank-1 Bias Trap Rate: among controls an arm diagnoses
+correctly at rank 1, how often does its rank-1 trap prediction repeat the old
+control diagnosis after discriminative evidence changes the correct answer?
+Apiro's top-3 control/trap accuracy, pair resilience, and rank transitions are
+stored separately as differential-quality diagnostics.
 
 **MedDistractQA — irrelevant-information robustness**
 

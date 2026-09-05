@@ -19,9 +19,12 @@ adversarial and general benchmarks, calibration. Stages run in dependency order,
 ## Current benchmark order
 
 1. **MedEinst** is the primary external mechanism benchmark. Its paired control
-   and trap cases directly measure retention of the prior diagnosis after
-   discriminative evidence flips the correct answer. Run
-   `python scripts/run_medeinst_eval.py --n-pairs 60`.
+   and trap cases measure rank-1 retention of the control diagnosis after
+   discriminative evidence flips the correct answer. Top-3 differential
+   accuracy is secondary. Run
+   `python scripts/run_medeinst_eval.py --n-pairs 60`. Existing case outputs
+   can be rescored without new model calls using
+   `python scripts/run_medeinst_eval.py --rescore-results <results.json>`.
 2. **MedDistractQA** measures invariance to irrelevant clinical-looking text.
    Apiro evaluates only `Patient Care: Diagnosis` rows and reports matched-pair
    retention. Run `python scripts/run_meddistractqa_eval.py --n 100`.

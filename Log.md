@@ -266,7 +266,7 @@ Here is the commit-by-commit record of the Apiro codebase:
 ### Phase 15: Trustworthy Adversarial Evaluation (September 2026)
 
 The benchmark strategy moved from aggregate accuracy toward paired robustness.
-MedEinst is now the primary external test of the mechanism, using exact
+MedEinst is now the primary external test of the mechanism, using rank-1
 control-diagnosis retention Bias Trap Rate. MedDistractQA supplies matched
 clean/distracted diagnosis cases. A MINT-style runner records commitment and
 revision across incremental evidence turns.
@@ -289,3 +289,11 @@ published contract is multiple-choice option selection or generation, while
 Apiro produces a ranked diagnostic differential. The benchmarking guide records
 the official upstream implementations and the narrative-level paired contract
 required for a valid future adaptation.
+
+The first live MedEinst smoke output exposed a scorer mismatch: the published
+metric defines one prediction per case, but the runner had applied the
+control-diagnosis retention test across all three differential slots. The
+primary control accuracy, trap accuracy, BTR, and pair resilience now use rank
+1. Rank-3 measures remain explicitly secondary, confidence intervals show the
+small denominator, and saved case outputs can be rescored without repeating
+model inference.
