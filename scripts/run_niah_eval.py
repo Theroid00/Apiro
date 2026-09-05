@@ -210,8 +210,7 @@ def _build_real_components():
     return {
         "embedder": components.embedder,
         "llm_client": components.llm_client,
-        "traversal": components.traversal,
-        "contradiction": components.contradiction,
+        "traversal_factory": components.create_traversal,
     }
 
 
@@ -437,7 +436,14 @@ def _build_stub_components():
 def _evaluate_case(case, components, real_components, axiom_extractor):
     embedder = components["embedder"]
     llm_client = components["llm_client"]
-    traversal = components["traversal"]
+    traversal = (
+        components["traversal_factory"](
+            n_diagnoses=N_DIFFERENTIAL,
+            allow_abstention=components.get("allow_abstention", False),
+        )
+        if real_components
+        else components["traversal"]
+    )
 
     case_id = case.get("case_id", case.get("id", "?"))
     vignette = case.get("vignette") or case.get("haystack") or case.get("context") or ""
@@ -1200,8 +1206,9 @@ def run_evaluation(cases_path: str = "data/niah_cases.json", real_components: bo
     # accuracy and buys nothing measurable — it produced a 50% over-abstention
     # rate on the 2026-08-30 run.
     has_unanswerable = any((c.get("metadata") or {}).get("unanswerable") for c in cases)
-    expander = getattr(components["traversal"], "expander", None)
-    if expander is not None and hasattr(expander, "allow_abstention"):
+    components["allow_abstention"] = has_unanswerable
+    expander = getattr(components.get("traversal"), "expander", None)
+    if expander is not None:
         expander.allow_abstention = has_unanswerable
     logger.info(
         f"Abstention {'ENABLED' if has_unanswerable else 'disabled'} "
@@ -1276,4 +1283,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -20,8 +20,8 @@ CORPUS_DIR = DATA_DIR / "corpus"
 CHROMA_DIR = DATA_DIR / "chroma_db"
 LOG_DIR    = DATA_DIR / "logs"
 
-for _d in [DATA_DIR, CORPUS_DIR, CHROMA_DIR, LOG_DIR]:
-    _d.mkdir(parents=True, exist_ok=True)
+# Paths are declarations only. Commands create the directories they write to;
+# importing ``apiro.config`` must be safe in a read-only installation.
 
 # ---------------------------------------------------------------------------
 # Ollama / LLM

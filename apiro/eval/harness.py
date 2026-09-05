@@ -84,10 +84,13 @@ class RealComponents:
 
     embedder: object
     llm_client: object
-    traversal: object
-    contradiction: object
     axiom_extractor: object
     doc_count: int
+    resources: object
+
+    def create_traversal(self, **kwargs):
+        """Create isolated mutable state for one benchmark case."""
+        return self.resources.create_traversal(**kwargs)
 
 
 def build_real_components(
@@ -113,68 +116,22 @@ def build_real_components(
             benchmark should try to recover from — proceeding would produce a
             results file that looks valid and is not.
     """
-    import requests
-
-    from apiro.config import (
-        OLLAMA_BASE_URL,
-        PRIMARY_MODEL,
-        SATURATION_EXPLORATION_ONLY,
-    )
-    from apiro.axioms.extractor import AxiomExtractor
-    from apiro.corpus.embedder import Embedder
-    from apiro.entropy.engine import EntropyEngine
-    from apiro.graph.contradiction import ContradictionDetector
-    from apiro.graph.expander import NodeExpander
-    from apiro.graph.rabbit_hole import RabbitHoleDetector
-    from apiro.graph.saturation import SaturationDetector
-    from apiro.graph.traversal import ApiroTraversal
-    from apiro.llm_client import OllamaLLMClient
+    from apiro.application.runtime import RuntimeSetupError, build_runtime_resources
 
     try:
-        resp = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
-        resp.raise_for_status()
-    except Exception as exc:  # noqa: BLE001 - any failure here is fatal setup
-        logger.error(
-            f"[Ollama] Could not reach Ollama at {OLLAMA_BASE_URL}: {exc}\n"
-            f"         Start it with: ollama serve"
+        resources = build_runtime_resources(
+            llm_timeout=llm_timeout, require_corpus=require_corpus
         )
+    except RuntimeSetupError as exc:
+        logger.error(str(exc))
         sys.exit(1)
-
-    embedder = Embedder()
-    doc_count = embedder.count
-    if doc_count == 0 and require_corpus:
-        logger.error(
-            "[Corpus] ChromaDB collection is empty.\n"
-            "         Build it with: python -m apiro.corpus.build_corpus --sources medrag"
-        )
-        sys.exit(1)
-
-    llm_client = OllamaLLMClient(OLLAMA_BASE_URL, PRIMARY_MODEL, timeout=llm_timeout)
-    contradiction = ContradictionDetector()
-
-    expander = NodeExpander(
-        entropy_engine=EntropyEngine(model=PRIMARY_MODEL, ollama_url=OLLAMA_BASE_URL),
-        chroma_client=ChromaQueryAdapter(embedder),
-        llm_client=llm_client,
-        contradiction_detector=contradiction,
-    )
-
-    traversal = ApiroTraversal(
-        expander=expander,
-        # exploration_only: depth-0 axiom seeds carry a fixed entropy and must
-        # never be counted as evidence that the engine has converged.
-        saturation=SaturationDetector(exploration_only=SATURATION_EXPLORATION_ONLY),
-        rabbit_hole=RabbitHoleDetector(),
-        contradiction=contradiction,
-    )
 
     return RealComponents(
-        embedder=embedder,
-        llm_client=llm_client,
-        traversal=traversal,
-        contradiction=contradiction,
-        axiom_extractor=AxiomExtractor(),
-        doc_count=doc_count,
+        embedder=resources.embedder,
+        llm_client=resources.llm_client,
+        axiom_extractor=resources.axiom_extractor,
+        doc_count=resources.doc_count,
+        resources=resources,
     )
 
 

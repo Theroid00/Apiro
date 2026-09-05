@@ -121,7 +121,7 @@ def differential_overlap(predicted, reference, matcher, k: int = 5) -> dict:
 def _evaluate_case(case, components, max_depth: int) -> dict:
     embedder = components.embedder
     llm_client = components.llm_client
-    traversal = components.traversal
+    traversal = components.create_traversal(n_diagnoses=N_DIFFERENTIAL)
     vignette = case.vignette
 
     logger.info(f"\n{case.case_id} — truth={case.ground_truth!r}, "
@@ -251,7 +251,6 @@ def run_evaluation(n, split, seed, max_depth, out_path, describe_only) -> None:
         return
 
     components = build_real_components()
-    components.traversal.expander.n_diagnoses = N_DIFFERENTIAL
     logger.info(f"Components ready. Corpus: {components.doc_count:,} documents.")
 
     results = []

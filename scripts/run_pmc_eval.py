@@ -102,8 +102,7 @@ def run_evaluation(real_components: bool, limit: int | None = None, out_path: st
         components = build_real_components(llm_timeout=120)
         embedder = components.embedder
         llm_client = components.llm_client
-        contradiction = components.contradiction
-        traversal = components.traversal
+        traversal = None
     else:
         # Import stub components
         from apiro.graph.expander import NodeExpander, StubEntropyEngine, StubChromaClient
@@ -319,6 +318,8 @@ def run_evaluation(real_components: bool, limit: int | None = None, out_path: st
     logger.info(f"Evaluating {len(selected)}/{len(cases)} cases.")
 
     for case in selected:
+        if real_components:
+            traversal = components.create_traversal(n_diagnoses=N_DIFFERENTIAL)
         case_id = case["case_id"]
         vignette = case["vignette"]
         target = case["target_diagnosis"]

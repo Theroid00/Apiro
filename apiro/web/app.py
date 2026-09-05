@@ -23,6 +23,7 @@ import logging
 import time
 import json
 import asyncio
+import uuid
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from fastapi import FastAPI, HTTPException
@@ -32,7 +33,7 @@ from pydantic import BaseModel
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from apiro.cli import build_components
+from apiro.application.runtime import RuntimeSetupError, build_runtime_resources
 from apiro.graph.belief_graph import BeliefGraph
 
 logging.basicConfig(level=logging.INFO)
@@ -43,11 +44,13 @@ app = FastAPI(title="Apiro AI Detective")
 # Shared components — initialised once at startup
 logger.info("Initialising Apiro components...")
 try:
-    (traversal, axiom_extractor), doc_count = build_components()
+    runtime_resources = build_runtime_resources()
+    axiom_extractor = runtime_resources.axiom_extractor
+    doc_count = runtime_resources.doc_count
     logger.info(f"Apiro ready. ChromaDB contains {doc_count:,} documents.")
 except Exception as e:
     logger.error(f"Failed to initialise Apiro components: {e}")
-    traversal, axiom_extractor, doc_count = None, None, 0
+    runtime_resources, axiom_extractor, doc_count = None, None, 0
 
 # Thread pool for running CPU-bound traversal without blocking the event loop
 _executor = ThreadPoolExecutor(max_workers=2)
@@ -1013,7 +1016,7 @@ initGraph();
 
 @app.get("/", response_class=HTMLResponse)
 def get_index():
-    if not traversal:
+    if not runtime_resources:
         return HTMLResponse(
             "<h3 style='font-family:sans-serif;padding:40px;color:#ef4444'>"
             "Apiro engine not initialised. Ensure Ollama is running and run build_corpus first.</h3>",
@@ -1033,15 +1036,16 @@ async def run_investigation_stream(req: InvestigationRequest):
     traversal event to the browser the moment it fires, so the UI can update
     the thought log and D3 graph in real time without waiting for completion.
     """
-    if not traversal:
+    if not runtime_resources:
         raise HTTPException(status_code=500, detail="Apiro engine not initialised")
 
     loop = asyncio.get_running_loop()
     q: asyncio.Queue = asyncio.Queue()
+    run_id = uuid.uuid4().hex
 
     def on_event(event: dict) -> None:
         """Called from the traversal thread — schedules a put on the async queue."""
-        asyncio.run_coroutine_threadsafe(q.put(event), loop)
+        asyncio.run_coroutine_threadsafe(q.put({**event, "run_id": run_id}), loop)
 
     def run_traversal() -> None:
         try:
@@ -1051,6 +1055,7 @@ async def run_investigation_stream(req: InvestigationRequest):
                 )
                 return
             graph = BeliefGraph()
+            traversal = runtime_resources.create_traversal()
             from apiro.axioms.seeding import build_seeds
             seeds, _axioms, enriched_vignette = build_seeds(req.findings, axiom_extractor)
             traversal.run(
@@ -1058,7 +1063,7 @@ async def run_investigation_stream(req: InvestigationRequest):
                 vignette=enriched_vignette,
                 graph=graph,
                 max_depth=req.max_depth,
-                case_name="api_stream",
+                case_name=f"api_stream_{run_id}",
                 on_event=on_event,
             )
         except Exception as exc:
@@ -1093,7 +1098,7 @@ async def run_investigation_stream(req: InvestigationRequest):
 @app.post("/run")
 def run_investigation(req: InvestigationRequest):
     """Legacy synchronous endpoint — kept for backward compatibility."""
-    if not traversal:
+    if not runtime_resources:
         raise HTTPException(status_code=500, detail="Apiro engine not initialised")
 
     t0 = time.time()
@@ -1104,12 +1109,14 @@ def run_investigation(req: InvestigationRequest):
             raise HTTPException(status_code=400, detail="Could not parse any valid findings")
 
         graph = BeliefGraph()
+        run_id = uuid.uuid4().hex
+        traversal = runtime_resources.create_traversal()
         result = traversal.run(
             seed_nodes=seeds,
             vignette=enriched_vignette,
             graph=graph,
             max_depth=req.max_depth,
-            case_name="api_run",
+            case_name=f"api_run_{run_id}",
         )
         elapsed = time.time() - t0
 
@@ -1132,6 +1139,7 @@ def run_investigation(req: InvestigationRequest):
         ]
 
         return {
+            "run_id":      run_id,
             "synthesis":   result.synthesis or [],
             "nodes":       nodes_list,
             "edges":       edges_list,

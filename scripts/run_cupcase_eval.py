@@ -103,7 +103,7 @@ def _evaluate_case(case: dict, components, max_depth: int) -> dict:
     """Run all three arms on one CUPCase case and return its raw outputs."""
     embedder = components.embedder
     llm_client = components.llm_client
-    traversal = components.traversal
+    traversal = components.create_traversal(n_diagnoses=N_DIFFERENTIAL)
 
     case_id = case["case_id"]
     ground_truth = case["ground_truth"]
@@ -295,7 +295,6 @@ def run_evaluation(
 
     components = build_real_components()
     # Give the Apiro arm the same candidate budget as the baselines above.
-    components.traversal.expander.n_diagnoses = N_DIFFERENTIAL
     logger.info(f"Components ready. Corpus: {components.doc_count:,} documents.")
 
     results = []
