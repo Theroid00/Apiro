@@ -1,0 +1,10 @@
+[
+  {
+    "id": "smoke-1",
+    "question": "A patient has episodic headache, sweating, hypertension, and elevated metanephrines. The patient's aunt takes sumatriptan for migraines.",
+    "question_choices": {"A": "Pheochromocytoma", "B": "Migraine"},
+    "correct_answer": "A",
+    "distracting_sentence": "The patient's aunt takes sumatriptan for migraines.",
+    "medical_competency": "Patient Care: Diagnosis"
+  }
+]

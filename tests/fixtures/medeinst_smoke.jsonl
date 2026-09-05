@@ -1,0 +1,2 @@
+{"case_id":"smoke-1","case_type":"control","age":52,"sex":"F","narrative":"Episodic headache, sweating, and hypertension.","ground_truth":"Pheochromocytoma"}
+{"case_id":"smoke-1","case_type":"trap","age":52,"sex":"F","narrative":"Persistent headache with normal metanephrines and migrainous aura.","ground_truth":"Migraine"}
