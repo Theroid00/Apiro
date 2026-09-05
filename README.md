@@ -290,6 +290,11 @@ cp .env.example .env
 # then edit .env and `source .env`, or just export the variables directly
 ```
 
+`APIRO_MAX_MODEL_CONCURRENCY` defaults to `2` and bounds all Ollama requests
+issued through the shared runtime. Benchmark case records include model calls,
+retries, failures, timeouts, exact Ollama prompt/completion token counts, queue
+time, and inference time, split by generation, entropy, and contradiction use.
+
 ---
 
 ## Reproducing the Benchmarks

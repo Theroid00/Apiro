@@ -39,6 +39,12 @@ New adversarial runs write `manifest.json`, `results.json`, and isolated logs to
 live run, execute `python scripts/validate_corpus.py` so corpus drift is an
 explicit integration failure rather than a machine-dependent unit-test result.
 
+Each live adversarial case stores `model_telemetry` for the shared runtime:
+calls, retries, failures, timeouts, prompt and completion tokens, queue time,
+and inference time. The scheduler limit is recorded with those counters and can
+be set with `APIRO_MAX_MODEL_CONCURRENCY` (default `2`). Ollama token counts are
+used directly; they are not estimated from text length.
+
 **Do the `--quick` run first on a new machine.** It exercises every stage at a
 tiny N, so a broken Ollama, an empty corpus or a failed download surfaces in
 minutes instead of after a multi-hour run. Its numbers are meaningless — the
@@ -54,17 +60,21 @@ script says so when it finishes.
 |---|---|
 | `preflight` | python, imports, Ollama + model, corpus, **evaluator scoring probe** |
 | `test` | offline suite — no Ollama, no ChromaDB, no downloads |
-| `fetch` | download + verify CUPCase and DDXPlus, print their schema |
+| `fetch` | download and verify the supported public datasets |
 | `generate` | build the C-NIAH counterfactual case set |
 | `niah` | bias trap rate, abstention, distractor selection |
+| `medeinst` | paired Einstellung-effect controls and traps |
+| `meddistract` | clean/distracted diagnosis-only MedQA pairs |
 | `ddxplus` | external, ranked reference differential |
 | `cupcase` | external, curated per-case distractors |
+| `mint` | incremental evidence evaluation when `MINT_DATASET` is set |
 | `calibration` | ECE / Brier / risk-coverage |
 
 Size knobs are environment variables:
 
 ```bash
-NIAH_PAIRS=80 DDXPLUS_N=120 CUPCASE_N=120 SEED=11 ./run_eval.sh
+NIAH_PAIRS=80 MEDEINST_PAIRS=60 MEDDISTRACT_N=100 \
+DDXPLUS_N=120 CUPCASE_N=120 MINT_DATASET=/path/to/mint.json SEED=11 ./run_eval.sh
 ```
 
 ### The preflight probe worth knowing about

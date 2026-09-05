@@ -35,6 +35,7 @@ class RuntimeResources:
     doc_count: int
     model: str
     ollama_url: str
+    model_scheduler: object | None = None
 
     def create_traversal(
         self,
@@ -53,10 +54,16 @@ class RuntimeResources:
         from apiro.graph.traversal import ApiroTraversal
 
         contradiction = ContradictionDetector(
-            model=self.model, ollama_url=self.ollama_url
+            model=self.model,
+            ollama_url=self.ollama_url,
+            scheduler=self.model_scheduler,
         )
         expander = NodeExpander(
-            entropy_engine=EntropyEngine(model=self.model, ollama_url=self.ollama_url),
+            entropy_engine=EntropyEngine(
+                model=self.model,
+                ollama_url=self.ollama_url,
+                scheduler=self.model_scheduler,
+            ),
             chroma_client=ChromaQueryAdapter(self.embedder),
             llm_client=self.llm_client,
             contradiction_detector=contradiction,
@@ -83,7 +90,8 @@ def build_runtime_resources(
     import requests
 
     from apiro.axioms.extractor import AxiomExtractor
-    from apiro.config import OLLAMA_BASE_URL, PRIMARY_MODEL
+    from apiro.application.model_scheduler import ModelCallScheduler
+    from apiro.config import MAX_MODEL_CONCURRENCY, OLLAMA_BASE_URL, PRIMARY_MODEL
     from apiro.corpus.embedder import Embedder
     from apiro.llm_client import OllamaLLMClient
 
@@ -103,13 +111,18 @@ def build_runtime_resources(
             "ChromaDB corpus is empty; build it with "
             "python -m apiro.corpus.build_corpus --sources medrag"
         )
+    scheduler = ModelCallScheduler(MAX_MODEL_CONCURRENCY)
     return RuntimeResources(
         embedder=embedder,
         llm_client=OllamaLLMClient(
-            OLLAMA_BASE_URL, PRIMARY_MODEL, timeout=llm_timeout
+            OLLAMA_BASE_URL,
+            PRIMARY_MODEL,
+            timeout=llm_timeout,
+            scheduler=scheduler,
         ),
         axiom_extractor=AxiomExtractor(),
         doc_count=doc_count,
         model=PRIMARY_MODEL,
         ollama_url=OLLAMA_BASE_URL,
+        model_scheduler=scheduler,
     )

@@ -277,3 +277,9 @@ spans, fixes tied-confidence AURC and arbitrary thresholds, reports full timing,
 and separates hermetic tests from live-corpus validation. New adversarial runs
 use immutable manifests beneath `data/runs/`. No live benchmark was executed in
 this phase, so all accuracy tables above remain historical and non-reportable.
+
+All Ollama calls made through the shared runtime now pass through a bounded
+process-level scheduler. Each adversarial case records calls by purpose,
+retries, failures, timeouts, Ollama prompt/completion tokens, queue time, and
+inference time. `APIRO_MAX_MODEL_CONCURRENCY` controls the shared limit and
+defaults to two concurrent requests.

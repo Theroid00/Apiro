@@ -32,6 +32,8 @@ def evaluate_narrative_case(
 ) -> dict:
     """Evaluate bare, RAG and isolated Apiro arms with equal answer budgets."""
     started = time.time()
+    scheduler = getattr(resources, "model_scheduler", None)
+    telemetry_before = scheduler.snapshot() if scheduler is not None else None
     bare_raw = resources.llm_client.generate(
         BARE_PROMPT.format(n=n_diagnoses, narrative=narrative, abstain=ABSTENTION_SENTINEL)
     )
@@ -67,7 +69,7 @@ def evaluate_narrative_case(
         }
         for node in graph.nodes.values() if node.depth >= 1
     ]
-    return {
+    output = {
         "predictions": {"apiro": apiro, "rag": rag, "bare_llm": bare},
         "raw_output": {"apiro": apiro, "rag": rag_raw, "bare_llm": bare_raw},
         "n_candidates": {"apiro": len(apiro), "rag": len(rag), "bare_llm": len(bare)},
@@ -86,3 +88,6 @@ def evaluate_narrative_case(
         "wall_seconds_all_arms": round(time.time() - started, 4),
         "n_axioms": len(axioms),
     }
+    if scheduler is not None:
+        output["model_telemetry"] = scheduler.delta(telemetry_before)
+    return output

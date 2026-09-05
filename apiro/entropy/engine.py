@@ -139,11 +139,13 @@ class EntropyEngine:
         ollama_url: str = OLLAMA_BASE_URL,
         timeout: int = 60,
         retries: int = 2,
+        scheduler=None,
     ):
         self.model = model
         self.ollama_url = ollama_url
         self.timeout = timeout
         self.retries = retries
+        self.scheduler = scheduler
         self._cache: dict[str, float] = {}  # claim → entropy score
         self._context_audit: dict[str, dict] = {}
 
@@ -260,10 +262,22 @@ class EntropyEngine:
         }
         for attempt in range(self.retries):
             try:
-                resp = requests.post(
-                    f"{self.ollama_url}/api/generate", json=payload, timeout=self.timeout
+                def request():
+                    response = requests.post(
+                        f"{self.ollama_url}/api/generate",
+                        json=payload,
+                        timeout=self.timeout,
+                    )
+                    response.raise_for_status()
+                    return response
+
+                resp = (
+                    self.scheduler.call(
+                        "entropy_confidence", request, is_retry=attempt > 0
+                    )
+                    if self.scheduler is not None
+                    else request()
                 )
-                resp.raise_for_status()
                 raw = resp.json().get("response", "").strip()
                 value = self._parse_confidence(raw)
                 if value is not None:
@@ -350,12 +364,22 @@ class EntropyEngine:
         }
         for attempt in range(self.retries):
             try:
-                resp = requests.post(
-                    f"{self.ollama_url}/api/generate",
-                    json=payload,
-                    timeout=self.timeout,
+                def request():
+                    response = requests.post(
+                        f"{self.ollama_url}/api/generate",
+                        json=payload,
+                        timeout=self.timeout,
+                    )
+                    response.raise_for_status()
+                    return response
+
+                resp = (
+                    self.scheduler.call(
+                        "entropy_breadth", request, is_retry=attempt > 0
+                    )
+                    if self.scheduler is not None
+                    else request()
                 )
-                resp.raise_for_status()
                 raw = resp.json().get("response", "").strip()
                 count = self._parse_count(raw)
                 if count is not None:

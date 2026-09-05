@@ -13,21 +13,23 @@ focuses on work that remains.
 
 ## Implementation update — adversarial benchmark branch
 
-Milestone A was implemented on `feature/adversarial-benchmark-suite` in five
-reviewable slices:
+The first implementation pass on `feature/adversarial-benchmark-suite` landed
+in reviewable slices:
 
 - per-request and per-case traversal state, unique web run ids, and safe runtime construction;
 - complete source narratives, evidence-aware long-context selection, stable cache keys, and full run timing;
 - tie-invariant AURC and validated arbitrary calibration thresholds;
 - hermetic unit tests plus an explicit live-corpus validator; and
-- MedEinst, diagnosis-only MedDistractQA, and MINT-style incremental harnesses with immutable manifests.
+- MedEinst, diagnosis-only MedDistractQA, and MINT-style incremental harnesses with immutable manifests; and
+- shared bounded Ollama scheduling with per-case call, retry, failure, timeout,
+  token, queue-time, and inference-time telemetry.
 
 The remaining corpus-schema mismatch must be resolved by running
 `python scripts/validate_corpus.py` on the target corpus and either repairing
-missing `evidence_level` metadata or explicitly revising the schema. Milestone B
-still needs token/model-call counters and a bounded model scheduler. Milestone D
-still needs powered live runs; no new performance claim was produced by this
-implementation work.
+missing `evidence_level` metadata or explicitly revising the schema. Retrieval
+and graph-event counters still need to be added to complete every item in
+Milestone B. Milestone D still needs powered live runs; no new performance claim
+was produced by this implementation work.
 
 ## Current baseline
 
@@ -36,7 +38,8 @@ primitives. Its main limitations are now at the boundaries between clinical
 input, long-context reasoning, concurrent execution, and experiment
 reproducibility.
 
-The following issues were confirmed during the latest review:
+The implementation review started from these confirmed issues. Their current
+status is recorded above and in the detailed sections below:
 
 1. The web app shares one mutable traversal object between concurrent requests.
 2. CUPCase narratives are reconstructed from findings capped at 400 characters.

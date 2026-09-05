@@ -28,6 +28,7 @@ LOG_DIR    = DATA_DIR / "logs"
 # ---------------------------------------------------------------------------
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 PRIMARY_MODEL   = os.environ.get("PRIMARY_MODEL", "llama3.1:8b")
+MAX_MODEL_CONCURRENCY = int(os.environ.get("APIRO_MAX_MODEL_CONCURRENCY", "2"))
 
 # ---------------------------------------------------------------------------
 # Embedding

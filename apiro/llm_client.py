@@ -27,25 +27,42 @@ logger = logging.getLogger(__name__)
 class OllamaLLMClient:
     """Thin wrapper around Ollama's /api/generate endpoint."""
 
-    def __init__(self, url: str, model: str, temperature: float = 0.2, num_predict: int = 180, timeout: int = 90):
+    def __init__(
+        self,
+        url: str,
+        model: str,
+        temperature: float = 0.2,
+        num_predict: int = 180,
+        timeout: int = 90,
+        scheduler=None,
+    ):
         self.url = url
         self.model = model
         self.temperature = temperature
         self.num_predict = num_predict
         self.timeout = timeout
+        self.scheduler = scheduler
 
     def generate(self, prompt: str) -> str:
-        resp = requests.post(
-            f"{self.url}/api/generate",
-            json={
-                "model": self.model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {"temperature": self.temperature, "num_predict": self.num_predict},
-            },
-            timeout=self.timeout,
+        def request():
+            response = requests.post(
+                f"{self.url}/api/generate",
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": self.temperature, "num_predict": self.num_predict},
+                },
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            return response
+
+        resp = (
+            self.scheduler.call("generation", request)
+            if self.scheduler is not None
+            else request()
         )
-        resp.raise_for_status()
         return resp.json().get("response", "")
 
     def chat(self, prompt: str) -> str:
