@@ -267,7 +267,18 @@ def selective_metrics_at(confidences: list[float], correctness: list[bool],
 # --------------------------------------------------------------------------- #
 # Per-arm evaluation
 # --------------------------------------------------------------------------- #
-def evaluate_arm(arm: str, cases: list[dict[str, Any]]) -> dict[str, Any]:
+def reporting_thresholds(tau: float) -> tuple[float, ...]:
+    """Validate the requested operating point and include it in the report."""
+    if not 0.0 <= tau <= 1.0:
+        raise ValueError("--tau must be between 0 and 1 inclusive")
+    return tuple(sorted(set((*SELECTIVE_THRESHOLDS, float(tau)))))
+
+
+def evaluate_arm(
+    arm: str,
+    cases: list[dict[str, Any]],
+    thresholds: tuple[float, ...] = tuple(SELECTIVE_THRESHOLDS),
+) -> dict[str, Any]:
     conf_fn = CONFIDENCE_FNS[arm]
     confidences: list[float] = []
     correctness: list[bool] = []
@@ -294,7 +305,7 @@ def evaluate_arm(arm: str, cases: list[dict[str, Any]]) -> dict[str, Any]:
 
     selective = {
         f"{tau:.2f}": selective_metrics_at(confidences, correctness, tau)
-        for tau in SELECTIVE_THRESHOLDS
+        for tau in thresholds
     }
 
     return {
@@ -386,6 +397,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tau", type=float, default=REPORT_TAU,
                         help=f"Reporting threshold (default: {REPORT_TAU})")
     args = parser.parse_args(argv)
+    try:
+        thresholds = reporting_thresholds(args.tau)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     try:
         cases = load_results(args.input)
@@ -396,7 +411,7 @@ def main(argv: list[str] | None = None) -> int:
     results: dict[str, dict[str, Any]] = {}
     for arm in ARMS:
         try:
-            results[arm] = evaluate_arm(arm, cases)
+            results[arm] = evaluate_arm(arm, cases, thresholds=thresholds)
         except RuntimeError as exc:  # leakage guard
             print(f"ABORTING for arm '{arm}': {exc}", file=sys.stderr)
             return 3
@@ -414,7 +429,7 @@ def main(argv: list[str] | None = None) -> int:
             "input_file": str(args.input),
             "n_cases": len(cases),
             "arms": list(results.keys()),
-            "selective_thresholds": SELECTIVE_THRESHOLDS,
+            "selective_thresholds": list(thresholds),
             "report_tau": args.tau,
             "ece_config": {"n_bins": 10, "strategy": "uniform"},
             "notes": (

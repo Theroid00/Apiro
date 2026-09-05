@@ -244,6 +244,20 @@ class TestAurcHelpers:
         assert _aurc_from_ranking(empty, empty) == 0.0
         assert _optimal_aurc(empty) == 0.0
 
+    def test_tied_confidences_are_permutation_invariant(self):
+        conf = np.array([0.8, 0.5, 0.5, 0.2])
+        errors_a = np.array([0.0, 0.0, 1.0, 1.0])
+        errors_b = np.array([0.0, 1.0, 0.0, 1.0])
+        assert _aurc_from_ranking(conf, errors_a) == pytest.approx(
+            _aurc_from_ranking(conf, errors_b)
+        )
+
+    def test_all_equal_confidence_is_order_invariant(self):
+        conf = np.full(4, 0.5)
+        expected = 0.25
+        assert _aurc_from_ranking(conf, np.array([0.0, 0.0, 1.0, 1.0])) == pytest.approx(expected)
+        assert _aurc_from_ranking(conf, np.array([1.0, 0.0, 1.0, 0.0])) == pytest.approx(expected)
+
 
 # --------------------------------------------------------------------------- #
 # Selective abstention

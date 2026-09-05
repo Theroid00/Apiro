@@ -391,9 +391,17 @@ def _aurc_from_ranking(
     else:
         order = np.argsort(-confidences)
 
+    sorted_confidences = confidences[order]
     sorted_errors = errors[order]
-    cum_errors = np.cumsum(sorted_errors)
-    k = np.arange(1, n + 1, dtype=np.float64)
+
+    # A threshold cannot distinguish examples with identical confidence.
+    # Emit one point only after each complete tie block, making the metric
+    # invariant to input order within that block.
+    block_ends = np.flatnonzero(
+        np.r_[sorted_confidences[1:] != sorted_confidences[:-1], True]
+    )
+    cum_errors = np.cumsum(sorted_errors)[block_ends]
+    k = (block_ends + 1).astype(np.float64)
 
     coverage = k / n
     selective_risk = cum_errors / k
