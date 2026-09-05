@@ -10,6 +10,12 @@ repository after the canonical directory refactor. It is a technical review,
 not an implementation record. The corresponding implementation priorities and
 acceptance criteria are developed further in `docs/IMPROVEMENT_ROADMAP.md`.
 
+> **Implementation status:** the correctness findings in sections 1–9 were
+> addressed on `feature/adversarial-benchmark-suite`. This document remains the
+> audit record explaining their origin. See the roadmap's implementation update
+> and `docs/IMPROVEMENTS.md` for current status. Performance recommendations
+> beyond run manifests and stage timing remain open.
+
 ## Overall assessment
 
 The tracked code was unchanged from the earlier review and remained at commit
@@ -302,4 +308,3 @@ concurrency levels before selecting a worker count.
 9. Build and evaluate a held-out answer-confidence calibrator.
 10. Extract runtime construction, synthesis, benchmark runners, and web service
     boundaries after the behavioral fixes are covered by tests.
-

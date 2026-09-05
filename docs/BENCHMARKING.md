@@ -12,9 +12,32 @@ Ollama and a built ChromaDB corpus; the offline step needs neither.
 ./run_eval.sh              # the real run: hours
 ```
 
-That is everything — preflight, tests, dataset downloads, case generation, all
-four benchmarks, calibration. Stages run in dependency order, each logs to
+That is everything — preflight, tests, dataset downloads, case generation,
+adversarial and general benchmarks, calibration. Stages run in dependency order, each logs to
 `data/logs/<stage>.log`, and the run stops at the first failure.
+
+## Current benchmark order
+
+1. **MedEinst** is the primary external mechanism benchmark. Its paired control
+   and trap cases directly measure retention of the prior diagnosis after
+   discriminative evidence flips the correct answer. Run
+   `python scripts/run_medeinst_eval.py --n-pairs 60`.
+2. **MedDistractQA** measures invariance to irrelevant clinical-looking text.
+   Apiro evaluates only `Patient Care: Diagnosis` rows and reports matched-pair
+   retention. Run `python scripts/run_meddistractqa_eval.py --n 100`.
+3. **C-NIAH** remains an internal mechanism-development benchmark. Generate it
+   with `--counterfactual`; the currently committed 120-case file is not
+   counterfactual and does not exercise Bias Trap Rate.
+4. **DDXPlus and CUPCase** provide exploratory external accuracy. CUPCase's
+   distractors are frequently near-equivalent to the answer and must not be
+   described as adversarial trap evidence.
+5. **MINT-style evaluation** is optional because the paper currently links no
+   official public data repository. Provide `MINT_DATASET=/path/to/file.json`.
+
+New adversarial runs write `manifest.json`, `results.json`, and isolated logs to
+`data/runs/<run-id>/`; creation fails if the directory already exists. Before a
+live run, execute `python scripts/validate_corpus.py` so corpus drift is an
+explicit integration failure rather than a machine-dependent unit-test result.
 
 **Do the `--quick` run first on a new machine.** It exercises every stage at a
 tiny N, so a broken Ollama, an empty corpus or a failed download surfaces in
@@ -596,4 +619,3 @@ before comparing arms again.
 - If a comparison does not reach significance, say so. "Consistent with a
   substantial advantage, and underpowered to demonstrate one" is a defensible
   claim. "+28% lift" without a p-value is not.
-

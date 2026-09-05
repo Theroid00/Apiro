@@ -262,3 +262,18 @@ Here is the commit-by-commit record of the Apiro codebase:
 | **Hybrid Apiro (Pre-Audit)**| `pmc_cases.json` | 30% - 40% | Average runtime optimized down to ~28s using parallel execution and batched GPU tensor checks. |
 | **Hybrid Apiro (Audited)** | `pmc_cases.json` ($N=10$) | 20% (Real Ollama) | Correctly solved Case 4 (Colon cancer) by rejecting Crohn's distractor via NLI contradiction. |
 | **Hybrid Apiro (C-NIAH)** | `niah_cases.json` ($N=25$) | **68.0%** 🏆 | **+28.0% over RAG (40.0%)**. 88.9% on Contradiction Needles, 75.0% on Multi-Needles, 100% on 8k deep haystacks. |
+
+### Phase 15: Trustworthy Adversarial Evaluation (September 2026)
+
+The benchmark strategy moved from aggregate accuracy toward paired robustness.
+MedEinst is now the primary external test of the mechanism, using exact
+control-diagnosis retention Bias Trap Rate. MedDistractQA supplies matched
+clean/distracted diagnosis cases. A MINT-style runner records commitment and
+revision across incremental evidence turns.
+
+The supporting correctness work isolates mutable traversal state per run,
+preserves complete narratives, selects long context across auditable source
+spans, fixes tied-confidence AURC and arbitrary thresholds, reports full timing,
+and separates hermetic tests from live-corpus validation. New adversarial runs
+use immutable manifests beneath `data/runs/`. No live benchmark was executed in
+this phase, so all accuracy tables above remain historical and non-reportable.

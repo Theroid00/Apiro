@@ -55,6 +55,7 @@ data/datasets/
 # =========================
 # Per-case traversal traces, one file per case per run.
 data/traversal_log_*.jsonl
+data/runs/*/logs/
 data/graph_*.json
 data/graph_*.html
 data/corpus_stats.json

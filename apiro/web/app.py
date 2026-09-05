@@ -5,7 +5,7 @@ scripts/app.py
 FastAPI web interface for Apiro — with live SSE streaming.
 
 Run with:
-  uvicorn scripts.app:app --host 127.0.0.1 --port 8000
+  python -m apiro.web
 
 Features:
   - /run/stream  : Server-Sent Events endpoint — streams each traversal step

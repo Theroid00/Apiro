@@ -2,7 +2,7 @@
 
 > **Entropy-first clinical reasoning that refuses to hallucinate.**
 
-Apiro is an **entropy-guided clinical reasoning engine** that constructs and traverses a **Belief Graph**, prioritizing exploration by a bounded uncertainty score derived from the LLM's own self-assessed diagnostic breadth, and soft-pruning contradictory beliefs via a **keyword pre-filter + LLM-judge pipeline**. It is purpose-built to eliminate hallucination in complex, **distractor-heavy** medical cases, where irrelevant, misleading, or contradictory findings routinely derail conventional LLM and RAG pipelines.
+Apiro is an **entropy-guided clinical reasoning engine** that constructs and traverses a **Belief Graph**. It prioritizes findings by diagnostic breadth and deeper hypotheses by the binary entropy of the model's verbalized patient-specific confidence. A keyword pre-filter plus LLM judge soft-prunes hypotheses that contradict deterministic clinical anchors. Apiro is a research system for studying distractor-heavy medical reasoning; it is not a validated clinical decision-support product.
 
 Rather than emitting a single greedy chain of thought, Apiro anchors on **deterministic certainties**, quantifies its own **epistemic uncertainty**, explores hypotheses only where uncertainty is high, and actively **prunes contradictory beliefs** before synthesizing a differential.
 
@@ -15,7 +15,7 @@ Rather than emitting a single greedy chain of thought, Apiro anchors on **determ
 - [Empirical Benchmark Results](#empirical-benchmark-results)
   - [Clinical Needle-In-A-Haystack (C-NIAH)](#clinical-needle-in-a-haystack-c-niah)
   - [Real-World PMC Reports](#real-world-pmc-reports)
-  - [CUPCase (implemented, not yet run)](#reproducing-the-benchmarks)
+  - [Current evidence status](#empirical-benchmark-results)
 - [Safety, Calibration & Selective Abstention](#safety-calibration--selective-abstention)
 - [Literature Grounding](#literature-grounding)
 - [Systems Optimizations](#systems-optimizations)
@@ -38,10 +38,10 @@ Modern clinical vignettes are adversarial by nature: they bury the diagnostic si
 Apiro takes a different stance. It treats reasoning as **entropy reduction over a Belief Graph**:
 
 1. **Certainties first.** Deterministic axioms (verified entities, structured labs) form the graph's zero-uncertainty root.
-2. **Explore only where uncertain.** A bounded uncertainty score — the LLM's self-assessed count of plausible alternative diagnoses for a claim, mapped onto the same [0, ln 2] range true Shannon entropy would occupy — directs retrieval and expansion toward the highest-uncertainty hypotheses.
+2. **Explore only where uncertain.** Depth-0 findings use self-assessed diagnostic breadth. Generated hypotheses use binary entropy derived from verbalized confidence for this patient. Both are bounded traversal heuristics rather than token-distribution entropy.
 3. **Prune contradictions.** A two-stage pipeline (a cheap keyword/antonym pre-filter, then an LLM judge for pairs that survive it) soft-prunes beliefs that contradict established axioms.
 4. **Halt on saturation.** An epistemic critic stops exploration once additional evidence no longer reduces entropy.
-5. **Know when to abstain.** Calibrated confidence lets Apiro *decline to answer* rather than emit a confidently wrong differential.
+5. **Measure abstention.** Unanswerable benchmarks may enable an experimental abstention path. The current confidence function is not a fitted calibrator.
 
 The result is a system that **rejects distractors instead of rationalizing them** — and, when the evidence is insufficient, **abstains instead of hallucinating**.
 
@@ -115,12 +115,14 @@ The result is a system that **rejects distractors instead of rationalizing them*
 | Explore | Depth ≥ 1 via Medical Corpus RAG | Entropy-guided hypothesis expansion |
 | Prune | Two-Stage Contradiction Check (keyword/antonym filter → LLM judge) | Contradiction soft-pruning |
 | Halt | Epistemic Saturation Critic | Stops on entropy saturation |
-| Calibrate | Confidence Calibration & Selective Abstention | Calibrated confidence; abstain below threshold τ |
+| Calibrate | Confidence Diagnostics & Selective Abstention | Experimental confidence ranking; optional abstention |
 | Synthesize | Etiology Differential Synthesis | Final grounded differential |
 
 ---
 
 ## Empirical Benchmark Results
+
+> **Historical results only.** No adequately powered evaluation has been run after the posterior-signal, abstention, parsing, context-preservation, and metric fixes. The tables below document earlier artifacts and must not be read as the current system's performance. The primary next evaluation is MedEinst Bias Trap Rate, followed by diagnosis-only MedDistractQA retention.
 
 > **The results below predate a measurement fix and will change.** Two defects
 > were suppressing the Apiro arm specifically: 57% of its answer slots held
@@ -199,7 +201,7 @@ We additionally evaluated on **N = 10** real-world PubMed Central (PMC) case rep
 
 ## Safety, Calibration & Selective Abstention
 
-Accuracy alone is an incomplete picture of clinical trustworthiness. A system that is *confidently wrong* is more dangerous than one that knows when to defer. **Pillar 3** evaluates whether Apiro's confidence estimates are **calibrated** and whether **selective abstention** meaningfully reduces risk. It is implemented in `apiro/eval/calibration.py` and driven by `scripts/run_safety_calibration_eval.py`.
+Accuracy alone is an incomplete picture of clinical trustworthiness. **Pillar 3** diagnoses whether Apiro's confidence estimates are calibrated and measures selective abstention behavior. The current signal is explicitly a heuristic placeholder, so this is instrumentation rather than a validated safety claim. It is implemented in `apiro/eval/calibration.py` and driven by `scripts/run_safety_calibration_eval.py`.
 
 **Metrics reported**
 
@@ -292,7 +294,35 @@ cp .env.example .env
 
 ## Reproducing the Benchmarks
 
-The `--real` flag runs the full pipeline against live model/retrieval backends (as opposed to cached/offline fixtures). `./run_eval.sh <target>` wraps all four.
+The `--real` flag runs the full pipeline against live model/retrieval backends. New adversarial benchmark runs are written beneath `data/runs/<run-id>/` with immutable manifests; an existing run is never overwritten.
+
+**MedEinst — primary external mechanism benchmark**
+
+```bash
+python scripts/fetch_datasets.py --only medeinst
+python scripts/run_medeinst_eval.py --n-pairs 60
+python scripts/run_medeinst_eval.py --dataset-json tests/fixtures/medeinst_smoke.jsonl --describe-only
+```
+
+MedEinst provides paired control and counterfactual trap narratives. The primary endpoint is the conditional Bias Trap Rate: among controls an arm solves, how often does its trap prediction retain the control diagnosis after discriminative evidence changes the correct answer? The runner also stores pair resilience and diagnosis-rank transitions.
+
+**MedDistractQA — irrelevant-information robustness**
+
+```bash
+python scripts/fetch_datasets.py --only meddistract
+python scripts/run_meddistractqa_eval.py --n 100
+```
+
+The runner deliberately selects only `Patient Care: Diagnosis` rows because Apiro produces diagnoses while the full MedQA-derived set also asks management, ethics, and mechanism questions. It reconstructs a clean case by removing the released `distracting_sentence`, evaluates the matched distracted case, and reports accuracy degradation, retention, and top-1 flips.
+
+**MINT-style incremental evaluation**
+
+```bash
+MINT_DATASET=/path/to/mint.json ./run_eval.sh mint
+python scripts/run_mint_eval.py --dataset-json tests/fixtures/mint_smoke.json --describe-only
+```
+
+The MINT paper does not currently link an official public dataset repository. The runner therefore requires a local JSON file with `case_id`, `ground_truth`, and ordered evidence `turns`. It records first commitment, early commitment, correction direction, final accuracy, and lure failures without claiming the bundled smoke fixture is MINT data.
 
 **DDXPlus** — *external, with a ranked reference differential*
 
@@ -303,14 +333,14 @@ python scripts/run_ddxplus_eval.py --n 60
 
 [DDXPlus](https://arxiv.org/abs/2205.09148) (CC-BY, 1.3M synthetic patients, 49 pathologies) is the only set here that ships a ground-truth **ranked differential** rather than a single label — which is what makes top-k and MRR meaningful, and enables a differential-overlap report (recall@5, precision@5, top-1 agreement) that single-label accuracy cannot produce. It is also the substrate [MedEinst](https://arxiv.org/abs/2601.06636) built its counterfactual traps from.
 
-**CUPCase distractor-resilience benchmark** — *external, with curated distractors*
+**CUPCase differential benchmark** — *external, exploratory*
 
 ```bash
 python scripts/run_cupcase_eval.py --n 50
 python scripts/run_cupcase_eval.py --n 20 --describe-only   # inspect the case set, no model calls
 ```
 
-CUPCase (`ofir408/CupCase`, 3,562 real clinical cases) is public, held out, and — the reason it belongs here specifically — **ships three curated distractors per case**. That makes distractor rejection directly measurable rather than inferred from an accuracy gap: the harness reports how often each arm's *leading* diagnosis is one of the case's designed wrong answers. Unlike C-NIAH, neither the cases nor the distractors come from this repository.
+CUPCase (`ofir408/CupCase`, 3,562 real clinical cases) is public and held out. Its so-called distractors are often ICD-level near-matches or components of the correct answer, so distractor-selection rate is not a valid adversarial endpoint here. Use it for exploratory top-k accuracy. The adapter now preserves the complete source narrative instead of rebuilding it from a 400-character finding.
 
 It reports top-1 / top-3 / top-5 accuracy, Mean Reciprocal Rank, the distractor-selection rate, Wilson intervals per arm, and a paired bootstrap CI plus exact McNemar test against the bare-LLM baseline. The dataset downloads via HuggingFace `datasets` on first run and is cached thereafter.
 
@@ -341,8 +371,8 @@ The committed results were computed on 25 cases, which is not enough to resolve 
 ./run_eval.sh              # the real run
 ```
 
-It runs preflight checks, the offline test suite, the dataset downloads, case
-generation, all four benchmarks and the calibration pass, in dependency order,
+It runs preflight checks, the offline test suite, dataset downloads, case
+generation, adversarial and general benchmarks, and the calibration pass in dependency order,
 logging each stage to `data/logs/`. `./run_eval.sh --help` lists the stages.
 
 **Before running anything**, read [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md):
@@ -361,7 +391,7 @@ python scripts/run_safety_calibration_eval.py --input data/niah_eval_results.jso
 ```
 
 - `--input` — path to a results JSON produced by an evaluation run (e.g., `run_niah_eval.py`).
-- `--tau` — abstention threshold; cases whose calibrated confidence is below `τ` are abstained on when computing selective-prediction metrics.
+- `--tau` — operating threshold applied to the current heuristic confidence signal. Arbitrary values in `[0, 1]` are supported.
 
 The script emits calibration metrics (ECE, Brier), the risk–coverage curve and its AURC, and the coverage/risk operating point at the chosen `τ`.
 
@@ -373,7 +403,7 @@ Apiro ships with an interactive Web UI for inspecting the Belief Graph, entropy 
 
 ```bash
 # Launch the Web UI
-uvicorn scripts.app:app --host 127.0.0.1 --port 8000
+python -m apiro.web
 ```
 
 Then open your browser to:
@@ -389,7 +419,6 @@ From the UI you can:
 - Observe **entropy-guided expansion** at Depth ≥ 1.
 - Inspect **contradiction soft-pruning** decisions (keyword/antonym filter vs. LLM judge) per belief edge.
 - View the **halting critic's** saturation signal and the final **etiology differential**.
-- Read the **calibrated confidence** and whether the case was **answered or abstained** at the configured threshold.
 
 ---
 
@@ -406,31 +435,39 @@ Apiro/
 │   │   ├── clinical_case_adapter.py  # CUPCase / VivaBench loaders (drives the CUPCase benchmark)
 │   │   ├── ddxplus_adapter.py       # DDXPlus rows -> readable notes + reference differential
 │   │   └── mimic_adapter.py     # MIMIC-III demo loader — available, no benchmark wired to it yet
-│   ├── entropy/engine.py        # Differential-breadth uncertainty signal
+│   ├── application/runtime.py   # Shared heavy resources + isolated per-run traversal factory
+│   ├── context.py               # Evidence-aware bounded-context selection with source spans
+│   ├── entropy/engine.py        # Breadth (findings) + posterior uncertainty (hypotheses)
 │   ├── eval/
 │   │   ├── evaluator.py         # Concept-normalization match cascade
 │   │   ├── metrics.py           # Top-k, MRR, distractor rate, Wilson/bootstrap CI, exact McNemar
 │   │   ├── calibration.py       # ECE, Brier, Risk–Coverage AURC, selective abstention
+│   │   ├── adversarial.py       # MedEinst and MedDistractQA paired metrics
+│   │   ├── incremental.py       # Persistent evidence sessions and MINT-style metrics
+│   │   ├── manifest.py          # Immutable experiment provenance
 │   │   └── harness.py           # Shared live-component wiring for every benchmark
 │   ├── graph/
 │   │   ├── traversal.py         # The entropy-first traversal loop
 │   │   ├── expander.py          # RAG + LLM node expansion and final synthesis
 │   │   └── contradiction.py     # O(1) memoized keyword pre-filter + LLM-judge soft-pruning
-│   ├── patient/                 # DEPRECATED, unused — see docs/IMPROVEMENTS.md
 │   ├── config.py                # All tuneable parameters
 │   └── llm_client.py            # Shared OllamaLLMClient
 ├── scripts/
-│   ├── app.py                            # Web UI (uvicorn scripts.app:app)
-│   ├── fetch_datasets.py                 # Download + schema-verify CUPCase and DDXPlus
+│   ├── app.py                            # Compatibility import for apiro.web.app
+│   ├── fetch_datasets.py                 # Download + schema-verify external datasets
+│   ├── run_medeinst_eval.py              # Paired counterfactual Bias Trap Rate
+│   ├── run_meddistractqa_eval.py         # Diagnosis-only distraction retention
+│   ├── run_mint_eval.py                  # Incremental evidence/commitment evaluation
 │   ├── run_ddxplus_eval.py               # DDXPlus benchmark (ranked reference differential)
 │   ├── investigate.py                    # CLI entry point
 │   ├── build_niah_cases.py               # Generates data/niah_cases.json
 │   ├── generate_pmc_cases.py             # Generates data/pmc_cases.json
-│   ├── run_cupcase_eval.py               # CUPCase distractor-resilience benchmark
+│   ├── run_cupcase_eval.py               # CUPCase exploratory differential benchmark
 │   ├── run_pmc_eval.py                   # Real-world PMC benchmark
 │   ├── run_niah_eval.py                  # C-NIAH benchmark
 │   ├── run_safety_calibration_eval.py    # Safety / calibration / selective-abstention eval
-│   └── repair_corpus.py                  # Backfills missing corpus metadata
+│   ├── repair_corpus.py                  # Backfills missing corpus metadata
+│   └── validate_corpus.py                # Explicit live-corpus integration check
 ├── tests/                       # Offline suite — no Ollama, ChromaDB or model download
 ├── data/
 │   ├── axiom_weights.yaml       # Hand-curated diagnostic-specificity weights

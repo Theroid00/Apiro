@@ -8,6 +8,22 @@ what's left.
 
 ## Fixed, with rationale (so it stays fixed)
 
+### Trustworthy adversarial execution (September 2026)
+
+The web service and evaluation harnesses previously reused one mutable
+`ApiroTraversal`; CUPCase discarded narrative text after character 400;
+posterior scoring retained only a 3,000-character prefix; AURC depended on the
+file order of tied confidences; custom calibration thresholds crashed; timing
+excluded synthesis; and an offline test sampled the developer's ChromaDB.
+
+These are now fixed. `apiro/application/runtime.py` owns shared heavy resources
+and constructs run-local state. `apiro/context.py` selects auditable source
+spans across long notes. Calibration uses threshold-reachable tie blocks.
+`scripts/validate_corpus.py` owns live schema checks. MedEinst,
+MedDistractQA, and MINT-style runners store immutable run manifests. Regression
+coverage is entirely offline, including representative released-schema smoke
+fixtures.
+
 ### Premature saturation
 `SaturationDetector` fires when a window of recent entropy scores has a low
 mean, low variance, and a flat trend — meant to detect that the engine has
@@ -217,14 +233,6 @@ matter to someone reading the code closely:
   "Hemoglobin of 9.5 g/dL" fix above). Expect more of the same as the
   corpus grows; there's no principled parser here, just an accumulating
   set of patterns.
-- **`apiro/patient/context.py` is unused, and now explicitly marked so.** A
-  complete module for structured patient-context extraction, built for the
-  hypothesis-testing architecture purged in `8a001c7`. It carries a
-  deprecation banner and is retained on purpose: the open question is whether
-  seed selection would be better anchored on structured fields (age, sex, a
-  parsed lab dict) than on free text, and this is the working implementation
-  of that idea. Decide the question or delete the module; do not add callers
-  in the meantime.
 - **`apiro/corpus/mimic_adapter.py` has no benchmark wired to it.** It is
   complete and unit-tested (`tests/test_mimic_adapter.py`) but no harness
   calls it — the same state `clinical_case_adapter.py` was in before the
@@ -250,10 +258,11 @@ matter to someone reading the code closely:
 - **C-NIAH is self-authored end to end.** The cases, the needles, the
   distractors and the stub responses that recover them all come from
   `scripts/build_niah_cases.py` in this repository. It is a good instrumented
-  probe that the mechanism fires; it is not independent evidence. The CUPCase
-  benchmark (`scripts/run_cupcase_eval.py`) exists to supply the external
-  counterpart — **it has been implemented but not yet run**, so there are no
-  results for it.
+  probe that the mechanism fires; it is not independent evidence. Historical
+  CUPCase runs exist, but its distractors often collapse to the answer and do
+  not provide the needed adversarial endpoint. MedEinst is now the external
+  paired counterpart; its harness is implemented but has not yet produced a
+  powered live result.
 - **`data/pmc_cases.json` needs regenerating.** Four of ten ground-truth
   labels are unusable prose (see the fixed-items section). The generator is
   fixed; the data is not.
