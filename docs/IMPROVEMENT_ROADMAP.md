@@ -24,6 +24,12 @@ in reviewable slices:
 - shared bounded Ollama scheduling with per-case call, retry, failure, timeout,
   token, queue-time, and inference-time telemetry.
 
+RABBITS and KGGDG remain documented upstream tools rather than Apiro runners.
+Both evaluate or generate multiple-choice options, whereas Apiro emits a
+free-text diagnostic differential. A future integration must first define a
+paired narrative-level diagnosis transformation so it measures robustness
+instead of output-interface mismatch.
+
 The remaining corpus-schema mismatch must be resolved by running
 `python scripts/validate_corpus.py` on the target corpus and either repairing
 missing `evidence_level` metadata or explicitly revising the schema. Retrieval

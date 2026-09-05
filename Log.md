@@ -283,3 +283,9 @@ process-level scheduler. Each adversarial case records calls by purpose,
 retries, failures, timeouts, Ollama prompt/completion tokens, queue time, and
 inference time. `APIRO_MAX_MODEL_CONCURRENCY` controls the shared limit and
 defaults to two concurrent requests.
+
+RABBITS and KGGDG were reviewed but not labeled as Apiro benchmarks: their
+published contract is multiple-choice option selection or generation, while
+Apiro produces a ranked diagnostic differential. The benchmarking guide records
+the official upstream implementations and the narrative-level paired contract
+required for a valid future adaptation.

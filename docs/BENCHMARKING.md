@@ -34,6 +34,28 @@ adversarial and general benchmarks, calibration. Stages run in dependency order,
 5. **MINT-style evaluation** is optional because the paper currently links no
    official public data repository. Provide `MINT_DATASET=/path/to/file.json`.
 
+## Related perturbation work with a different task contract
+
+Two useful robustness projects are deliberately not presented as Apiro
+three-arm benchmarks:
+
+- [RABBITS](https://github.com/BittermanLab/RABBITS) swaps brand and generic
+  drug names in MedQA and MedMCQA multiple-choice questions. Its endpoint is
+  answer-choice accuracy, while Apiro returns a free-text ranked diagnosis and
+  cannot answer many pharmacology questions in that corpus. Treating an empty
+  diagnosis list as a wrong MCQ choice would measure interface mismatch rather
+  than lexical robustness.
+- [KGGDG](https://github.com/ryyrn/Knowledge_Graph_Guided_Distractor_Generation)
+  is an upstream data-generation pipeline. It performs semantic walks over
+  PrimeKG and asks a generation model to replace incorrect MCQ options. It is
+  useful when building a harder choice-selection benchmark, but those options
+  are never shown to Apiro's diagnostic engine.
+
+Use the upstream implementations for their published MCQ endpoints. To test
+the same mechanisms in Apiro, transform diagnosis cases at the narrative level
+and retain a paired clean/perturbed diagnosis label; the MedDistractQA runner
+already enforces that contract for irrelevant-text perturbations.
+
 New adversarial runs write `manifest.json`, `results.json`, and isolated logs to
 `data/runs/<run-id>/`; creation fails if the directory already exists. Before a
 live run, execute `python scripts/validate_corpus.py` so corpus drift is an
