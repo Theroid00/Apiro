@@ -6,16 +6,18 @@ import hashlib
 import time
 
 from apiro.graph.belief_graph import BeliefGraph
-from apiro.parsing import parse_differential
+from apiro.parsing import ABSTENTION_SENTINEL, parse_differential
 
 
 BARE_PROMPT = """Read the clinical presentation and list the top {n} differential diagnoses, most likely first.
 Output only diagnosis names, one per line, with no numbering or explanation.
+If the available evidence is insufficient, reply exactly {abstain}.
 
 {narrative}"""
 
 RAG_PROMPT = """Read the clinical presentation and retrieved medical context and list the top {n} differential diagnoses, most likely first.
 Output only diagnosis names, one per line, with no numbering or explanation.
+If the available evidence is insufficient, reply exactly {abstain}.
 
 Clinical presentation:
 {narrative}
@@ -26,18 +28,18 @@ Retrieved context:
 
 def evaluate_narrative_case(
     *, case_name: str, narrative: str, resources, n_diagnoses: int = 3,
-    max_depth: int = 6, log_dir=None,
+    max_depth: int = 6, log_dir=None, allow_abstention: bool = False,
 ) -> dict:
     """Evaluate bare, RAG and isolated Apiro arms with equal answer budgets."""
     started = time.time()
     bare_raw = resources.llm_client.generate(
-        BARE_PROMPT.format(n=n_diagnoses, narrative=narrative)
+        BARE_PROMPT.format(n=n_diagnoses, narrative=narrative, abstain=ABSTENTION_SENTINEL)
     )
     bare = parse_differential(bare_raw, limit=n_diagnoses)
 
     rag_chunks = resources.embedder.query(narrative, n_results=6)
     rag_raw = resources.llm_client.generate(RAG_PROMPT.format(
-        n=n_diagnoses, narrative=narrative,
+        n=n_diagnoses, narrative=narrative, abstain=ABSTENTION_SENTINEL,
         context="\n\n".join(chunk["text"] for chunk in rag_chunks),
     ))
     rag = parse_differential(rag_raw, limit=n_diagnoses)
@@ -45,7 +47,8 @@ def evaluate_narrative_case(
     from apiro.axioms.seeding import build_seeds
 
     traversal = resources.create_traversal(
-        n_diagnoses=n_diagnoses, log_dir=log_dir
+        n_diagnoses=n_diagnoses, log_dir=log_dir,
+        allow_abstention=allow_abstention,
     )
     graph = BeliefGraph()
     seeds, axioms, enriched = build_seeds(narrative, resources.axiom_extractor)

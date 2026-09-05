@@ -1,0 +1,11 @@
+[
+  {
+    "case_id": "mint-smoke-1",
+    "ground_truth": "Pheochromocytoma",
+    "turns": [
+      {"text": "A 42-year-old has episodic headaches.", "category": "chief_complaint"},
+      {"text": "Blood pressure is 210/110 during attacks.", "category": "vitals", "is_lure": true},
+      {"text": "Plasma metanephrines are markedly elevated.", "category": "laboratory"}
+    ]
+  }
+]
