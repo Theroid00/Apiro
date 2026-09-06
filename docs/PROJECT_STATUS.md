@@ -17,8 +17,8 @@ Apiro outperforms Standard RAG or a bare LLM.
 - Preserved complete clinical narratives and added evidence-aware context
   selection for long cases.
 - Made answer parsing and output budgets consistent across all comparison arms.
-- Added immutable run manifests, dataset revisions, content hashes, and Git
-  provenance.
+- Added immutable run manifests with dataset revision fields, content hashes,
+  and Git provenance; the MedEinst runner uses revision `354f4b5`.
 - Added bounded model concurrency plus per-purpose call, token, queue, and
   inference telemetry.
 - Corrected AURC tie handling and arbitrary calibration thresholds.

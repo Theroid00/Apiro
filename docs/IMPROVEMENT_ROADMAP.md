@@ -9,7 +9,8 @@ This document outlines the next improvements for Apiro, with emphasis on:
 - a code structure that makes experiments easier to trust.
 
 `docs/IMPROVEMENTS.md` records earlier defects and their fixes. This roadmap
-focuses on work that remains.
+focuses on work that remains. `docs/PROJECT_STATUS.md` is the shorter current
+status and execution checklist.
 
 ## Implementation update — adversarial benchmark branch
 
@@ -19,7 +20,7 @@ in reviewable slices:
 - per-request and per-case traversal state, unique web run ids, and safe runtime construction;
 - complete source narratives, evidence-aware long-context selection, stable cache keys, and full run timing;
 - tie-invariant AURC and validated arbitrary calibration thresholds;
-- hermetic unit tests plus an explicit live-corpus validator; and
+- hermetic unit tests plus an explicit live-corpus validator;
 - MedEinst, diagnosis-only MedDistractQA, and MINT-style incremental harnesses with immutable manifests; and
 - shared bounded Ollama scheduling with per-case call, retry, failure, timeout,
   token, queue-time, and inference-time telemetry.
@@ -34,8 +35,9 @@ The remaining corpus-schema mismatch must be resolved by running
 `python scripts/validate_corpus.py` on the target corpus and either repairing
 missing `evidence_level` metadata or explicitly revising the schema. Retrieval
 and graph-event counters still need to be added to complete every item in
-Milestone B. Milestone D still needs powered live runs; no new performance claim
-was produced by this implementation work.
+Milestone B. A five-pair MedEinst smoke run exercised the live stack but had
+only one BTR-eligible pair per arm. Milestone D still needs powered live runs;
+the smoke result supports no comparative performance claim.
 
 ## Current baseline
 

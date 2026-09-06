@@ -107,16 +107,13 @@ class BeliefGraph:
         """
         Register the patient's presentation as the relevance anchor.
 
-        The entropy signal in this engine is *differential breadth*: how many
-        diagnoses a claim is compatible with, measured on the claim alone. That
-        number is a property of the sentence, not of the patient — so a pure
-        entropy-first frontier prefers the vaguest available claim ("chest pain
-        has many causes", 0.693) over the sharpest one ("aquaporin-4 antibodies
-        indicate NMOSD", 0.10), and the engine spends its budget widening the
-        differential instead of resolving it.
+        Depth-0 findings use differential breadth. Generated hypotheses use
+        binary entropy derived from verbalized patient-specific confidence.
+        Either signal alone can favor a vague but irrelevant claim, so the
+        anchor keeps traversal priority tied to the full presentation.
 
-        With an anchor set, exploration priority becomes uncertainty *about
-        this patient*: entropy scaled by how close the claim sits to the case.
+        With an anchor set, exploration priority becomes entropy scaled by how
+        close the claim sits to the case.
         Without one the frontier falls back to raw entropy, so this is opt-in
         and never changes behaviour for callers that do not use it.
         """

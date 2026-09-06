@@ -320,7 +320,7 @@ class ApiroTraversal:
                     batch_pairs.append((new_node.claim, existing.claim))
                     batch_meta.append((new_node, existing))
 
-            # Run the batched NLI cross-encoder check
+            # Run the batched lexical-filter / LLM-judge contradiction check.
             if batch_pairs:
                 results = self.contradiction.check_batch(batch_pairs)
                 for (new_node, existing), result in zip(batch_meta, results):

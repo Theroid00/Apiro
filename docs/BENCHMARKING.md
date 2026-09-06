@@ -3,12 +3,15 @@
 What to run, in what order, and what to expect. Written for a machine with
 Ollama and a built ChromaDB corpus; the offline step needs neither.
 
+See [PROJECT_STATUS.md](PROJECT_STATUS.md) before scheduling a full run. It
+records the latest smoke result, current blockers, and definition of complete.
+
 ---
 
 ## TL;DR — one command
 
 ```bash
-./run_eval.sh --quick      # ~minutes: proves the whole pipeline works
+./run_eval.sh --quick      # ~minutes: exercises the whole pipeline
 ./run_eval.sh              # the real run: hours
 ```
 
@@ -115,40 +118,53 @@ checking beats discovering it in a results file.
 it records one defect that was silently depressing every arm (now fixed) and
 two limitations that are not fixable by editing the generator.
 
-Budget roughly 2–4 minutes per case per arm on a local 8B model. The default
-sizes (40 counterfactual pairs = 90 C-NIAH cases, plus 60 DDXPlus and 60
-CUPCase) are a multi-hour run.
+Budget from a measured pilot on the target host rather than a generic latency
+estimate. The five-pair MedEinst smoke run averaged 116.08 seconds per case
+variant across all three arms and took about 19.35 minutes for ten variants.
+Its 1,192 contradiction calls dominated the 1,814-call total, so a powered run
+remains a multi-hour job until pair selection is optimized.
 
 ---
 
 ## Choose the endpoint before choosing N
 
-### The short version
+### Primary external run
+
+```bash
+python scripts/fetch_datasets.py --only medeinst
+python scripts/validate_corpus.py
+python scripts/run_medeinst_eval.py --n-pairs 60 --seed 7
+```
+
+Use a sample size justified by a predeclared power analysis; `60` is the
+current execution default, not a universal guarantee of adequate power. Lead
+the mechanism evaluation with rank-1 Bias Trap Rate and its eligible-pair
+denominator.
+
+For prompt and mechanism development, use the internal C-NIAH analogue:
 
 ```bash
 python scripts/build_niah_cases.py --counterfactual --num-cases 40 --seed 7
-python scripts/run_niah_eval.py --cases data/niah_cases.json --real --out data/niah_eval_results.json
+python scripts/run_niah_eval.py --cases data/niah_cases.json --real \
+  --out data/niah_eval_results.json
 ```
 
-That is the run to lead with. It emits 40 counterfactual (control, trap) pairs
-plus 10 unanswerable cases, and produces the two endpoints that can actually
-falsify this architecture's claims.
+### Do these benchmarks ship their own data?
 
-### Do these benchmarks ship their own data? Mostly no.
-
-Short answer: **the designs and metrics are reusable, the datasets largely are
-not — but the source data underneath them is.**
+MedEinst, CUPCase, and DDXPlus have obtainable datasets. Other designs in this
+guide are reproduced from their published task definitions or require a local
+input file.
 
 | Benchmark | Data obtainable? | Metric reusable? | What we do |
 |---|---|---|---|
-| [MedEinst](https://arxiv.org/abs/2601.06636) | Not locatable. Jan 2026 preprint; no public repo or HF release found as of Aug 2026. Built **from DDXPlus**. | Yes — Bias Trap Rate is fully specified | Reimplemented the design; see the DDXPlus route below |
+| [MedEinst](https://arxiv.org/abs/2601.06636) | **Yes** — `zhui711/MedEinst` on Hugging Face; the runner loads revision `354f4b5` and records it in the manifest | Yes — rank-1 Bias Trap Rate | **Wired**: `scripts/run_medeinst_eval.py` |
 | [MedAbstain](https://arxiv.org/abs/2601.12471) | Not locatable | Yes — context-omission + explicit abstention option | Reimplemented as `--unanswerable-fraction` |
 | [DyReMe](https://arxiv.org/html/2510.09275) | Generates dynamically by design | Principle only | Reflected in generating cases per run |
 | [CUPCase](https://huggingface.co/datasets/ofir408/CupCase) | **Yes** — public HF dataset, 3,562 cases, 3 curated distractors each | Distractor-selection rate | **Already wired**: `scripts/run_cupcase_eval.py` |
 | [DDXPlus](https://huggingface.co/datasets/aai530-group6/ddxplus) | **Yes** — CC-BY, 1.3M patients, 49 pathologies, structured symptoms + **ground-truth differential** | Top-k, MRR, differential overlap | **Wired**: `scripts/run_ddxplus_eval.py` |
 
-Both external datasets are now wired, and `./run_eval.sh fetch` downloads and
-schema-checks them. DDXPlus matters most, because:
+The external datasets are wired, and `./run_eval.sh fetch` downloads and
+schema-checks them. DDXPlus remains useful because:
 
 - It is the substrate MedEinst was built from, so counterfactual traps
   constructed on it are the reference design rather than an imitation of it.
@@ -229,7 +245,7 @@ evidence that *the mechanism fires*, not evidence about clinical performance.
 | Does discriminative evidence override the prior? | **Yes** — the counterfactual traps test exactly this |
 | Does the engine fabricate when evidence is absent? | **Yes** — unanswerable cases test this directly |
 | Is Apiro more accurate than RAG on real patients? | **No** — use the CUPCase and DDXPlus stages |
-| Comparable to published MedEinst numbers? | **No** — different cases, different construction |
+| Is a C-NIAH result comparable to published MedEinst numbers? | **No** — different cases and construction; use the official MedEinst runner |
 
 Run it. Treat a positive result as "the mechanism works as designed", and read
 the CUPCase and DDXPlus tables for anything stronger — those are external data
@@ -241,7 +257,7 @@ and carry the external claim.
 
 | Benchmark | Idea taken | Applied here |
 |---|---|---|
-| [MedEinst](https://arxiv.org/abs/2601.06636) (2026) | Counterfactual control/trap pairs; **Bias Trap Rate** = P(wrong on trap \| right on control). 5,383 pairs, 49 diseases. Frontier models keep high accuracy yet show *severe* trap rates — they do not adjust when discriminative evidence changes. | `--counterfactual` |
+| [MedEinst](https://arxiv.org/abs/2601.06636) (2026) | Counterfactual control/trap pairs; **Bias Trap Rate** = P(rank-1 trap prediction retains the control diagnosis \| rank-1 control prediction is correct). | `scripts/run_medeinst_eval.py`; C-NIAH `--counterfactual` is an internal analogue |
 | [MedAbstain](https://arxiv.org/abs/2601.12471) (2026) | Context-omission perturbations with an explicit abstention option. Even high-accuracy models fail to abstain when uncertain. | `--unanswerable-fraction` |
 | [DyReMe](https://arxiv.org/html/2510.09275) (2025) | Real-world distractors, dynamic generation to avoid contamination. | `NEEDLE_BANK` widened to 20 diagnoses; cases generated per run, never checked in as a fixed set to memorise |
 | [CUPCase](https://huggingface.co/datasets/ofir408/CupCase) | Curated per-case distractors (3 per case) | `scripts/run_cupcase_eval.py` |

@@ -1,16 +1,24 @@
 # Apiro
 
-> **Entropy-first clinical reasoning that refuses to hallucinate.**
+> **Entropy-guided clinical reasoning under misleading context.**
 
 Apiro is an **entropy-guided clinical reasoning engine** that constructs and traverses a **Belief Graph**. It prioritizes findings by diagnostic breadth and deeper hypotheses by the binary entropy of the model's verbalized patient-specific confidence. A keyword pre-filter plus LLM judge soft-prunes hypotheses that contradict deterministic clinical anchors. Apiro is a research system for studying distractor-heavy medical reasoning; it is not a validated clinical decision-support product.
 
-Rather than emitting a single greedy chain of thought, Apiro anchors on **deterministic certainties**, quantifies its own **epistemic uncertainty**, explores hypotheses only where uncertainty is high, and actively **prunes contradictory beliefs** before synthesizing a differential.
+See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for the current completion
+state and ordered next steps. [`docs/INTERVIEW_TEXTBOOK.md`](docs/INTERVIEW_TEXTBOOK.md)
+is the implementation-accurate technical guide.
+
+Rather than emitting a single greedy chain of thought, Apiro anchors on
+**extracted findings**, uses an explicit **uncertainty heuristic** to choose
+what to explore, and lowers the priority of contradicted hypotheses before
+synthesizing a differential.
 
 ---
 
 ## Table of Contents
 
 - [Why Apiro](#why-apiro)
+- [Current Project Status](docs/PROJECT_STATUS.md)
 - [Architecture](#architecture)
 - [Empirical Benchmark Results](#empirical-benchmark-results)
   - [Clinical Needle-In-A-Haystack (C-NIAH)](#clinical-needle-in-a-haystack-c-niah)
@@ -37,13 +45,15 @@ Modern clinical vignettes are adversarial by nature: they bury the diagnostic si
 
 Apiro takes a different stance. It treats reasoning as **entropy reduction over a Belief Graph**:
 
-1. **Certainties first.** Deterministic axioms (verified entities, structured labs) form the graph's zero-uncertainty root.
+1. **Anchors first.** Extracted entities, structured labs, and vital signs form the graph's low-uncertainty roots.
 2. **Explore only where uncertain.** Depth-0 findings use self-assessed diagnostic breadth. Generated hypotheses use binary entropy derived from verbalized confidence for this patient. Both are bounded traversal heuristics rather than token-distribution entropy.
 3. **Prune contradictions.** A two-stage pipeline (a cheap keyword/antonym pre-filter, then an LLM judge for pairs that survive it) soft-prunes beliefs that contradict established axioms.
 4. **Halt on saturation.** An epistemic critic stops exploration once additional evidence no longer reduces entropy.
 5. **Measure abstention.** Unanswerable benchmarks may enable an experimental abstention path. The current confidence function is not a fitted calibrator.
 
-The result is a system that **rejects distractors instead of rationalizing them** — and, when the evidence is insufficient, **abstains instead of hallucinating**.
+The result is a system designed to lower the priority of contradicted paths and
+to measure whether uncertainty-aware exploration and experimental abstention
+improve robustness.
 
 ---
 
@@ -64,7 +74,7 @@ The result is a system that **rejects distractors instead of rationalizing them*
                                           ▼
                 ┌────────────────────────────────────────────────┐
                 │            Depth 0 — Certainty Anchors          │
-                │      Zero-entropy roots of the Belief Graph     │
+                │       Low-entropy roots of the Belief Graph     │
                 └─────────────────────────┬──────────────────────┘
                                           │  Uncertainty score H(·)
                                           │  directs expansion
@@ -93,15 +103,15 @@ The result is a system that **rejects distractors instead of rationalizing them*
                                           │
                                           ▼
                 ┌────────────────────────────────────────────────┐
-                │   Confidence Calibration & Selective Abstention │
-                │   Calibrated p(correct); abstain below τ        │
+                │   Confidence Diagnostics & Optional Abstention  │
+                │    Heuristic score; threshold is experimental   │
                 └─────────────────────────┬──────────────────────┘
                                           │
                                           ▼
                 ┌────────────────────────────────────────────────┐
                 │          Etiology Differential Synthesis        │
-                │   Ranked differential grounded in surviving     │
-                │            (non-contradicted) beliefs           │
+                │   Ranked differential synthesized from the case │
+                │             and explored graph                  │
                 └────────────────────────────────────────────────┘
 ```
 
@@ -111,7 +121,7 @@ The result is a system that **rejects distractors instead of rationalizing them*
 |-------|-----------|------|
 | Ingest | Patient Vignette | Raw, distractor-heavy clinical input |
 | Extract | Biomedical NER + Lab Regex | Deterministic axiom extraction |
-| Anchor | Depth 0 Certainty Anchors | Zero-uncertainty graph roots |
+| Anchor | Depth 0 Findings | Low-uncertainty graph roots |
 | Explore | Depth ≥ 1 via Medical Corpus RAG | Entropy-guided hypothesis expansion |
 | Prune | Two-Stage Contradiction Check (keyword/antonym filter → LLM judge) | Contradiction soft-pruning |
 | Halt | Epistemic Saturation Critic | Stops on entropy saturation |
@@ -138,9 +148,17 @@ The result is a system that **rejects distractors instead of rationalizing them*
 > The primary endpoints are now **Bias Trap Rate** on counterfactual pairs
 > (after [MedEinst](https://arxiv.org/abs/2601.06636)) and **fabrication rate**
 > on unanswerable cases (after [MedAbstain](https://arxiv.org/abs/2601.12471)).
-> Neither has been run yet. See [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md).
+> A five-pair MedEinst smoke test has now run, but it had only one BTR-eligible
+> pair per arm and cannot support a comparison. No powered run has been completed.
+> See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) and
+> [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md).
 
-> **Status of the evidence, in one paragraph.** Apiro has been evaluated on two case sets: a 25-case self-authored synthetic benchmark (C-NIAH) and 10 real PMC case reports. On C-NIAH it leads both baselines by a consistent margin, but **no comparison reaches statistical significance** at that sample size (Apiro vs RAG: p = 0.119). On the PMC set the intervals are so wide the three arms are indistinguishable, and four of the ten ground-truth labels are malformed. A third benchmark — [CUPCase](#reproducing-the-benchmarks), external and with curated per-case distractors — is implemented but **has not been run**, so no results for it are reported here. Treat the tables below as directional evidence that the mechanism behaves as designed, not as a demonstration that it outperforms the baselines.
+> **Status of the evidence, in one paragraph.** Historical C-NIAH, PMC,
+> CUPCase, and DDXPlus runs are small and several predate measurement fixes.
+> The first official MedEinst smoke run completed five pairs; corrected rank-1
+> scoring gave all three arms a BTR of 100% with only one eligible pair each.
+> These runs verify execution paths and expose failure modes, but none
+> demonstrates that Apiro outperforms the baselines.
 
 ### Clinical Needle-In-A-Haystack (C-NIAH)
 
@@ -241,7 +259,7 @@ AURC measures whether a system's confidence *ranks* its correct answers above it
 
 **The evaluation design** follows two 2026 benchmarks whose documented failure modes are exactly the ones this architecture claims to fix:
 
-- **[MedEinst](https://arxiv.org/abs/2601.06636)** — the Einstellung effect in medical LLMs: models answer from statistical shortcuts rather than patient-specific evidence, and misdiagnose atypical cases. Measured with counterfactual control/trap pairs (5,383 pairs, 49 diseases) and **Bias Trap Rate**, P(wrong on trap | right on control). Frontier models keep high baseline accuracy while showing *severe* trap rates. Apiro's whole design — deterministic anchors plus contradiction pruning — is a bet against this failure, so it is the benchmark that can most directly confirm or refute the thesis. Implemented as `build_niah_cases.py --counterfactual`.
+- **[MedEinst](https://arxiv.org/abs/2601.06636)** — the Einstellung effect in medical LLMs: models answer from statistical shortcuts rather than patient-specific evidence, and misdiagnose atypical cases. Its primary metric is rank-1 **Bias Trap Rate**, the probability that a trap prediction retains the old control diagnosis given that the control prediction was correct. Apiro's deterministic anchors and contradiction pruning are a testable bet against this failure. The official paired dataset is integrated through `scripts/run_medeinst_eval.py`; C-NIAH's `--counterfactual` mode is a separate internal analogue.
 - **[MedAbstain](https://arxiv.org/abs/2601.12471)** — abstention under clinical uncertainty, using context-omission perturbations and an explicit abstention option. Finds that even state-of-the-art models fail to abstain when uncertain. Implemented as `--unanswerable-fraction`.
 - **[DyReMe](https://arxiv.org/html/2510.09275)** — dynamic evaluation with real-world distractors, motivated by contamination and inflated scores on static benchmarks. Reflected here in generating cases per run rather than shipping a fixed set to memorise.
 
@@ -378,7 +396,7 @@ The committed results were computed on 25 cases, which is not enough to resolve 
 **Everything above runs from one command:**
 
 ```bash
-./run_eval.sh --quick      # ~minutes — proves the pipeline works end to end
+./run_eval.sh --quick      # ~minutes — exercises the pipeline end to end
 ./run_eval.sh              # the real run
 ```
 
@@ -488,7 +506,10 @@ Apiro/
 │   └── calibration_eval_results.json   # Pillar-3 results backing the tables above
 ├── docs/
 │   ├── BENCHMARKING.md          # What to run, in what order, and how to read it
-│   └── IMPROVEMENTS.md          # Known issues, fixed and open
+│   ├── PROJECT_STATUS.md         # Current completion state and ordered next work
+│   ├── INTERVIEW_TEXTBOOK.md     # Implementation-accurate technical guide
+│   ├── IMPROVEMENTS.md          # Known issues, fixed and open
+│   └── IMPROVEMENT_ROADMAP.md   # Longer engineering and evaluation roadmap
 ├── Log.md                       # Chronological architecture history
 ├── run_eval.sh                  # The whole pipeline: ./run_eval.sh [--quick|--dry-run|<stage>]
 ├── requirements.txt

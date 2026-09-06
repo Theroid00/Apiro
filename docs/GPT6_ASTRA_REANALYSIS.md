@@ -13,8 +13,10 @@ acceptance criteria are developed further in `docs/IMPROVEMENT_ROADMAP.md`.
 > **Implementation status:** the correctness findings in sections 1–9 were
 > addressed on `feature/adversarial-benchmark-suite`. This document remains the
 > audit record explaining their origin. See the roadmap's implementation update
-> and `docs/IMPROVEMENTS.md` for current status. Performance recommendations
-> beyond run manifests and stage timing remain open.
+> and `docs/PROJECT_STATUS.md` for current status. Run manifests, bounded model
+> scheduling, model-call/token telemetry, and stage timing are implemented.
+> Retrieval counters, graph-event counters, and call-volume optimization remain
+> open.
 
 ## Overall assessment
 

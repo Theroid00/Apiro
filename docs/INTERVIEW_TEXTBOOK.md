@@ -150,9 +150,11 @@ benchmarks that explicitly permit it.
 
 ### Telemetry and reproducibility
 
-Every live runner can write an immutable manifest containing the dataset
-source and revision, case-selection parameters, model configuration, prompt
-versions, Git state, and content hashes. The shared model scheduler records
+Adversarial live runners write an immutable manifest containing the dataset
+source and declared revision, case-selection parameters, model configuration,
+Git state, and content hashes. The MedEinst loader is pinned to revision
+`354f4b5`; runners that declare `main` or `local` do not provide the same level
+of source immutability. The shared model scheduler records
 calls, retries, failures, timeouts, prompt and completion tokens, queue time,
 and inference time by purpose.
 
@@ -227,7 +229,7 @@ The engineering foundation for the adversarial evaluation phase is complete:
 - per-run traversal isolation;
 - preserved full narratives and evidence-aware context selection;
 - shared, bounded model scheduling and detailed telemetry;
-- immutable manifests and pinned external dataset revisions;
+- immutable manifests and a pinned MedEinst dataset revision;
 - corrected AURC and calibration-threshold handling;
 - MedEinst, MedDistractQA, and MINT-style runners;
 - corpus-schema validation; and

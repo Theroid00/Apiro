@@ -210,14 +210,12 @@ benchmark case set and results file the README cites.
 These are real, currently unresolved, roughly in order of how much they'd
 matter to someone reading the code closely:
 
-- **The "Shannon entropy" and "NLI" framing overstate what runs.** The live
-  entropy signal (`apiro/entropy/engine.py`) asks the LLM to self-report a
-  count of plausible diagnoses and maps it through a fixed table — a
-  reasonable heuristic, not entropy computed over a token probability
-  distribution. Contradiction detection is a keyword/antonym pre-filter
-  plus an LLM yes/no judge, not a cross-encoder NLI model. Both are
-  documented accurately in code comments; the README should read the same
-  way.
+- **The uncertainty and NLI framing still requires care.** Generated hypotheses
+  use binary entropy derived from the model's verbalized patient-specific
+  confidence, rescaled to the traversal range. It is a reasonable heuristic,
+  not entropy computed over token probabilities or a fitted calibrator.
+  Contradiction detection is a keyword/antonym pre-filter plus an LLM yes/no
+  judge, not a cross-encoder NLI model.
 - **`data/axiom_weights.yaml` is a small, hand-curated list** (~20 entities)
   keyed to findings that appear in the benchmark cases used during
   development. Anything not on the list gets a flat default weight, so the
@@ -261,8 +259,8 @@ matter to someone reading the code closely:
   probe that the mechanism fires; it is not independent evidence. Historical
   CUPCase runs exist, but its distractors often collapse to the answer and do
   not provide the needed adversarial endpoint. MedEinst is now the external
-  paired counterpart; its harness is implemented but has not yet produced a
-  powered live result.
+  paired counterpart. A five-pair live smoke run completed, but only one pair
+  per arm was eligible for rank-1 BTR; it has not produced a powered result.
 - **`data/pmc_cases.json` needs regenerating.** Four of ten ground-truth
   labels are unusable prose (see the fixed-items section). The generator is
   fixed; the data is not.

@@ -75,11 +75,10 @@ class RealComponents:
     Attributes:
         embedder:       Embedder over the persistent ChromaDB corpus.
         llm_client:     Shared OllamaLLMClient (``.chat`` / ``.generate``).
-        traversal:      Configured ApiroTraversal.
-        contradiction:  The detector the traversal uses (exposed so a harness
-                        can report ``cache_info()`` after a run).
         axiom_extractor: Deterministic axiom extractor for seeding.
         doc_count:      Documents in the corpus collection.
+        resources:      Shared immutable resources used to construct isolated
+                        per-case traversal sessions.
     """
 
     embedder: object
