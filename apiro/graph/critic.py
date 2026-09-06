@@ -61,11 +61,15 @@ class CriticEngine:
         )
         
         try:
-            try:
-                response = self.llm.generate(prompt, max_tokens=100, temperature=0.1)
-            except TypeError:
+            # No LLM client in this codebase accepts max_tokens/temperature
+            # kwargs on generate() (they're fixed at construction time), and
+            # StubLLMClient — used throughout the test suite — only exposes
+            # chat(), not generate(). Use whichever the client actually has.
+            if hasattr(self.llm, "generate"):
                 response = self.llm.generate(prompt)
-                
+            else:
+                response = self.llm.chat(prompt)
+
             first_line_clean = response.strip().split('\n')[0].strip().upper()
             first_word = first_line_clean.split()[0].strip(".,!?\"'") if first_line_clean.split() else ""
             

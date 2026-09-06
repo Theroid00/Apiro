@@ -1,0 +1,913 @@
+{
+  "cases_evaluated": 10,
+  "real_components": true,
+  "overall": {
+    "bare_llm": 0.2,
+    "rag": 0.1,
+    "apiro": 0.1,
+    "bare_llm_correct": 2,
+    "rag_correct": 1,
+    "apiro_correct": 1,
+    "n_cases": 10
+  },
+  "per_family": {
+    "single_needle": {
+      "n_cases": 3,
+      "bare_llm": 0.6666666666666666,
+      "rag": 0.3333333333333333,
+      "apiro": 0.3333333333333333
+    },
+    "contradiction_needle": {
+      "n_cases": 2,
+      "bare_llm": 0.0,
+      "rag": 0.0,
+      "apiro": 0.0
+    },
+    "multi_needle": {
+      "n_cases": 2,
+      "bare_llm": 0.0,
+      "rag": 0.0,
+      "apiro": 0.0
+    },
+    "red_herring": {
+      "n_cases": 1,
+      "bare_llm": 0.0,
+      "rag": 0.0,
+      "apiro": 0.0
+    },
+    "negation_trap": {
+      "n_cases": 2,
+      "bare_llm": 0.0,
+      "rag": 0.0,
+      "apiro": 0.0
+    }
+  },
+  "length_depth_matrix": {
+    "lengths": [
+      "2k",
+      "8k",
+      "16k",
+      "32k"
+    ],
+    "depths": [
+      "0%",
+      "25%",
+      "50%",
+      "75%",
+      "100%"
+    ],
+    "cells": {
+      "2k": {
+        "0%": {
+          "n_cases": 1,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "25%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "50%": {
+          "n_cases": 1,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "75%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "100%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        }
+      },
+      "8k": {
+        "0%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "25%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "50%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "75%": {
+          "n_cases": 2,
+          "accuracy": 0.5,
+          "correct": 1
+        },
+        "100%": {
+          "n_cases": 1,
+          "accuracy": 0.0,
+          "correct": 0
+        }
+      },
+      "16k": {
+        "0%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "25%": {
+          "n_cases": 1,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "50%": {
+          "n_cases": 1,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "75%": {
+          "n_cases": 2,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "100%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        }
+      },
+      "32k": {
+        "0%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "25%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "50%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "75%": {
+          "n_cases": 1,
+          "accuracy": 0.0,
+          "correct": 0
+        },
+        "100%": {
+          "n_cases": 0,
+          "accuracy": 0.0,
+          "correct": 0
+        }
+      }
+    }
+  },
+  "counterfactual_traps": null,
+  "abstention": null,
+  "distractor_selection": {
+    "n_cases": 2,
+    "rates": {
+      "apiro": 0.0,
+      "rag": 0.0,
+      "bare_llm": 0.0
+    },
+    "apiro_vs_rag": {
+      "n_cases": 2,
+      "a_only": 0,
+      "b_only": 0,
+      "n_discordant": 0,
+      "p_value": 1.0,
+      "significant_at_05": false
+    },
+    "apiro_vs_bare_llm": {
+      "n_cases": 2,
+      "a_only": 0,
+      "b_only": 0,
+      "n_discordant": 0,
+      "p_value": 1.0,
+      "significant_at_05": false
+    }
+  },
+  "resilience": null,
+  "significance": {
+    "apiro_vs_rag": {
+      "delta_ci": {
+        "delta": 0.0,
+        "ci_low": -0.3,
+        "ci_high": 0.3,
+        "n_cases": 10,
+        "excludes_zero": false
+      },
+      "mcnemar": {
+        "n_cases": 10,
+        "a_only": 1,
+        "b_only": 1,
+        "n_discordant": 2,
+        "p_value": 1.0,
+        "significant_at_05": false
+      }
+    },
+    "apiro_vs_bare_llm": {
+      "delta_ci": {
+        "delta": -0.1,
+        "ci_low": -0.4,
+        "ci_high": 0.2,
+        "n_cases": 10,
+        "excludes_zero": false
+      },
+      "mcnemar": {
+        "n_cases": 10,
+        "a_only": 1,
+        "b_only": 2,
+        "n_discordant": 3,
+        "p_value": 1.0,
+        "significant_at_05": false
+      }
+    },
+    "rag_vs_bare_llm": {
+      "delta_ci": {
+        "delta": -0.1,
+        "ci_low": -0.30000000000000004,
+        "ci_high": 0.0,
+        "n_cases": 10,
+        "excludes_zero": false
+      },
+      "mcnemar": {
+        "n_cases": 10,
+        "a_only": 0,
+        "b_only": 1,
+        "n_discordant": 1,
+        "p_value": 1.0,
+        "significant_at_05": false
+      }
+    },
+    "_independence": {
+      "n_cases": 10,
+      "n_distinct_diagnoses": 9,
+      "cases_per_diagnosis": 1.11
+    }
+  },
+  "diagnostics": {
+    "stop_reasons": {
+      "saturation": 4,
+      "no_frontier": 6
+    },
+    "apiro_only_wins": 1,
+    "bare_only_wins": 2
+  },
+  "case_results": [
+    {
+      "case_id": "single_needle-b7ccc1c2a4ba",
+      "description": "",
+      "family": "single_needle",
+      "length": "8k",
+      "depth": "75%",
+      "diagnosis": "pulmonary_embolism",
+      "wrong_diagnosis": null,
+      "pair_id": null,
+      "pair_role": null,
+      "perturbation": null,
+      "unanswerable": false,
+      "prior_diagnosis": null,
+      "target": "pulmonary_embolism",
+      "targets": [
+        "pulmonary_embolism"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This appears to be a medical record from an outpatient clinic visit, but it's extremely lengthy and contains repetitive information.\n\nTo provide a concise answer, I'll extract some key points:\n\n1. **Patient Profile**: Unfortunately, the patient's name is not mentioned in the text.\n2. **Chief Complaints**: The patient was seen for a routine follow-up visit, with no specific chief complaints mentioned.\n3. **Medical History**: The patient has a history of chronic conditions, but they are not specified.\n4. **Lab Results**: A D-dimer test result is reported as 3,400 ng/mL FEU, which places the patient in the high-risk category for thromboembolism.\n5. **Treatment and Advice**:\n\t* The patient's medications were refilled without changes.\n\t* They were counseled on diet, exercise, and smoking cessation.\n\t* W",
+        "candidates": [
+          "Patient Profile",
+          "Chief Complaints",
+          "Medical History"
+        ],
+        "abstained": false
+      },
+      "rag": {
+        "success": false,
+        "output": "The provided text appears to be a collection of snippets from various medical resources, including \"Harrison's Principles of Internal Medicine\" and other textbooks related to internal medicine and the USMLE (United States Medical Licensing Examination) Step 2 CK exam.\n\nThere are several key points that can be extracted from this text:\n\n1. **Patient Assessment**: The importance of a thorough physical examination is emphasized, with particular attention paid to vital signs, skin and soft tissue examination, and neurologic evaluation.\n2. **Internal Medicine Pearls**: A review of common diseases is provided in the form of one-page summaries, which can be useful for quick study on the wards but may not be comprehensive enough for the Step 2 CK exam.\n3. **Blueprints Q & A Step 2 Medicine**: This resource provides two hundred vignette-style questions that focus on high-yield topics and are easy to follow.\n4",
+        "candidates": [
+          "Patient Assessment",
+          "Internal Medicine Pearls",
+          "Blueprints Q & A Step 2 Medicine"
+        ],
+        "abstained": false
+      },
+      "apiro": {
+        "success": true,
+        "output": [
+          "Pulmonary Embolism",
+          "Deep Vein Thrombosis",
+          "Hypoxemia"
+        ],
+        "candidates": [
+          "Pulmonary Embolism",
+          "Deep Vein Thrombosis",
+          "Hypoxemia"
+        ],
+        "abstained": false
+      },
+      "n_candidates": {
+        "bare_llm": 3,
+        "rag": 3,
+        "apiro": 3
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 33,
+        "total_edges": 13,
+        "seed_nodes": 20,
+        "explored_nodes": 8,
+        "max_depth_reached": 5,
+        "rabbit_holes": 0,
+        "contradictions": 3,
+        "duration_seconds": 113.32
+      }
+    },
+    {
+      "case_id": "contradiction_needle-cba0d7d26534",
+      "description": "",
+      "family": "contradiction_needle",
+      "length": "8k",
+      "depth": "75%",
+      "diagnosis": "bacterial_meningitis",
+      "wrong_diagnosis": "viral meningitis",
+      "pair_id": null,
+      "pair_role": null,
+      "perturbation": null,
+      "unanswerable": false,
+      "prior_diagnosis": null,
+      "target": "bacterial_meningitis",
+      "targets": [
+        "bacterial_meningitis"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This text appears to be a collection of medical notes from various patients, but there is no specific patient or case being described in detail. However, I can provide some general observations about the content.\n\nThe text seems to follow a standard format for documenting patient visits, including:\n\n1. Patient demographics and medical history\n2. Chief complaint or reason for visit\n3. Physical examination findings\n4. Laboratory results (e.g., cerebrospinal fluid analysis)\n5. Treatment plan and medications\n6. Follow-up appointments\n\nSome key points that can be inferred from the text include:\n\n* The patient with suspected viral meningitis was later diagnosed with a bacterial infection, likely pneumococcal meningitis given the gram-positive diplococci on the cerebrospinal fluid Gram stain.\n* The patient's treatment plan included antibiotics and supportive care.\n* Many patients were seen for routine follow-up appointments",
+        "candidates": [
+          "Patient demographics and medical history",
+          "Chief complaint or reason for visit",
+          "Physical examination findings"
+        ],
+        "abstained": false
+      },
+      "rag": {
+        "success": false,
+        "output": "The provided text appears to be a compilation of various medical topics and conditions related to internal medicine. The text includes sections on:\n\n1. **Harrison's Principles of Internal Medicine**: This section provides an overview of the importance of detailed questioning in patients with presenting symptoms, including factors that may increase the risk of infection or severity of disease.\n2. **Skin Examination**: This section emphasizes the importance of a complete skin examination in evaluating patients for infections and other conditions. It highlights specific rashes and lesions that can help narrow the differential diagnosis.\n3. **Cardinal Manifestations and Presentation of Diseases**: This section includes illustrations and descriptions of various skin lesions associated with different diseases, including neutropenic patients, septic emboli, and endocarditis.\n\nThe text does not appear to be a single, coherent medical case study or patient presentation. Instead, it seems to be a collection of snippets from various",
+        "candidates": [
+          "Harrison's Principles of Internal Medicine",
+          "Skin Examination",
+          "Cardinal Manifestations and Presentation of Diseases"
+        ],
+        "abstained": false
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "INSUFFICIENT EVIDENCE"
+        ],
+        "candidates": [
+          "INSUFFICIENT EVIDENCE"
+        ],
+        "abstained": true
+      },
+      "n_candidates": {
+        "bare_llm": 3,
+        "rag": 3,
+        "apiro": 1
+      },
+      "traversal": {
+        "stop_reason": "no_frontier",
+        "total_nodes": 20,
+        "total_edges": 1,
+        "seed_nodes": 19,
+        "explored_nodes": 1,
+        "max_depth_reached": 1,
+        "rabbit_holes": 0,
+        "contradictions": 0,
+        "duration_seconds": 63.39
+      }
+    },
+    {
+      "case_id": "negation_trap-8cb7e89a2a8f",
+      "description": "",
+      "family": "negation_trap",
+      "length": "16k",
+      "depth": "75%",
+      "diagnosis": "acute_mesenteric_ischemia",
+      "wrong_diagnosis": null,
+      "pair_id": null,
+      "pair_role": null,
+      "perturbation": null,
+      "unanswerable": false,
+      "prior_diagnosis": null,
+      "target": "acute_mesenteric_ischemia",
+      "targets": [
+        "acute_mesenteric_ischemia"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This appears to be a large block of text that describes a series of medical appointments for a patient. However, I'll try to provide some general insights and observations.\n\n**Observations:**\n\n1. **Repetitive structure**: The text follows a repetitive structure, where each paragraph describes the same set of activities (e.g., reviewing medication, discussing diet and exercise, checking vital signs).\n2. **Lack of specific details**: Despite the repetition, there are no specific details about the patient's condition, diagnosis, or treatment plan.\n3. **Focus on routine care**: The text primarily focuses on routine medical care, such as administering medications, monitoring vital signs, and discussing lifestyle changes.\n\n**Possible interpretations:**\n\n1. **Medical record documentation**: This text may be part of a medical record, documenting the patient's visits to a healthcare provider.\n2. **Template or form**: The repetitive",
+        "candidates": [
+          "Observations",
+          "Repetitive structure",
+          "Lack of specific details"
+        ],
+        "abstained": false
+      },
+      "rag": {
+        "success": false,
+        "output": "The provided text appears to be a collection of medical notes and study materials from various sources, including Harrison's Internal Medicine and First Aid Step 2. The content covers a range of topics in internal medicine, including physical examination techniques, history-taking, and differential diagnosis.\n\nHere are some key points that can be extracted from the text:\n\n1. **Physical Examination**: A complete physical examination should be performed, with special attention to several areas, including vital signs, skin and soft tissue examination, and neurologic evaluation.\n2. **History Taking**: Detailed questions should be asked about the onset and duration of symptoms, changes in severity or rate of progression over time, host factors, and comorbid conditions that may increase the risk of infection.\n3. **Functional Capability of the Patient**: The Eastern Cooperative Oncology Group (ECOG) scale is used to assess a patient's functional capability, ranging from fully",
+        "candidates": [
+          "Physical Examination",
+          "History Taking",
+          "Functional Capability of the Patient"
+        ],
+        "abstained": false
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "INSUFFICIENT EVIDENCE"
+        ],
+        "candidates": [
+          "INSUFFICIENT EVIDENCE"
+        ],
+        "abstained": true
+      },
+      "n_candidates": {
+        "bare_llm": 3,
+        "rag": 3,
+        "apiro": 1
+      },
+      "traversal": {
+        "stop_reason": "no_frontier",
+        "total_nodes": 29,
+        "total_edges": 10,
+        "seed_nodes": 20,
+        "explored_nodes": 9,
+        "max_depth_reached": 3,
+        "rabbit_holes": 0,
+        "contradictions": 4,
+        "duration_seconds": 115.6
+      }
+    },
+    {
+      "case_id": "multi_needle-9399cb20c094",
+      "description": "",
+      "family": "multi_needle",
+      "length": "16k",
+      "depth": "25%",
+      "diagnosis": "septic_arthritis",
+      "wrong_diagnosis": null,
+      "pair_id": null,
+      "pair_role": null,
+      "perturbation": null,
+      "unanswerable": false,
+      "prior_diagnosis": null,
+      "target": "septic_arthritis",
+      "targets": [
+        "septic_arthritis"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This text appears to be a detailed medical record from an outpatient clinic visit. It contains numerous entries that describe various aspects of the patient's care, including:\n\n1. **Vital signs**: The patient's vital signs were recorded and documented in the chart.\n2. **Medication reconciliation**: The patient's medication list was reviewed and updated as necessary.\n3. **Laboratory specimens**: Laboratory tests were ordered and samples collected for analysis.\n4. **Physical therapy notes**: Progress toward mobility goals was noted, indicating that the patient is making progress with physical therapy.\n5. **Wound care instructions**: Wound care instructions were reinforced and demonstrated to the patient.\n6. **Dietary counseling**: The patient was counseled on diet, exercise, and smoking cessation.\n7. **Social history**: The patient's social history, including occasional alcohol use and no illicit drug use, was noted.\n",
+        "candidates": [
+          "Vital signs",
+          "Medication reconciliation",
+          "Laboratory specimens"
+        ],
+        "abstained": false
+      },
+      "rag": {
+        "success": false,
+        "output": "This appears to be a collection of text from various medical resources, including Harrison's Principles of Internal Medicine and the Blueprints series. The text covers a range of topics related to internal medicine, including physical examination, history taking, and patient assessment.\n\nSome key points that can be gleaned from this text include:\n\n* A complete physical examination should be performed on patients with suspected infections or other medical conditions.\n* The patient's general appearance, vital signs, skin and soft tissue examination, and neurologic evaluation are of particular importance.\n* Patients may appear anxious and agitated or lethargic and apathetic, and fever is usually present in cases of infection.\n* Measurement of blood pressure, heart rate, and respiratory rate can help determine the degree of hemodynamic and metabolic compromise.\n* The patient's airway must be evaluated to rule out the risk of obstruction from an invasive oropharyngeal",
+        "candidates": [
+          "Some key points that can be gleaned from this text include"
+        ],
+        "abstained": false
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "Type 2 Diabetes Mellitus",
+          "Stable Kidney Function",
+          "No Evidence of Infection or Disease in the Urinary System"
+        ],
+        "candidates": [
+          "Type 2 Diabetes Mellitus",
+          "Stable Kidney Function",
+          "No Evidence of Infection or Disease in the Urinary System"
+        ],
+        "abstained": false
+      },
+      "n_candidates": {
+        "bare_llm": 3,
+        "rag": 1,
+        "apiro": 3
+      },
+      "traversal": {
+        "stop_reason": "no_frontier",
+        "total_nodes": 23,
+        "total_edges": 13,
+        "seed_nodes": 14,
+        "explored_nodes": 9,
+        "max_depth_reached": 2,
+        "rabbit_holes": 0,
+        "contradictions": 2,
+        "duration_seconds": 98.46
+      }
+    },
+    {
+      "case_id": "red_herring-a3cbe2060170",
+      "description": "",
+      "family": "red_herring",
+      "length": "32k",
+      "depth": "75%",
+      "diagnosis": "acute_cholangitis",
+      "wrong_diagnosis": null,
+      "pair_id": null,
+      "pair_role": null,
+      "perturbation": null,
+      "unanswerable": false,
+      "prior_diagnosis": null,
+      "target": "acute_cholangitis",
+      "targets": [
+        "acute_cholangitis"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "It appears that you have provided a large block of text that is repetitive and lacks specific details about a medical visit or treatment plan. I'll do my best to provide a concise summary.\n\nThe text describes a routine follow-up visit to an outpatient clinic, where various aspects of the patient's care were reviewed and updated. The key points mentioned include:\n\n1. **Medication management**: Medication reconciliation was performed, and the list was updated.\n2. **Vital signs**: Vital signs were recorded on arrival and documented in the chart.\n3. **Diet and exercise counseling**: The patient was counseled on diet, exercise, and smoking cessation.\n4. **Wound care instructions**: Wound care instructions were reinforced and demonstrated to the patient.\n5. **Bowel and bladder function**: Bowel and bladder function were reported as unchanged and regular.\n6. **Physical therapy progress**: Physical",
+        "candidates": [
+          "Medication management",
+          "Vital signs",
+          "Diet and exercise counseling"
+        ],
+        "abstained": false
+      },
+      "rag": {
+        "success": false,
+        "output": "This appears to be a collection of text from various medical sources, specifically related to internal medicine and patient assessment. The text covers topics such as:\n\n1. **Physical Examination**: A complete physical examination should be performed, with special attention to several areas that are sometimes given short shrift in routine examinations.\n2. **History**: Presenting symptoms are frequently nonspecific, and detailed questions should be asked about the onset and duration of symptoms and changes in severity or rate of progression over time.\n3. **Physical Examination Findings**: Physical examination findings may include low-grade fever, tachycardia, hypotension, shock, jaundice, erythematous skin nodules, pulmonary findings, abdominal tenderness, and muscle rigidity.\n4. **Importance of History and Physical Examination**: Important information is obtained from every portion of the routine history and physical examination.\n5. **Ch",
+        "candidates": [
+          "Physical Examination",
+          "History",
+          "Physical Examination Findings"
+        ],
+        "abstained": false
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "INSUFFICIENT EVIDENCE"
+        ],
+        "candidates": [
+          "INSUFFICIENT EVIDENCE"
+        ],
+        "abstained": true
+      },
+      "n_candidates": {
+        "bare_llm": 3,
+        "rag": 3,
+        "apiro": 1
+      },
+      "traversal": {
+        "stop_reason": "no_frontier",
+        "total_nodes": 26,
+        "total_edges": 7,
+        "seed_nodes": 19,
+        "explored_nodes": 7,
+        "max_depth_reached": 1,
+        "rabbit_holes": 0,
+        "contradictions": 5,
+        "duration_seconds": 116.55
+      }
+    },
+    {
+      "case_id": "single_needle-cdbed1322c6f",
+      "description": "",
+      "family": "single_needle",
+      "length": "2k",
+      "depth": "50%",
+      "diagnosis": "acute_pancreatitis",
+      "wrong_diagnosis": null,
+      "pair_id": null,
+      "pair_role": null,
+      "perturbation": null,
+      "unanswerable": false,
+      "prior_diagnosis": null,
+      "target": "acute_pancreatitis",
+      "targets": [
+        "acute_pancreatitis"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "Alcohol-Induced Metabolic Disorder\nAcute Pancreatitis\nAlcoholic Ketoacidosis",
+        "candidates": [
+          "Alcohol-Induced Metabolic Disorder",
+          "Acute Pancreatitis",
+          "Alcoholic Ketoacidosis"
+        ],
+        "abstained": false
+      },
+      "rag": {
+        "success": true,
+        "output": "Alcohol-Induced Pancreatitis\nAcute Pancreatitis\nPancreatic Necrosis",
+        "candidates": [
+          "Alcohol-Induced Pancreatitis",
+          "Acute Pancreatitis",
+          "Pancreatic Necrosis"
+        ],
+        "abstained": false
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "Diabetic Ketoacidosis",
+          "Erythema Multiforme",
+          "Insulin Resistance"
+        ],
+        "candidates": [
+          "Diabetic Ketoacidosis",
+          "Erythema Multiforme",
+          "Insulin Resistance"
+        ],
+        "abstained": false
+      },
+      "n_candidates": {
+        "bare_llm": 3,
+        "rag": 3,
+        "apiro": 3
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 37,
+        "total_edges": 17,
+        "seed_nodes": 20,
+        "explored_nodes": 8,
+        "max_depth_reached": 2,
+        "rabbit_holes": 0,
+        "contradictions": 4,
+        "duration_seconds": 126.67
+      }
+    },
+    {
+      "case_id": "contradiction_needle-70c4a3a10072",
+      "description": "",
+      "family": "contradiction_needle",
+      "length": "16k",
+      "depth": "50%",
+      "diagnosis": "acute_cholangitis",
+      "wrong_diagnosis": "acute viral hepatitis",
+      "pair_id": null,
+      "pair_role": null,
+      "perturbation": null,
+      "unanswerable": false,
+      "prior_diagnosis": null,
+      "target": "acute_cholangitis",
+      "targets": [
+        "acute_cholangitis"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This appears to be a lengthy medical record from an outpatient clinic visit. I'll try to summarize the key points:\n\n**Patient Information**\n\n* The patient has been compliant with their prescribed therapy.\n* Their weight is stable, and they have no new allergies.\n\n**Medical History**\n\n* The patient's home glucose logs were reviewed and appeared consistent.\n* Baseline metabolic panel values are within normal reference ranges.\n\n**Physical Examination**\n\n* Vital signs (e.g., blood pressure, pulse) were recorded on arrival and documented in the chart.\n* The patient ambulates independently without assistive devices.\n* Skin was warm and dry with no obvious rashes or lesions noted.\n\n**Medications**\n\n* The patient's chronic medications were refilled without changes.\n* Medication reconciliation was performed and the list was updated.\n\n**Social History**\n\n* Social history includes occasional alcohol use and no illicit drug use.\n\n**Mental",
+        "candidates": [
+          "Patient Information",
+          "Their weight is stable, and they have no new allergies",
+          "Medical History"
+        ],
+        "abstained": false
+      },
+      "rag": {
+        "success": false,
+        "output": "This appears to be a collection of text from Harrison's Internal Medicine textbook. The provided text does not contain a specific question or prompt that requires a response in the format you specified.\n\nHowever, I can provide a summary of the key points related to physical examination and history taking in internal medicine:\n\n* A complete physical examination should be performed, with special attention to areas such as general appearance, vital signs, skin and soft tissue examination, and neurologic evaluation.\n* The patient's airway must be evaluated to rule out the risk of obstruction from an invasive oropharyngeal infection.\n* Physical examination findings may include low-grade fever, tachycardia, hypotension, jaundice, erythematous skin nodules, pulmonary findings such as basilar rales and pleural effusion, abdominal tenderness, and muscle rigidity.\n* A skilled clinician must be able",
+        "candidates": [
+          "A skilled clinician must be able"
+        ],
+        "abstained": false
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "Diabetes Mellitus Type 2",
+          "Hypothyroidism",
+          "Chronic Kidney Disease"
+        ],
+        "candidates": [
+          "Diabetes Mellitus Type 2",
+          "Hypothyroidism",
+          "Chronic Kidney Disease"
+        ],
+        "abstained": false
+      },
+      "n_candidates": {
+        "bare_llm": 3,
+        "rag": 1,
+        "apiro": 3
+      },
+      "traversal": {
+        "stop_reason": "no_frontier",
+        "total_nodes": 32,
+        "total_edges": 13,
+        "seed_nodes": 20,
+        "explored_nodes": 12,
+        "max_depth_reached": 1,
+        "rabbit_holes": 0,
+        "contradictions": 5,
+        "duration_seconds": 145.45
+      }
+    },
+    {
+      "case_id": "negation_trap-654a87b1f5b8",
+      "description": "",
+      "family": "negation_trap",
+      "length": "16k",
+      "depth": "75%",
+      "diagnosis": "tension_pneumothorax",
+      "wrong_diagnosis": null,
+      "pair_id": null,
+      "pair_role": null,
+      "perturbation": null,
+      "unanswerable": false,
+      "prior_diagnosis": null,
+      "target": "tension_pneumothorax",
+      "targets": [
+        "tension_pneumothorax"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This appears to be a lengthy medical record of a patient's visit to an outpatient clinic. I'll try to summarize the key points:\n\n**Patient Information:**\n\n* The patient has been compliant with their prescribed therapy.\n* They have no new allergies since their last documented visit.\n\n**Medical History and Examination:**\n\n* The patient reports adequate sleep and no recent changes in appetite.\n* A brief mental status examination was performed, which showed no abnormalities.\n* Baseline metabolic panel values were within normal reference ranges.\n* Physical therapy notes indicate steady progress toward mobility goals.\n\n**Medications and Treatment:**\n\n* Medication reconciliation was performed, and the list was updated as necessary.\n* The patient's chronic medications were refilled without changes.\n* Wound care instructions were reinforced and demonstrated to the patient.\n\n**Social History:**\n\n* Social history includes occasional alcohol use and no illicit drug use.\n\n**Follow-up",
+        "candidates": [
+          "Patient Information",
+          "They have no new allergies since their last documented visit",
+          "Medical History and Examination"
+        ],
+        "abstained": false
+      },
+      "rag": {
+        "success": false,
+        "output": "The provided text appears to be from a medical textbook, specifically related to internal medicine and infectious diseases. The text discusses various aspects of patient evaluation, including history taking, physical examination, and laboratory testing.\n\nBased on the content, it seems that the text is not directly answering a specific question or providing a concise response. Instead, it presents a comprehensive overview of the topic, discussing the importance of thorough history taking, physical examination, and laboratory testing in diagnosing infectious diseases.\n\nHowever, if we were to extract some key points from the text, they might include:\n\n1. The importance of obtaining a complete and thorough history in evaluating patients with possible infectious diseases.\n2. The need for a focused differential diagnosis based on the patient's exposure history and host-specific factors that may predispose them to infection.\n3. Common findings in the physical examination and basic laboratory testing that suggest an infectious disease, such as fever",
+        "candidates": [],
+        "abstained": false
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "INSUFFICIENT EVIDENCE"
+        ],
+        "candidates": [
+          "INSUFFICIENT EVIDENCE"
+        ],
+        "abstained": true
+      },
+      "n_candidates": {
+        "bare_llm": 3,
+        "rag": 0,
+        "apiro": 1
+      },
+      "traversal": {
+        "stop_reason": "no_frontier",
+        "total_nodes": 20,
+        "total_edges": 0,
+        "seed_nodes": 20,
+        "explored_nodes": 0,
+        "max_depth_reached": 0,
+        "rabbit_holes": 0,
+        "contradictions": 0,
+        "duration_seconds": 87.54
+      }
+    },
+    {
+      "case_id": "multi_needle-b79f70046c46",
+      "description": "",
+      "family": "multi_needle",
+      "length": "8k",
+      "depth": "100%",
+      "diagnosis": "guillain_barre_syndrome",
+      "wrong_diagnosis": null,
+      "pair_id": null,
+      "pair_role": null,
+      "perturbation": null,
+      "unanswerable": false,
+      "prior_diagnosis": null,
+      "target": "guillain_barre_syndrome",
+      "targets": [
+        "guillain_barre_syndrome"
+      ],
+      "bare_llm": {
+        "success": false,
+        "output": "This appears to be a medical record from an outpatient clinic, detailing a routine follow-up visit for a patient. However, there is no specific information about the patient's identity or their condition.\n\nThe notes mention various aspects of the patient's care, including:\n\n* Medications: The patient's chronic medications were refilled without changes.\n* Diet and exercise: The patient was counseled on diet, exercise, and smoking cessation.\n* Sleep and appetite: The patient reports adequate sleep and no recent changes in appetite.\n* Mobility: Physical therapy notes indicate steady progress toward mobility goals.\n* Allergies: The patient reported no new allergies since the last documented visit.\n* Laboratory results: CSF protein 1.9 g/L with only 2 white cells/uL \u2014 albuminocytological dissociation.\n\nThe laboratory result mentioned is a cerebrospinal fluid (CSF) analysis,",
+        "candidates": [
+          "The notes mention various aspects of the patient's care, including",
+          "Medications",
+          "Diet and exercise"
+        ],
+        "abstained": false
+      },
+      "rag": {
+        "success": false,
+        "output": "The provided text appears to be a compilation of various medical notes and case studies related to internal medicine, particularly focusing on abdominal pain, cancer, and neurological disorders.\n\nHowever, there is no specific question or prompt provided for me to answer. The text seems to be a collection of excerpts from a medical textbook or resource, possibly \"Harrison's Principles of Internal Medicine.\"\n\nIf you could provide a specific question or topic related to the text, I would be happy to assist and offer a more detailed response.",
+        "candidates": [],
+        "abstained": false
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "INSUFFICIENT EVIDENCE"
+        ],
+        "candidates": [
+          "INSUFFICIENT EVIDENCE"
+        ],
+        "abstained": true
+      },
+      "n_candidates": {
+        "bare_llm": 3,
+        "rag": 0,
+        "apiro": 1
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 34,
+        "total_edges": 15,
+        "seed_nodes": 20,
+        "explored_nodes": 8,
+        "max_depth_reached": 3,
+        "rabbit_holes": 0,
+        "contradictions": 6,
+        "duration_seconds": 137.81
+      }
+    },
+    {
+      "case_id": "single_needle-801ebbb6c055",
+      "description": "",
+      "family": "single_needle",
+      "length": "2k",
+      "depth": "0%",
+      "diagnosis": "adrenal_crisis",
+      "wrong_diagnosis": null,
+      "pair_id": null,
+      "pair_role": null,
+      "perturbation": null,
+      "unanswerable": false,
+      "prior_diagnosis": null,
+      "target": "adrenal_crisis",
+      "targets": [
+        "adrenal_crisis"
+      ],
+      "bare_llm": {
+        "success": true,
+        "output": "Insulin Resistance Syndrome\nAddison's Disease\nPheochromocytoma",
+        "candidates": [
+          "Insulin Resistance Syndrome",
+          "Addison's Disease",
+          "Pheochromocytoma"
+        ],
+        "abstained": false
+      },
+      "rag": {
+        "success": false,
+        "output": "Hyperpigmentation of the palmar creases and buccal mucosa suggests a possible diagnosis of Addison's disease, but there is no mention of other symptoms such as fatigue, weight loss, or hypotension that are typically associated with this condition. However, the presence of refractory hypotension could be related to adrenal insufficiency.\n\nThe patient's presentation also raises the possibility of a fungal infection, particularly mucormycosis, which can cause hyperpigmentation and hypotension in immunocompromised patients.\n\nAgranulocytic angina, also known as oral candidiasis or thrush, is another possible diagnosis. This condition typically presents with white patches on the buccal mucosa and can be associated with immunosuppression or diabetes mellitus.\n\n \nAddison's disease\nMucormycosis\nAgranulocytic angina",
+        "candidates": [
+          "Addison's disease",
+          "Mucormycosis",
+          "Agranulocytic angina"
+        ],
+        "abstained": false
+      },
+      "apiro": {
+        "success": false,
+        "output": [
+          "Addison's disease",
+          "Pheochromocytoma",
+          "Cushing's syndrome"
+        ],
+        "candidates": [
+          "Addison's disease",
+          "Pheochromocytoma",
+          "Cushing's syndrome"
+        ],
+        "abstained": false
+      },
+      "n_candidates": {
+        "bare_llm": 3,
+        "rag": 3,
+        "apiro": 3
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 58,
+        "total_edges": 43,
+        "seed_nodes": 18,
+        "explored_nodes": 8,
+        "max_depth_reached": 4,
+        "rabbit_holes": 1,
+        "contradictions": 19,
+        "duration_seconds": 144.94
+      }
+    }
+  ]
+}

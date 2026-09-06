@@ -1,5 +1,5 @@
 import logging
-import sys
+
 from apiro.corpus.embedder import Embedder
 
 logging.basicConfig(level=logging.INFO)

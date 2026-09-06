@@ -29,14 +29,21 @@ STUB FALLBACKS:
 
 import re
 import logging
-import math
-from typing import Optional
 
 from apiro.graph.node import Node
 from apiro.graph.edge import Edge
+from apiro.parsing import (
+    ABSTENTION_SENTINEL,
+    DIFFERENTIAL_SENTINEL,
+    detect_abstention,
+    parse_claims,
+    parse_differential,
+)
 from apiro.config import (
+    ENTROPY_SIGNAL,
     RAG_DOMAIN_FILTER,
     N_CHILD_HYPOTHESES,
+    N_DIFFERENTIAL,
     CONTRADICTION_THRESHOLD,
     RAG_TOP_K,
     RAG_MIN_CHUNKS_FOR_GROUNDING,
@@ -283,6 +290,9 @@ class NodeExpander:
         collection_name: str = "medical_knowledge",
         contradiction_detector=None,
         inline_contradiction_check: bool = False,
+        n_children: int = N_CHILD_HYPOTHESES,
+        n_diagnoses: int = N_DIFFERENTIAL,
+        allow_abstention: bool = False,
     ):
         self.entropy_engine = entropy_engine
         self.chroma_client = chroma_client
@@ -293,11 +303,28 @@ class NodeExpander:
         # the same node set. Set True only when driving the expander directly
         # without a traversal.
         self.inline_contradiction_check = inline_contradiction_check
-        self._node_counter = 0
+        # Number of child hypotheses to keep per expansion. Config-driven:
+        # N_CHILD_HYPOTHESES used to be imported and then ignored, with the
+        # count hard-coded to 3 in _parse_hypotheses' default argument, so
+        # changing it in config.py had no effect on the engine.
+        self.n_children = n_children
+        # Size of the final differential. A harness that lets its baselines
+        # offer five candidates must let this arm offer five too.
+        self.n_diagnoses = n_diagnoses
+        # Whether synthesis may decline to answer. OFF by default.
+        #
+        # Offering it unconditionally was a regression: on the 2026-08-30
+        # C-NIAH run the engine replied INSUFFICIENT EVIDENCE on 5 of 10
+        # cases that all had a findable needle, while neither baseline
+        # abstained once. An abstention option belongs on a benchmark that
+        # contains unanswerable cases (build_niah_cases.py --counterfactual)
+        # and nowhere else — on an answerable case it converts a possible hit
+        # into a guaranteed miss.
+        self.allow_abstention = allow_abstention
 
-    def _generate_node_id(self, parent_id: str, index: int) -> str:
+    @staticmethod
+    def _generate_node_id(parent_id: str, index: int) -> str:
         """Deterministic child ID: {parent_id}_c{index}"""
-        self._node_counter += 1
         return f"{parent_id}_c{index}"
 
     # Sentence scaffolding added by the axiom extractor. It is there so the NLI
@@ -455,73 +482,24 @@ class NodeExpander:
             logger.error(f"[NodeExpander] LLM call failed: {e}")
             return ""
 
-    def _call_llm_with_logprobs(self, prompt: str) -> tuple[str, list]:
-        """Call the LLM client, requesting logprobs if supported."""
-        if hasattr(self.llm_client, "generate_with_logprobs"):
-            try:
-                return self.llm_client.generate_with_logprobs(prompt)
-            except Exception as e:
-                logger.error(f"[NodeExpander] LLM call with logprobs failed: {e}")
-        try:
-            return self.llm_client.chat(prompt), []
-        except Exception as e:
-            logger.error(f"[NodeExpander] LLM call failed: {e}")
-            return "", []
-
-    def _align_logprobs_to_hypotheses(self, logprobs: list, hypotheses: list[str]) -> list[float]:
-        """
-        Align token logprobs to the parsed hypotheses.
-        Returns a list of uncertainty/entropy scores (float) for each hypothesis.
-        """
-        DEFAULT = 0.693  # ln(2)
-        if not logprobs or not hypotheses:
-            return [DEFAULT] * len(hypotheses)
-            
-        lines_logprobs = []
-        current_line = []
-        for item in logprobs:
-            token_text = item.get("token", "")
-            logprob = item.get("logprob", 0.0)
-            current_line.append(logprob)
-            if "\n" in token_text:
-                if current_line:
-                    lines_logprobs.append(current_line)
-                    current_line = []
-        if current_line:
-            lines_logprobs.append(current_line)
-            
-        scores = []
-        for idx, hyp in enumerate(hypotheses):
-            if idx < len(lines_logprobs) and lines_logprobs[idx]:
-                line_lps = lines_logprobs[idx]
-                avg_lp = sum(line_lps) / len(line_lps)
-                p = math.exp(avg_lp)
-                # Map token average probability to binary Shannon entropy
-                p = max(0.5001, min(0.9999, p))
-                entropy = - p * math.log(p) - (1.0 - p) * math.log(1.0 - p)
-                entropy = max(0.05, min(0.693, entropy))
-                scores.append(round(entropy, 4))
-            else:
-                scores.append(DEFAULT)
-                
-        while len(scores) < len(hypotheses):
-            scores.append(DEFAULT)
-            
-        return scores[:len(hypotheses)]
-
-    # Regex to detect preamble/header lines that are NOT actual hypotheses.
-    # LLMs often prefix their output with labels like "Hypotheses:" or "Output:"
-    # which must be stripped before parsing.
-    _PREAMBLE_RE = re.compile(
-        r"^(hypothes[ie]s?|output|answer|diagnos[ie]s?|differential|results?|response|here are|the top|my top|list)\s*:?\s*$",
-        re.IGNORECASE,
-    )
+    # NOTE: an earlier design generated hypotheses and their entropies in one
+    # LLM call, aligning each hypothesis to a slice of that call's token
+    # logprobs (real Shannon entropy over the model's own token
+    # distribution). That path (_call_llm_with_logprobs /
+    # _align_logprobs_to_hypotheses) was never reconnected after the entropy
+    # engine was rewritten — see apiro/entropy/engine.py's module docstring —
+    # and was removed from here since nothing called it. The live entropy
+    # signal is _batch_entropy() below, which scores each already-generated
+    # hypothesis independently via EntropyEngine.temperature_corrected_entropy().
 
     def _parse_hypotheses(self, llm_output: str, limit: int = 3, pad: bool = False) -> list[str]:
         """
-        Parse the LLM's output into up to `limit` hypothesis strings.
+        Parse the LLM's output into up to `limit` hypothesis claims.
 
-        Defensive: strips preamble headers and numbering, drops empty lines.
+        Delegates to apiro.parsing.parse_claims. The previous implementation
+        stripped a single leading bullet character, which left "**Hypothesis
+        1:**" as "*Hypothesis 1:**" and admitted it to the graph as a clinical
+        claim. See apiro/parsing.py for the measured cost of that.
 
         `pad` is False by default. Padding used to inject synthetic
         "[Expansion failed for: ...]" strings, which then entered the graph as
@@ -531,23 +509,7 @@ class NodeExpander:
         burning the node budget on nothing. An expansion that yields two usable
         hypotheses should return two.
         """
-        lines = llm_output.strip().split("\n")
-        hypotheses = []
-        for line in lines:
-            clean = re.sub(r"^\s*\d+\s*[\.)]\s*|^\s*[-*•]\s*", "", line.strip())
-            clean = clean.strip()
-            if not clean:
-                continue
-            # Skip preamble/header lines that are not actual clinical claims
-            if self._PREAMBLE_RE.match(clean):
-                continue
-            # Skip degenerate fragments (bare punctuation, stray markdown fences)
-            if len(clean) < 4 or clean.startswith("```"):
-                continue
-            hypotheses.append(clean)
-
-        if len(hypotheses) > limit:
-            hypotheses = hypotheses[:limit]
+        hypotheses = parse_claims(llm_output, limit=limit)
 
         if pad:
             while len(hypotheses) < limit:
@@ -557,7 +519,12 @@ class NodeExpander:
 
         return hypotheses
 
-    def _batch_entropy(self, hypotheses: list[str], chunks: list[str]) -> list[float]:
+    def _batch_entropy(
+        self,
+        hypotheses: list[str],
+        chunks: list[str],
+        case_context: str = "",
+    ) -> list[tuple[float, float | None]]:
         """
         Score entropy for all hypotheses concurrently.
 
@@ -566,23 +533,43 @@ class NodeExpander:
         but share the already-retrieved RAG chunks, avoiding redundant context
         construction and letting the caller reuse the same chunk list.
 
+        Under config.ENTROPY_SIGNAL == "posterior" this asks how confident the
+        model is that each hypothesis is the primary diagnosis FOR THIS
+        PATIENT, and returns both the entropy and that confidence. Under
+        "breadth" it uses the original diagnostic-breadth question and returns
+        no confidence — see apiro/entropy/engine.py for why the default moved.
+
         Falls back to ln(2) (max binary uncertainty) on any failure so the node
         stays high-priority in the frontier.
+
+        Returns:
+            One ``(entropy, confidence_or_None)`` per hypothesis, in order.
         """
         DEFAULT = 0.693  # ln(2) — max binary uncertainty fallback
-        
-        def _score_hyp(hyp: str) -> float:
+
+        def _score_hyp(hyp: str) -> tuple[float, float | None]:
             try:
+                if (ENTROPY_SIGNAL == "posterior"
+                        and hasattr(self.entropy_engine, "score_hypothesis")):
+                    scored = self.entropy_engine.score_hypothesis(hyp, case_context)
+                    if scored is not None:
+                        return scored
+                    return DEFAULT, None
                 prompt = self.entropy_engine._build_verification_prompt(hyp, chunks)
                 val = self.entropy_engine.temperature_corrected_entropy(prompt)
-                return val if val is not None else DEFAULT
+                return (val if val is not None else DEFAULT), None
             except Exception:
-                return DEFAULT
+                return DEFAULT, None
+
+        if not hypotheses:
+            return []
 
         import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(len(hypotheses), self.n_children)
+        ) as executor:
             scores = list(executor.map(_score_hyp, hypotheses))
-            
+
         return scores
 
     def expand(self, node: Node, graph, vignette: str = None) -> list[Node]:
@@ -610,18 +597,22 @@ class NodeExpander:
         raw_output = self._call_llm(prompt)
 
         # Step 4: Parse
-        hypotheses = self._parse_hypotheses(raw_output)
+        hypotheses = self._parse_hypotheses(raw_output, limit=self.n_children)
 
-        # Step 5a: Batch entropy — score all 3 hypotheses in one pass using
-        # the verification signal (first-token Yes/No entropy). This is the
-        # correct epistemic uncertainty measure — token logprobs from generation
-        # measure generation fluency, not clinical decision-boundary certainty.
-        entropies = self._batch_entropy(hypotheses, chunks)
+        # Step 5a: Batch entropy — score all 3 hypotheses concurrently via
+        # EntropyEngine.temperature_corrected_entropy(), which (per
+        # apiro/entropy/engine.py) asks the LLM to self-report how many
+        # distinct diagnoses could explain the claim and maps that count
+        # through a fixed table. This is a bounded uncertainty heuristic,
+        # not Shannon entropy computed over a token probability distribution.
+        scored = self._batch_entropy(
+            hypotheses, chunks, case_context=self._sanitize_vignette(vignette) or node.claim
+        )
 
         new_nodes = []
 
         for i, hypothesis in enumerate(hypotheses):
-            entropy = entropies[i]
+            entropy, confidence = scored[i]
 
             domain = classify_domain(hypothesis, embedder=getattr(self.chroma_client, '_emb', None))
 
@@ -656,6 +647,10 @@ class NodeExpander:
                 domain=domain,
                 depth=node.depth + 1,
                 parent_id=node.id,
+                # Belief, kept separately from uncertainty. The entropy map is
+                # symmetric about p = 0.5, so H alone cannot tell "confidently
+                # yes" from "confidently no" — and synthesis needs that.
+                metadata=({"confidence": confidence} if confidence is not None else {}),
             )
 
             # Step 5d: Create the edge
@@ -703,7 +698,13 @@ class NodeExpander:
         return new_nodes
 
 
-    def synthesize_differential(self, graph, top_k: int = 15, vignette: str = None) -> list[str]:
+    def synthesize_differential(
+        self,
+        graph,
+        top_k: int = 15,
+        vignette: str = None,
+        n_diagnoses: int | None = None,
+    ) -> list[str]:
         """
         Synthesize a final differential diagnosis from the belief graph.
 
@@ -727,11 +728,18 @@ class NodeExpander:
             graph:     The BeliefGraph containing gathered evidence.
             top_k:     Max number of exploration claims passed to the LLM.
             vignette:  Raw (or axiom-enriched) clinical presentation.
+            n_diagnoses: How many ranked candidates to return. Defaults to the
+                expander's `n_diagnoses`. Must match what the baselines are
+                allowed to offer, or the comparison is not a comparison.
 
         Returns:
-            A list of up to 3 specific clinical diagnoses, most likely first.
+            A list of up to `n_diagnoses` clinical diagnoses, most likely first.
         """
-        logger.info("[NodeExpander] Synthesizing final differential diagnosis...")
+        n_diagnoses = self.n_diagnoses if n_diagnoses is None else n_diagnoses
+        logger.info(
+            f"[NodeExpander] Synthesizing final differential "
+            f"({n_diagnoses} candidates)..."
+        )
 
         # --- Step 1: partition -------------------------------------------------
         anchors: list[Node]      = []   # depth 0, affirmed  -> ground truth
@@ -762,8 +770,20 @@ class NodeExpander:
         # with one diagnosis narrows the differential, a claim compatible with
         # ten does not. Deeper claims break ties.
         def specificity(n: Node) -> tuple:
+            """Sort key: most believable first, most specific as the tiebreak.
+
+            When a node carries a posterior confidence, rank by that
+            descending. Ranking by ascending entropy alone would put a
+            confidently RULED OUT hypothesis at the top of the differential,
+            because the entropy map is symmetric — H = 0.234 is both 5% and 95%
+            confidence. Nodes without a confidence (the "breadth" signal, or a
+            failed elicitation) fall back to the old ascending-entropy order.
+            """
             h = n.entropy_score if n.entropy_score is not None else 0.693
-            return (round(h, 4), -n.depth)
+            confidence = (n.metadata or {}).get("confidence")
+            if confidence is None:
+                return (1, round(h, 4), -n.depth)
+            return (0, -round(float(confidence), 4), -n.depth)
 
         explored.sort(key=specificity)
         contradicted.sort(key=specificity)
@@ -844,23 +864,90 @@ class NodeExpander:
                 " findings better than any non-contradicted alternative.\n"
             )
 
+        # Output contract. An 8B model ignores "no preamble, no explanation"
+        # roughly half the time — on the committed C-NIAH run it spent 57% of
+        # Apiro's answer slots on markdown scaffolding. A required per-line
+        # sentinel is followed far more reliably, and lets the parser discard
+        # everything the model says around the answer (see apiro/parsing.py).
         sections.append(
             "=== STRICT RULES ===\n"
-            "1. Output exactly 3 diagnoses, one per line, most likely first.\n"
-            "2. Give only the specific disease name (e.g. 'Type 1 autoimmune pancreatitis')."
-            " No preamble, numbering, explanation, or mechanism.\n"
-            "3. Name the specific underlying primary disease, not a syndrome or a symptom"
-            " (e.g. prefer 'Pheochromocytoma' over 'Hypertensive crisis').\n"
-            "4. Every diagnosis must be compatible with ALL confirmed and ruled-out"
-            " findings above.\n\n"
-            "=== OUTPUT (3 lines only) ==="
+            f"1. Output exactly {n_diagnoses} lines, most likely first.\n"
+            f"2. Every line MUST start with '{DIFFERENTIAL_SENTINEL} ' followed by the"
+            " disease name and nothing else.\n"
+            "3. Give only the specific disease name (e.g."
+            f" '{DIFFERENTIAL_SENTINEL} Type 1 autoimmune pancreatitis')."
+            " No preamble, numbering, mechanism, or explanation.\n"
+            "4. Name the specific underlying primary disease, not a syndrome or a"
+            " symptom (e.g. prefer 'Pheochromocytoma' over 'Hypertensive crisis').\n"
+            "5. Every diagnosis must be compatible with ALL confirmed and ruled-out"
+            " findings above.\n"
+            "6. Weigh the CONFIRMED OBJECTIVE FINDINGS above the typical"
+            " presentation. When a finding rules out the diagnosis the presentation"
+            " suggests, follow the finding.\n"
+            + (
+                f"7. If the evidence above does not support any specific diagnosis,"
+                f" reply with exactly '{DIFFERENTIAL_SENTINEL} {ABSTENTION_SENTINEL}'"
+                f" and nothing else. Declining is correct when the note cannot"
+                f" support an answer; guessing is not.\n"
+                if self.allow_abstention else ""
+            )
+            + f"\n=== OUTPUT ({n_diagnoses} lines, each beginning"
+            f" '{DIFFERENTIAL_SENTINEL} ') ==="
         )
 
         prompt = "\n".join(sections)
 
         # --- Step 4: call + parse ---------------------------------------------
         raw_output = self._call_llm(prompt)
-        diagnoses = self._parse_hypotheses(raw_output, limit=3)
+        diagnoses = parse_differential(raw_output, limit=n_diagnoses)
+
+        # A formatting miss used to cost the engine the whole comparison: an
+        # unparseable answer became an empty differential, scored as a loss
+        # against baselines whose raw text was searched line by line. One
+        # retry with a harder instruction costs a single call on the case where
+        # it matters and nothing on the cases where it does not.
+        # An explicit refusal is a complete answer, not a short one. Retrying
+        # it would badger the model out of the behaviour rule 7 asks for, and
+        # would turn a correct abstention into a fabricated diagnosis. Only
+        # honoured when abstention was offered: otherwise an unprompted hedge
+        # ("I cannot determine...") would silently discard the differential.
+        if self.allow_abstention and detect_abstention(raw_output):
+            logger.info("[NodeExpander] Synthesis declined: evidence insufficient.")
+            return [ABSTENTION_SENTINEL]
+
+        if len(diagnoses) < n_diagnoses:
+            logger.info(
+                f"[NodeExpander] Synthesis parsed {len(diagnoses)}/{n_diagnoses} "
+                f"diagnoses — retrying with a stricter output contract."
+            )
+            retry_prompt = (
+                f"{prompt}\n\n"
+                f"REMINDER: your previous answer could not be read. Reply with"
+                f" EXACTLY {n_diagnoses} lines. Each line must be"
+                f" '{DIFFERENTIAL_SENTINEL} <disease name>'. Write nothing else —"
+                f" no introduction, no bold, no numbering, no explanation."
+            )
+            retry_output = self._call_llm(retry_prompt)
+            if self.allow_abstention and detect_abstention(retry_output):
+                logger.info("[NodeExpander] Synthesis declined on retry.")
+                return [ABSTENTION_SENTINEL]
+            retry_diagnoses = parse_differential(retry_output, limit=n_diagnoses)
+            # Keep whichever attempt yielded more usable candidates, merging the
+            # first attempt's answers in behind rather than discarding them.
+            if len(retry_diagnoses) > len(diagnoses):
+                merged = list(retry_diagnoses)
+                seen = {d.lower() for d in merged}
+                for d in diagnoses:
+                    if d.lower() not in seen and len(merged) < n_diagnoses:
+                        merged.append(d)
+                        seen.add(d.lower())
+                diagnoses = merged
+
+        if not diagnoses:
+            logger.warning(
+                "[NodeExpander] Synthesis produced no parseable diagnosis after "
+                "a retry. Returning an empty differential."
+            )
 
         logger.info(f"[NodeExpander] Synthesis complete: {diagnoses}")
         return diagnoses

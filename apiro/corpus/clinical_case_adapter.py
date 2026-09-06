@@ -487,6 +487,7 @@ class ClinicalCaseAdapter:
             specialty:    str
             ground_truth: str  (correct diagnosis — evaluation target)
             distractors:  list[str]  (plausible wrong answers, CUPCase only)
+            narrative:    str  (complete source narrative; never reconstructed)
             findings:     list[dict]  (serialisable PatientFindings)
             seed_nodes:   list[Node]  (ready for BeliefGraph)
 
@@ -512,6 +513,7 @@ class ClinicalCaseAdapter:
                     "specialty":    case.specialty,
                     "ground_truth": case.ground_truth,
                     "distractors":  case.distractors,
+                    "narrative":    case.narrative,
                     "findings": [
                         {
                             "finding_type": f.finding_type,

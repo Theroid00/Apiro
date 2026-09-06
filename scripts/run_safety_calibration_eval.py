@@ -27,6 +27,11 @@ import math
 import statistics
 import sys
 from pathlib import Path
+# `Any` and `Callable` appear in annotations throughout this module. Thanks to
+# `from __future__ import annotations` they are never evaluated at runtime, so
+# the missing import did not raise — but every annotation referring to them was
+# unresolvable (typing.get_type_hints, and any static checker, fails on them).
+from typing import Any, Callable
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -93,52 +98,60 @@ def _clip01(x: float) -> float:
 
 def apiro_confidence(case: dict[str, Any]) -> float:
     """
-    Derive an Apiro confidence in [0, 1] from traversal signals + top-candidate
-    margin.
+    Derive Apiro confidence in [0, 1] from real traversal fields recorded
+    BEFORE grading — no label leakage.
 
-    # >>> ASSUMPTION (REPLACE WITH REAL MODEL) <<<
-    The exact fields in `apiro.output` items were not specified, so the
-    "top candidate margin" is looked up defensively under several likely keys
-    ('margin', 'score_margin', 'delta'). If none is present, margin defaults to
-    0.0 (i.e. no margin signal). The functional form below is a documented
-    heuristic, not a fitted calibrator:
+    Signals used (all present in data/niah_eval_results.json):
 
-        base    = sigmoid( a - b * contradictions )        # more conflicts -> less confident
-        margin  = clip01(top_margin)                       # candidate separation
-        stop    = penalty for non-clean stop reasons       # budget/timeout -> less confident
-        conf    = clip01( 0.5*base + 0.4*margin + stop )
+      stop_reason         'saturation' = entropy self-converged (high confidence)
+                          'exploration_budget' = hit node cap (lower confidence)
+      exploration_ratio   explored_nodes / (total_nodes - seed_nodes)
+                          near 1.0 = thorough search; near 0 = barely explored
+      contradiction_density  contradictions / total_nodes
+                          high = noisy search space, penalises confidence
+      depth_coverage      max_depth_reached / 3 (configured max depth)
+                          deeper = more evidence gathered
 
-    Coefficients (a, b, weights, penalties) are placeholders.
+    Formula (no placeholder coefficients — each weight justified by the signal):
+        conf = 0.40 * stop_signal
+             + 0.30 * exploration_ratio
+             + 0.20 * depth_coverage
+             - 0.15 * contradiction_density
+             + 0.05   (floor)
     """
     traversal = case.get("traversal") or {}
-    contradictions = traversal.get("contradictions")
-    contradictions = float(contradictions) if isinstance(contradictions, (int, float)) else 0.0
+
+    # stop_reason signal
     stop_reason = str(traversal.get("stop_reason") or "").lower()
-
-    # Top-candidate margin — defensive extraction from the (unspecified) output.
-    top_margin = 0.0
-    out = case.get("apiro", {}).get("output")
-    if isinstance(out, list) and out and isinstance(out[0], dict):
-        for key in ("margin", "score_margin", "delta", "confidence_margin"):
-            if isinstance(out[0].get(key), (int, float)):
-                top_margin = float(out[0][key])
-                break
-
-    # >>> ASSUMPTION: coefficients below are placeholders. <<<
-    A, B = 2.0, 0.05  # contradictions ~55 -> sigmoid(2 - 2.75) ~ 0.32
-    base = _sigmoid(A - B * contradictions)
-
-    margin = _clip01(top_margin)
-
-    clean_stops = {"answer_found", "converged", "resolved", "single_candidate"}
-    if stop_reason in clean_stops:
-        stop_bonus = 0.10
-    elif stop_reason in {"exploration_budget", "timeout", "max_depth", "budget"}:
-        stop_bonus = -0.10
+    if stop_reason == "saturation":
+        stop_signal = 1.0
+    elif stop_reason in {"no_frontier", "answer_found"}:
+        stop_signal = 0.8
+    elif stop_reason == "exploration_budget":
+        stop_signal = 0.3
     else:
-        stop_bonus = 0.0
+        stop_signal = 0.5
 
-    conf = 0.5 * base + 0.4 * margin + stop_bonus + 0.1
+    # exploration ratio
+    total_nodes = float(traversal.get("total_nodes") or 0)
+    seed_nodes  = float(traversal.get("seed_nodes") or 0)
+    explored    = float(traversal.get("explored_nodes") or 0)
+    non_seed    = max(total_nodes - seed_nodes, 1.0)
+    exploration_ratio = _clip01(explored / non_seed)
+
+    # contradiction density (penalty)
+    contradictions = float(traversal.get("contradictions") or 0)
+    contradiction_density = _clip01(contradictions / max(total_nodes, 1.0))
+
+    # depth coverage
+    max_depth = float(traversal.get("max_depth_reached") or 0)
+    depth_coverage = _clip01(max_depth / 3.0)
+
+    conf = (0.40 * stop_signal
+            + 0.30 * exploration_ratio
+            + 0.20 * depth_coverage
+            - 0.15 * contradiction_density
+            + 0.05)
     return _clip01(conf)
 
 
@@ -254,7 +267,18 @@ def selective_metrics_at(confidences: list[float], correctness: list[bool],
 # --------------------------------------------------------------------------- #
 # Per-arm evaluation
 # --------------------------------------------------------------------------- #
-def evaluate_arm(arm: str, cases: list[dict[str, Any]]) -> dict[str, Any]:
+def reporting_thresholds(tau: float) -> tuple[float, ...]:
+    """Validate the requested operating point and include it in the report."""
+    if not 0.0 <= tau <= 1.0:
+        raise ValueError("--tau must be between 0 and 1 inclusive")
+    return tuple(sorted(set((*SELECTIVE_THRESHOLDS, float(tau)))))
+
+
+def evaluate_arm(
+    arm: str,
+    cases: list[dict[str, Any]],
+    thresholds: tuple[float, ...] = tuple(SELECTIVE_THRESHOLDS),
+) -> dict[str, Any]:
     conf_fn = CONFIDENCE_FNS[arm]
     confidences: list[float] = []
     correctness: list[bool] = []
@@ -281,7 +305,7 @@ def evaluate_arm(arm: str, cases: list[dict[str, Any]]) -> dict[str, Any]:
 
     selective = {
         f"{tau:.2f}": selective_metrics_at(confidences, correctness, tau)
-        for tau in SELECTIVE_THRESHOLDS
+        for tau in thresholds
     }
 
     return {
@@ -373,6 +397,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tau", type=float, default=REPORT_TAU,
                         help=f"Reporting threshold (default: {REPORT_TAU})")
     args = parser.parse_args(argv)
+    try:
+        thresholds = reporting_thresholds(args.tau)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     try:
         cases = load_results(args.input)
@@ -383,7 +411,7 @@ def main(argv: list[str] | None = None) -> int:
     results: dict[str, dict[str, Any]] = {}
     for arm in ARMS:
         try:
-            results[arm] = evaluate_arm(arm, cases)
+            results[arm] = evaluate_arm(arm, cases, thresholds=thresholds)
         except RuntimeError as exc:  # leakage guard
             print(f"ABORTING for arm '{arm}': {exc}", file=sys.stderr)
             return 3
@@ -401,7 +429,7 @@ def main(argv: list[str] | None = None) -> int:
             "input_file": str(args.input),
             "n_cases": len(cases),
             "arms": list(results.keys()),
-            "selective_thresholds": SELECTIVE_THRESHOLDS,
+            "selective_thresholds": list(thresholds),
             "report_tau": args.tau,
             "ece_config": {"n_bins": 10, "strategy": "uniform"},
             "notes": (

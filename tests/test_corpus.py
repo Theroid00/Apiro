@@ -13,16 +13,28 @@ Scraper integration tests are run manually with real credentials.
 """
 
 import sys
-from unittest.mock import MagicMock
-# Mock sentence_transformers to avoid importing torch/transformers during test execution
-sys.modules["sentence_transformers"] = MagicMock()
-
-from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from apiro.corpus.chunker import Chunker, _approx_tokens, _make_chunk_id
+
+
+@pytest.fixture(autouse=True)
+def _stub_sentence_transformers(monkeypatch):
+    """
+    apiro/corpus/embedder.py does `from sentence_transformers import
+    SentenceTransformer` at module level, which would otherwise pull in
+    torch/transformers just to import the module under test. Stub the
+    module via monkeypatch (not a bare `sys.modules[...] = ...`
+    assignment) so pytest reverts it after each test — a bare module-level
+    assignment here previously leaked into every other test file that
+    imports later in the same pytest session (alphabetically, most of
+    them), silently turning unrelated sentence-transformers-dependent
+    code paths in other test files into MagicMock-driven no-ops instead
+    of the "unavailable, skip" behaviour they were designed to fall back to.
+    """
+    monkeypatch.setitem(sys.modules, "sentence_transformers", MagicMock())
 
 
 # ============================================================
@@ -169,6 +181,7 @@ class TestEmbedder:
             mock_client.get_or_create_collection.return_value = mock_collection
             mock_chroma.return_value = mock_client
 
+            from collections import OrderedDict
             from apiro.corpus.embedder import Embedder
             embedder = Embedder.__new__(Embedder)
             embedder.model_name      = "all-mpnet-base-v2"
@@ -177,6 +190,11 @@ class TestEmbedder:
             embedder._model          = mock_model_instance
             embedder._collection     = mock_collection
             embedder._client         = mock_client
+            # Mirrors __init__'s in-memory caches — a bare __new__() skips
+            # __init__ entirely, so these must be set by hand or any method
+            # that touches the cache (ingest, query) raises AttributeError.
+            embedder._encode_cache   = OrderedDict()
+            embedder._query_cache    = OrderedDict()
             return embedder
 
     def _sample_chunks(self, n: int = 3) -> list[dict]:

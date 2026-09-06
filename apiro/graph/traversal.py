@@ -1,28 +1,22 @@
 """
 graph/traversal.py
 ------------------
-Contains two traversal strategies:
+ApiroTraversal — the entropy-first traversal loop that drives the belief
+graph: repeatedly picks the highest-entropy frontier node, expands it via
+NodeExpander, runs the contradiction/rabbit-hole/saturation checks, and
+stops on saturation, max-depth, or an empty frontier.
 
-1. ApiroTraversal (CLASSIC) — Phase 2 generative expansion:
-   Entropy-first BFS that blindly expands frontier nodes via LLM.
-   Kept for backwards compatibility and comparison.
-
-2. HypothesisTestingTraversal (NEW) — hypothesis-testing inference:
-   Phase 1: Extract structured PatientContext.
-   Phase 2: Generate N candidate diagnoses via HypothesisOracle (1 LLM call).
-   Phase 3: Score each hypothesis deterministically via EvidenceMatcher (0 LLM calls).
-   Phase 4: Apply demographic constraints via BayesianScorer (0 LLM calls).
-   Phase 5 (optional): Targeted graph enrichment for top-3 hypotheses only.
-
-Select via the `--mode classic|hypothesis` flag in run.py.
+An earlier "hypothesis-testing" traversal strategy (structured PatientContext
+extraction → oracle-generated candidates → deterministic evidence scoring)
+was explored and then purged (commit 8a001c7); ApiroTraversal is the only
+strategy left in this codebase.
 """
 
 import json
 import logging
 import os
 import time
-from dataclasses import dataclass, field
-from pathlib import Path
+from dataclasses import dataclass
 from typing import Optional
 
 from apiro.config import (
@@ -30,6 +24,7 @@ from apiro.config import (
     CONTRADICTION_PENALTY,
     SATURATION_MIN_EXPLORATION,
     MAX_EXPLORATION_EXPANSIONS,
+    LOG_DIR,
 )
 from apiro.graph.belief_graph import BudgetExceededError
 from apiro.graph.critic import CriticEngine
@@ -54,26 +49,7 @@ class TraversalResult:
     duration_seconds:    float
     synthesis:           list[str]        # Final differential diagnosis
     saturation_status:   Optional[object] = None  # SaturationStatus if stop was saturation
-
-
-@dataclass
-class HypothesisTestingResult:
-    """
-    Summary returned by HypothesisTestingTraversal.run().
-
-    Carries the ranked hypotheses, evidence scores, and timing stats.
-    """
-    synthesis:           list[str]              # Top 3 diagnoses
-    ranked_hypotheses:   list                   # list[RankedHypothesis]
-    duration_seconds:    float
-    patient_context:     object                 # PatientContext
-    stop_reason:         str = "scored"
-    # Classic graph stats (populated if graph enrichment ran)
-    total_nodes:         int = 0
-    total_edges:         int = 0
-    rabbit_hole_count:   int = 0
-    contradiction_count: int = 0
-    graph:               Optional[object] = None
+    stage_timings:       Optional[dict[str, float]] = None
 
 
 class ApiroTraversal:
@@ -94,13 +70,13 @@ class ApiroTraversal:
         saturation,
         rabbit_hole,
         contradiction,
-        log_dir: str = "data",
+        log_dir: str | None = None,
     ):
         self.expander    = expander
         self.saturation  = saturation
         self.rabbit_hole = rabbit_hole
         self.contradiction = contradiction
-        self.log_dir     = log_dir
+        self.log_dir     = str(log_dir) if log_dir else str(LOG_DIR)
         self._traversal_log: list[dict] = []
         self.critic = CriticEngine(llm_client=expander.llm_client)
 
@@ -136,7 +112,6 @@ class ApiroTraversal:
         vignette: str = None,
         on_event = None,
     ) -> TraversalResult:
-        self._on_event = on_event
         """
         Run the entropy-first traversal loop.
 
@@ -145,10 +120,12 @@ class ApiroTraversal:
             graph:      empty BeliefGraph to populate
             max_depth:  hard stop — prevents infinite loops
             case_name:  used for log filename
+            on_event:   optional callback invoked with each traversal event dict
 
         Returns:
             TraversalResult with the populated graph and run statistics
         """
+        self._on_event = on_event
         start_time = time.time()
         self._traversal_log = []
 
@@ -343,7 +320,7 @@ class ApiroTraversal:
                     batch_pairs.append((new_node.claim, existing.claim))
                     batch_meta.append((new_node, existing))
 
-            # Run the batched NLI cross-encoder check
+            # Run the batched lexical-filter / LLM-judge contradiction check.
             if batch_pairs:
                 results = self.contradiction.check_batch(batch_pairs)
                 for (new_node, existing), result in zip(batch_meta, results):
@@ -405,17 +382,19 @@ class ApiroTraversal:
 
 
         # ── Wrap up ───────────────────────────────────────────────────────────
-        duration = round(time.time() - start_time, 2)
+        traversal_finished = time.time()
 
         # ── Synthesize differential ───────────────────────────────────────────
         # The vignette is passed through: the bare-LLM baseline reads the whole
         # case, so the synthesizer must too — otherwise Apiro argues its final
         # answer from graph fragments alone.
+        synthesis_started = time.time()
         try:
             synthesis = self.expander.synthesize_differential(graph, vignette=vignette)
         except TypeError:
             # Back-compat with expanders whose signature predates `vignette`.
             synthesis = self.expander.synthesize_differential(graph)
+        synthesis_finished = time.time()
 
         self._log({
             "event":            "traversal_complete",
@@ -423,10 +402,19 @@ class ApiroTraversal:
             "total_nodes":      graph.node_count(),
             "total_edges":      len(graph.edges),
             "synthesis":        synthesis,
-            "duration_seconds": duration,
+            "duration_seconds": round(synthesis_finished - start_time, 2),
         })
 
+        log_started = time.time()
         self._write_log(case_name)
+        finished = time.time()
+        duration = round(finished - start_time, 2)
+        stage_timings = {
+            "traversal_seconds": round(traversal_finished - start_time, 4),
+            "synthesis_seconds": round(synthesis_finished - synthesis_started, 4),
+            "log_write_seconds": round(finished - log_started, 4),
+            "total_seconds": round(finished - start_time, 4),
+        }
 
         sat_status = self.saturation.get_status(graph) if stop_reason == "saturation" else None
 
@@ -440,6 +428,7 @@ class ApiroTraversal:
             duration_seconds=duration,
             synthesis=synthesis,
             saturation_status=sat_status,
+            stage_timings=stage_timings,
         )
 
         logger.info(

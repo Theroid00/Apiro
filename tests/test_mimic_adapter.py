@@ -9,11 +9,9 @@ so they run fully offline and fast.
 
 from __future__ import annotations
 
-import csv
-import io
-import pytest
 from pathlib import Path
-from unittest.mock import patch, mock_open, MagicMock
+
+import pytest
 
 from apiro.corpus.mimic_adapter import (
     PatientFinding,

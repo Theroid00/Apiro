@@ -1,0 +1,746 @@
+{
+  "benchmark": "ddxplus",
+  "dataset": "aai530-group6/ddxplus",
+  "split": "test",
+  "sample_seed": 42,
+  "n_requested": 10,
+  "n_completed": 10,
+  "n_differential": 5,
+  "scores": {
+    "apiro": {
+      "arm": "apiro",
+      "n_cases": 10,
+      "ranks": [
+        2,
+        null,
+        null,
+        null,
+        3,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "top_k": {
+        "1": 0.0,
+        "3": 0.2,
+        "5": 0.2
+      },
+      "mrr": 0.08333333333333333,
+      "top1_ci": [
+        0.0,
+        0.27753280018619253
+      ],
+      "top3_ci": [
+        0.0566821514015734,
+        0.5098375287101421
+      ],
+      "distractor_rate": null,
+      "n_distractor_cases": 0
+    },
+    "rag": {
+      "arm": "rag",
+      "n_cases": 10,
+      "ranks": [
+        4,
+        null,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        3,
+        2
+      ],
+      "top_k": {
+        "1": 0.3,
+        "3": 0.8,
+        "5": 0.9
+      },
+      "mrr": 0.5583333333333333,
+      "top1_ci": [
+        0.10779126731943314,
+        0.6032218527550438
+      ],
+      "top3_ci": [
+        0.49016247128985796,
+        0.9433178485984266
+      ],
+      "distractor_rate": null,
+      "n_distractor_cases": 0
+    },
+    "bare_llm": {
+      "arm": "bare_llm",
+      "n_cases": 10,
+      "ranks": [
+        1,
+        null,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        3,
+        2
+      ],
+      "top_k": {
+        "1": 0.6,
+        "3": 0.9,
+        "5": 0.9
+      },
+      "mrr": 0.7333333333333333,
+      "top1_ci": [
+        0.31267376954840886,
+        0.8318196704143527
+      ],
+      "top3_ci": [
+        0.5958499729257793,
+        0.9821237869252664
+      ],
+      "distractor_rate": null,
+      "n_distractor_cases": 0
+    }
+  },
+  "differential_overlap": {
+    "apiro": {
+      "recall_at_k": 0.14,
+      "precision_at_k": 0.18,
+      "top1_agreement": 0.0,
+      "n_scored": 10
+    },
+    "rag": {
+      "recall_at_k": 0.41,
+      "precision_at_k": 0.4,
+      "top1_agreement": 0.4,
+      "n_scored": 10
+    },
+    "bare_llm": {
+      "recall_at_k": 0.32999999999999996,
+      "precision_at_k": 0.33999999999999997,
+      "top1_agreement": 0.4,
+      "n_scored": 10
+    }
+  },
+  "comparisons": {
+    "apiro": {
+      "vs": "bare_llm",
+      "k": 3,
+      "delta_ci": {
+        "delta": -0.7,
+        "ci_low": -1.0,
+        "ci_high": -0.4,
+        "n_cases": 10,
+        "excludes_zero": true
+      },
+      "mcnemar": {
+        "n_cases": 10,
+        "a_only": 0,
+        "b_only": 7,
+        "n_discordant": 7,
+        "p_value": 0.015625,
+        "significant_at_05": true
+      }
+    },
+    "rag": {
+      "vs": "bare_llm",
+      "k": 3,
+      "delta_ci": {
+        "delta": -0.09999999999999998,
+        "ci_low": -0.30000000000000004,
+        "ci_high": 0.0,
+        "n_cases": 10,
+        "excludes_zero": false
+      },
+      "mcnemar": {
+        "n_cases": 10,
+        "a_only": 0,
+        "b_only": 1,
+        "n_discordant": 1,
+        "p_value": 1.0,
+        "significant_at_05": false
+      }
+    }
+  },
+  "case_results": [
+    {
+      "case_id": "ddxplus_test_128342",
+      "ground_truth": "Pneumonia",
+      "reference_differential": [
+        "Pneumonia",
+        "Bronchiectasis",
+        "Influenza",
+        "Bronchitis",
+        "Pulmonary neoplasm",
+        "Pericarditis",
+        "Tuberculosis",
+        "Possible NSTEMI / STEMI",
+        "Panic attack",
+        "URTI",
+        "GERD",
+        "Unstable angina",
+        "Acute COPD exacerbation / infection",
+        "Boerhaave",
+        "Stable angina",
+        "Myocarditis",
+        "Pulmonary embolism",
+        "HIV (initial infection)",
+        "Bronchospasm / acute asthma exacerbation",
+        "Atrial fibrillation",
+        "Guillain-Barr\u00e9 syndrome",
+        "Acute dystonic reactions",
+        "Myasthenia gravis",
+        "PSVT"
+      ],
+      "n_axioms": 20,
+      "n_evidences": 42,
+      "predictions": {
+        "bare_llm": [
+          "Pneumonia",
+          "Pulmonary Embolism",
+          "Pleurisy",
+          "Lung Cancer",
+          "Herpes Zoster"
+        ],
+        "rag": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Cardiac Tamponade",
+          "Pneumonia",
+          "Myocardial Infarction"
+        ],
+        "apiro": [
+          "Pulmonary Embolism",
+          "Pneumonia",
+          "Acute Bronchitis",
+          "Pleural Effusion",
+          "Hemothorax"
+        ]
+      },
+      "abstained": {
+        "bare_llm": false,
+        "rag": false,
+        "apiro": false
+      },
+      "n_candidates": {
+        "bare_llm": 5,
+        "rag": 5,
+        "apiro": 5
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 61,
+        "explored_nodes": 13,
+        "contradictions": 36,
+        "duration_seconds": 143.68
+      }
+    },
+    {
+      "case_id": "ddxplus_test_22771",
+      "ground_truth": "Scombroid food poisoning",
+      "reference_differential": [
+        "Scombroid food poisoning",
+        "Anaphylaxis",
+        "Atrial fibrillation",
+        "PSVT",
+        "Pulmonary embolism",
+        "Guillain-Barr\u00e9 syndrome",
+        "Acute dystonic reactions",
+        "Myasthenia gravis",
+        "Anemia",
+        "Chagas"
+      ],
+      "n_axioms": 20,
+      "n_evidences": 19,
+      "predictions": {
+        "bare_llm": [
+          "Erythema Multiforme",
+          "Kawasaki Disease",
+          "Toxic Shock Syndrome",
+          "Fish Allergy Reaction",
+          "Acute Rheumatic Fever"
+        ],
+        "rag": [
+          "Erythema Multiforme",
+          "Staphylococcal Scalded Skin Syndrome",
+          "Scarlet Fever",
+          "Kawasaki Disease",
+          "Urticarial Vasculitis"
+        ],
+        "apiro": [
+          "Eosinophilic Granulomatosis with Polyangiitis (EGPA)",
+          "Churg-Strauss Syndrome",
+          "Hereditary Angioedema due to C1 esterase inhibitor deficiency",
+          "Acute Respiratory Distress Syndrome (ARDS) due to vasculitis",
+          "Kawasaki Disease"
+        ]
+      },
+      "abstained": {
+        "bare_llm": false,
+        "rag": false,
+        "apiro": false
+      },
+      "n_candidates": {
+        "bare_llm": 5,
+        "rag": 5,
+        "apiro": 5
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 61,
+        "explored_nodes": 14,
+        "contradictions": 27,
+        "duration_seconds": 151.96
+      }
+    },
+    {
+      "case_id": "ddxplus_test_29551",
+      "ground_truth": "Pulmonary embolism",
+      "reference_differential": [
+        "Pulmonary embolism",
+        "Spontaneous pneumothorax",
+        "Myocarditis",
+        "Guillain-Barr\u00e9 syndrome",
+        "Atrial fibrillation",
+        "Acute dystonic reactions",
+        "Myasthenia gravis",
+        "Anemia",
+        "Sarcoidosis",
+        "PSVT"
+      ],
+      "n_axioms": 16,
+      "n_evidences": 24,
+      "predictions": {
+        "bare_llm": [
+          "Pulmonary Metastatic Disease",
+          "Lymphoma",
+          "Ewing's Sarcoma",
+          "Osteosarcoma",
+          "Pleural Effusion"
+        ],
+        "rag": [
+          "Pulmonary Embolism",
+          "Acute Lymphoblastic Leukemia",
+          "Myocardial Infarction",
+          "Rhabdomyosarcoma",
+          "Tumor Lysis Syndrome"
+        ],
+        "apiro": [
+          "Hypereosinophilic syndrome",
+          "Tropical eosinophilia",
+          "L\u00f6ffler\u2019s endocarditis",
+          "Eosinophilic fasciitis",
+          "Necrotizing fasciitis"
+        ]
+      },
+      "abstained": {
+        "bare_llm": false,
+        "rag": false,
+        "apiro": false
+      },
+      "n_candidates": {
+        "bare_llm": 5,
+        "rag": 5,
+        "apiro": 5
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 34,
+        "explored_nodes": 8,
+        "contradictions": 13,
+        "duration_seconds": 107.14
+      }
+    },
+    {
+      "case_id": "ddxplus_test_59711",
+      "ground_truth": "Acute otitis media",
+      "reference_differential": [
+        "Acute otitis media"
+      ],
+      "n_axioms": 4,
+      "n_evidences": 10,
+      "predictions": {
+        "bare_llm": [
+          "Middle Ear Infection",
+          "Tonsillitis",
+          "Sinusitis",
+          "Mastoiditis",
+          "Rheumatic Fever"
+        ],
+        "rag": [
+          "Otitis Media",
+          "Rheumatic Fever",
+          "Lyme Disease",
+          "Mastoiditis",
+          "Scarlet Fever"
+        ],
+        "apiro": [
+          "Tuberculous meningitis",
+          "Neuroborreliosis",
+          "Beh\u00e7et disease",
+          "Chronic meningitis",
+          "Lyme disease"
+        ]
+      },
+      "abstained": {
+        "bare_llm": false,
+        "rag": false,
+        "apiro": false
+      },
+      "n_candidates": {
+        "bare_llm": 5,
+        "rag": 5,
+        "apiro": 5
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 23,
+        "explored_nodes": 8,
+        "contradictions": 13,
+        "duration_seconds": 55.93
+      }
+    },
+    {
+      "case_id": "ddxplus_test_55456",
+      "ground_truth": "Viral pharyngitis",
+      "reference_differential": [
+        "Viral pharyngitis",
+        "URTI",
+        "Bronchitis",
+        "Acute laryngitis",
+        "Influenza",
+        "Tuberculosis",
+        "Possible NSTEMI / STEMI",
+        "Epiglottitis",
+        "Unstable angina"
+      ],
+      "n_axioms": 8,
+      "n_evidences": 16,
+      "predictions": {
+        "bare_llm": [
+          "Tonsillitis",
+          "Epiglottitis",
+          "Thyroiditis",
+          "Pharyngitis",
+          "Peritonsillar Abscess"
+        ],
+        "rag": [
+          "Tonsillitis",
+          "Pharyngitis",
+          "Epiglottitis",
+          "Peritonsillar Abscess",
+          "Acute Thyroiditis"
+        ],
+        "apiro": [
+          "Acute Epiglottitis",
+          "Peritonsillar Abscess",
+          "Tonsillitis",
+          "Bacterial Pharyngitis",
+          "Group A Streptococcal Infection"
+        ]
+      },
+      "abstained": {
+        "bare_llm": false,
+        "rag": false,
+        "apiro": false
+      },
+      "n_candidates": {
+        "bare_llm": 5,
+        "rag": 5,
+        "apiro": 5
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 41,
+        "explored_nodes": 13,
+        "contradictions": 18,
+        "duration_seconds": 99.2
+      }
+    },
+    {
+      "case_id": "ddxplus_test_53431",
+      "ground_truth": "Bronchitis",
+      "reference_differential": [
+        "Viral pharyngitis",
+        "URTI",
+        "Bronchitis",
+        "Acute COPD exacerbation / infection",
+        "Tuberculosis",
+        "Acute laryngitis",
+        "Possible NSTEMI / STEMI",
+        "Influenza",
+        "Boerhaave",
+        "Unstable angina",
+        "Pericarditis",
+        "GERD",
+        "Stable angina",
+        "Scombroid food poisoning"
+      ],
+      "n_axioms": 11,
+      "n_evidences": 18,
+      "predictions": {
+        "bare_llm": [
+          "Acute Bronchitis",
+          "Pneumonia",
+          "COPD Exacerbation",
+          "Pleurisy",
+          "Pneumothorax"
+        ],
+        "rag": [
+          "Pneumonia",
+          "Acute Bronchitis",
+          "Myocardial Infarction",
+          "Pleurisy",
+          "Asthma"
+        ],
+        "apiro": [
+          "Mycoplasma pneumoniae infection",
+          "Legionella pneumophila infection",
+          "Secondary bacterial pneumonia",
+          "Atypical viral pneumonia",
+          "Chronic obstructive pulmonary disease exacerbation"
+        ]
+      },
+      "abstained": {
+        "bare_llm": false,
+        "rag": false,
+        "apiro": false
+      },
+      "n_candidates": {
+        "bare_llm": 5,
+        "rag": 5,
+        "apiro": 5
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 28,
+        "explored_nodes": 8,
+        "contradictions": 9,
+        "duration_seconds": 81.42
+      }
+    },
+    {
+      "case_id": "ddxplus_test_50442",
+      "ground_truth": "Acute pulmonary edema",
+      "reference_differential": [
+        "Acute pulmonary edema",
+        "Possible NSTEMI / STEMI",
+        "SLE",
+        "Pulmonary embolism",
+        "Myocarditis",
+        "Pericarditis",
+        "Panic attack",
+        "Guillain-Barr\u00e9 syndrome",
+        "Chagas",
+        "Anaphylaxis",
+        "Acute dystonic reactions",
+        "Myasthenia gravis",
+        "Anemia",
+        "Sarcoidosis",
+        "Unstable angina",
+        "Scombroid food poisoning",
+        "Pulmonary neoplasm"
+      ],
+      "n_axioms": 20,
+      "n_evidences": 30,
+      "predictions": {
+        "bare_llm": [
+          "Pulmonary Embolism",
+          "Congestive Heart Failure exacerbation",
+          "Deep Vein Thrombosis",
+          "Acute Coronary Syndrome",
+          "Cancer with metastasis to lung or bone"
+        ],
+        "rag": [
+          "Pulmonary Embolism",
+          "Heart Failure Exacerbation",
+          "Acute Coronary Syndrome",
+          "Chronic Obstructive Pulmonary Disease Exacerbation",
+          "Deep Vein Thrombosis"
+        ],
+        "apiro": [
+          "Pulmonary Embolism",
+          "Calcific Tendinitis",
+          "Heart Failure Exacerbation",
+          "Chronic Venous Insufficiency",
+          "Cardiac Amyloidosis"
+        ]
+      },
+      "abstained": {
+        "bare_llm": false,
+        "rag": false,
+        "apiro": false
+      },
+      "n_candidates": {
+        "bare_llm": 5,
+        "rag": 5,
+        "apiro": 5
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 45,
+        "explored_nodes": 8,
+        "contradictions": 10,
+        "duration_seconds": 132.2
+      }
+    },
+    {
+      "case_id": "ddxplus_test_79893",
+      "ground_truth": "Viral pharyngitis",
+      "reference_differential": [
+        "Viral pharyngitis",
+        "Possible NSTEMI / STEMI",
+        "HIV (initial infection)",
+        "Unstable angina",
+        "URTI",
+        "Acute laryngitis",
+        "Chagas",
+        "Stable angina"
+      ],
+      "n_axioms": 10,
+      "n_evidences": 19,
+      "predictions": {
+        "bare_llm": [
+          "Tonsillitis",
+          "Pharyngitis",
+          "Thyroiditis",
+          "Ludwig's Angina",
+          "Peritonsillar Abscess"
+        ],
+        "rag": [
+          "Tonsillitis",
+          "Pharyngitis",
+          "Thyroiditis",
+          "Epiglottitis",
+          "Ludwig's Angina"
+        ],
+        "apiro": [
+          "Parotid duct calculus",
+          "Intraparotid lymphadenopathy due to tuberculosis",
+          "Histoplasmosis",
+          "Sarcoidosis",
+          "Riedel\u2019s thyroiditis"
+        ]
+      },
+      "abstained": {
+        "bare_llm": false,
+        "rag": false,
+        "apiro": false
+      },
+      "n_candidates": {
+        "bare_llm": 5,
+        "rag": 5,
+        "apiro": 5
+      },
+      "traversal": {
+        "stop_reason": "critic_halt",
+        "total_nodes": 62,
+        "explored_nodes": 19,
+        "contradictions": 33,
+        "duration_seconds": 160.93
+      }
+    },
+    {
+      "case_id": "ddxplus_test_81364",
+      "ground_truth": "URTI",
+      "reference_differential": [
+        "URTI",
+        "Bronchitis",
+        "Acute otitis media",
+        "Chagas",
+        "Anemia",
+        "Influenza"
+      ],
+      "n_axioms": 16,
+      "n_evidences": 21,
+      "predictions": {
+        "bare_llm": [
+          "Meningitis",
+          "Scarlet Fever",
+          "Tonsillitis",
+          "Sinusitis",
+          "Viral Exanthem"
+        ],
+        "rag": [
+          "Meningitis",
+          "Viral Exanthem (e.g. Roseola)",
+          "Tonsillitis",
+          "Acute Bronchitis",
+          "Sinusitis"
+        ],
+        "apiro": [
+          "Influenza",
+          "Viral Meningitis",
+          "Acute Bacterial Sinusitis",
+          "The child's symptoms could be",
+          "Viral mening"
+        ]
+      },
+      "abstained": {
+        "bare_llm": false,
+        "rag": false,
+        "apiro": false
+      },
+      "n_candidates": {
+        "bare_llm": 5,
+        "rag": 5,
+        "apiro": 5
+      },
+      "traversal": {
+        "stop_reason": "critic_halt",
+        "total_nodes": 40,
+        "explored_nodes": 8,
+        "contradictions": 16,
+        "duration_seconds": 99.39
+      }
+    },
+    {
+      "case_id": "ddxplus_test_95339",
+      "ground_truth": "Acute dystonic reactions",
+      "reference_differential": [
+        "Acute dystonic reactions",
+        "Myasthenia gravis"
+      ],
+      "n_axioms": 13,
+      "n_evidences": 7,
+      "predictions": {
+        "bare_llm": [
+          "Tardive Dyskinesia",
+          "Acute Dystonia",
+          "Neuroleptic Malignant Syndrome",
+          "Anticholinergic Toxicity",
+          "Parkinson's Disease"
+        ],
+        "rag": [
+          "Tardive Dyskinesia",
+          "Acute Dystonia",
+          "Neuroleptic Malignant Syndrome",
+          "Parkinson's Disease",
+          "Schizophrenia"
+        ],
+        "apiro": [
+          "INSUFFICIENT EVIDENCE"
+        ]
+      },
+      "abstained": {
+        "bare_llm": false,
+        "rag": false,
+        "apiro": true
+      },
+      "n_candidates": {
+        "bare_llm": 5,
+        "rag": 5,
+        "apiro": 1
+      },
+      "traversal": {
+        "stop_reason": "saturation",
+        "total_nodes": 49,
+        "explored_nodes": 14,
+        "contradictions": 27,
+        "duration_seconds": 137.11
+      }
+    }
+  ]
+}

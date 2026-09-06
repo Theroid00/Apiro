@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -199,6 +199,10 @@ _CLINICAL_SYNONYM_GROUPS: List[List[str]] = [
         "nstemi",
         "st elevation myocardial infarction",
         "non st elevation myocardial infarction",
+        # NOTE: do NOT add "acute myocardial infarction" as its own group. A
+        # second group claims that surface form for a different canonical key,
+        # so "STEMI" and "acute myocardial infarction" stop matching each
+        # other. Qualifier stripping already reduces it to this group.
     ],
     # Systemic lupus erythematosus
     [
@@ -324,6 +328,96 @@ _CLINICAL_SYNONYM_GROUPS: List[List[str]] = [
         "crf",
         "chronic renal insufficiency",
     ],
+    # ---------------------------------------------------------------------
+    # Groups for every diagnosis scripts/build_niah_cases.py can emit.
+    #
+    # The map above was assembled around the ORIGINAL benchmark set. When
+    # NEEDLE_BANK grew from 6 diagnoses to 20, only 2 of the 20 answers had a
+    # group — so 22 of 36 clinically correct paraphrases were scored as
+    # misses, including every common abbreviation (DKA, SAH, GCA, GBS). That
+    # depresses every arm and can easily swamp the effect under test.
+    # ---------------------------------------------------------------------
+    [
+        "diabetic ketoacidosis", "dka", "ketoacidosis",
+        "diabetic keto acidosis",
+    ],
+    [
+        "bacterial meningitis", "meningitis", "pyogenic meningitis",
+        "pneumococcal meningitis", "meningococcal meningitis",
+        "purulent meningitis",
+    ],
+    [
+        "acute appendicitis", "appendicitis", "appendiceal inflammation",
+    ],
+    [
+        "hyperkalemia", "hyperkalaemia", "high potassium",
+        "high serum potassium", "elevated potassium", "potassium excess",
+    ],
+    [
+        "subarachnoid hemorrhage", "sah", "subarachnoid haemorrhage",
+        "subarachnoid bleed", "aneurysmal subarachnoid hemorrhage",
+        "ruptured cerebral aneurysm",
+    ],
+    [
+        "aortic dissection", "acute aortic dissection",
+        "thoracic aortic dissection", "type a aortic dissection",
+        "type b aortic dissection", "dissecting aortic aneurysm",
+    ],
+    [
+        "acute pancreatitis", "pancreatitis", "necrotizing pancreatitis",
+        "gallstone pancreatitis", "alcoholic pancreatitis",
+    ],
+    [
+        "adrenal crisis", "addisonian crisis", "acute adrenal insufficiency",
+        "adrenal insufficiency", "primary adrenal insufficiency",
+        "addison disease", "addisons disease", "hypoadrenalism",
+    ],
+    [
+        "pheochromocytoma", "phaeochromocytoma", "adrenal medullary tumor",
+        "catecholamine secreting tumor", "paraganglioma",
+    ],
+    [
+        "giant cell arteritis", "gca", "temporal arteritis",
+        "cranial arteritis", "horton disease",
+    ],
+    [
+        "guillain barre syndrome", "gbs", "guillain barre",
+        "acute inflammatory demyelinating polyradiculoneuropathy", "aidp",
+        "acute inflammatory demyelinating polyneuropathy",
+        "acute ascending paralysis",
+    ],
+    [
+        "tension pneumothorax", "pneumothorax", "collapsed lung",
+        "spontaneous pneumothorax",
+    ],
+    [
+        "septic arthritis", "bacterial arthritis", "pyogenic arthritis",
+        "infectious arthritis", "joint sepsis", "pyarthrosis",
+    ],
+    [
+        "acute cholangitis", "cholangitis", "ascending cholangitis",
+        "biliary sepsis", "suppurative cholangitis",
+    ],
+    [
+        "salicylate toxicity", "salicylate poisoning", "salicylate overdose",
+        "aspirin overdose", "aspirin toxicity", "aspirin poisoning",
+        "salicylism",
+    ],
+    [
+        "acute mesenteric ischemia", "mesenteric ischemia",
+        "acute mesenteric ischaemia", "mesenteric infarction",
+        "superior mesenteric artery occlusion", "bowel ischemia",
+        "intestinal ischemia",
+    ],
+    [
+        "carbon monoxide poisoning", "co poisoning",
+        "carbon monoxide toxicity", "carboxyhemoglobinemia",
+        "carbon monoxide intoxication",
+    ],
+    [
+        "thyroid storm", "thyrotoxic crisis", "thyrotoxicosis",
+        "thyroid crisis", "accelerated hyperthyroidism",
+    ],
 ]
 
 
@@ -333,6 +427,38 @@ _CLINICAL_SYNONYM_GROUPS: List[List[str]] = [
 
 _WHITESPACE_RE = re.compile(r"\s+")
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9\s]")
+
+#: British -> American medical stems, applied during normalization.
+#:
+#: Without this, "Subarachnoid haemorrhage" does not match "subarachnoid
+#: hemorrhage" and "Hyperkalaemia" does not match "hyperkalemia" — the model is
+#: marked wrong for a spelling convention. That is not hypothetical here: the
+#: C-NIAH needle bank itself is written in British English ("haemorrhage",
+#: "oedematous", "diarrhoea"), so a model primed by the note's own spelling
+#: produces the variant the evaluator then rejects.
+#:
+#: Targeted stems rather than a blanket ae/oe -> e rule, which would mangle
+#: unrelated words ("aerobic" -> "erobic", "coexisting" -> "cexisting").
+#: Order matters: longer stems first so they win.
+_SPELLING_VARIANTS: List[Tuple[str, str]] = [
+    ("haemat", "hemat"), ("haemo", "hemo"), ("haem", "hem"),
+    ("oedema", "edema"), ("oesophag", "esophag"), ("oestrog", "estrog"),
+    ("ischaem", "ischem"), ("anaem", "anem"), ("leukaem", "leukem"),
+    ("uraem", "urem"), ("kalaem", "kalem"), ("natraem", "natrem"),
+    ("glycaem", "glycem"), ("bacteraem", "bacterem"), ("septicaem", "septicem"),
+    ("phaeo", "pheo"), ("paediatr", "pediatr"), ("orthopaed", "orthoped"),
+    ("gynaecol", "gynecol"), ("coeliac", "celiac"), ("diarrhoea", "diarrhea"),
+    ("dyspnoea", "dyspnea"), ("apnoea", "apnea"), ("pyaem", "pyem"),
+    ("aetiolog", "etiolog"), ("anaesthe", "anesthe"), ("caesar", "cesar"),
+    ("foetal", "fetal"), ("tumour", "tumor"), ("oedem", "edem"),
+]
+
+
+def _normalize_spelling(text: str) -> str:
+    """Fold British medical spellings onto their American forms."""
+    for british, american in _SPELLING_VARIANTS:
+        text = text.replace(british, american)
+    return text
 
 
 def _normalize_text(text: str) -> str:
@@ -354,7 +480,7 @@ def _normalize_text(text: str) -> str:
     # Remove any remaining punctuation.
     lowered = _NON_ALNUM_RE.sub(" ", lowered)
     lowered = _WHITESPACE_RE.sub(" ", lowered).strip()
-    return lowered
+    return _normalize_spelling(lowered)
 
 
 def _strip_qualifiers(text: str) -> str:

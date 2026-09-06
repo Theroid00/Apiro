@@ -1,7 +1,14 @@
 """
 config.py — Apiro global constants and configuration.
 All tuneable parameters live here. Import this everywhere.
+
+Environment overrides: OLLAMA_BASE_URL and PRIMARY_MODEL can be overridden
+via environment variables of the same name (see .env.example). No .env
+loader is bundled — either `export` them in your shell or `source .env`
+before running, since adding python-dotenv as a dependency for two
+variables wasn't worth it.
 """
+import os
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -13,21 +20,15 @@ CORPUS_DIR = DATA_DIR / "corpus"
 CHROMA_DIR = DATA_DIR / "chroma_db"
 LOG_DIR    = DATA_DIR / "logs"
 
-for _d in [DATA_DIR, CORPUS_DIR, CHROMA_DIR, LOG_DIR]:
-    _d.mkdir(parents=True, exist_ok=True)
+# Paths are declarations only. Commands create the directories they write to;
+# importing ``apiro.config`` must be safe in a read-only installation.
 
 # ---------------------------------------------------------------------------
 # Ollama / LLM
 # ---------------------------------------------------------------------------
-OLLAMA_BASE_URL  = "http://localhost:11434"
-PRIMARY_MODEL    = "llama3.1:8b"        # Configured to use the locally available model
-TOP_LOGPROBS     = 20                   # top-k logprobs for entropy computation (Ollama max is 20)
-MAX_FIRST_TOKEN  = 1                    # only first token for entropy
-MAX_ANSWER_TOKENS = 80                  # short answer generation
-ENTROPY_TEMPERATURES = [0.3]            # single temperature — T=0.3 is the cleanest signal
-# Temperature weights — T=0.3 is dominant (was 0.6 weight in 3-sample scheme);
-# using a single sample eliminates the 3x call overhead with negligible quality loss.
-ENTROPY_TEMP_WEIGHTS = {0.3: 1.0}
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+PRIMARY_MODEL   = os.environ.get("PRIMARY_MODEL", "llama3.1:8b")
+MAX_MODEL_CONCURRENCY = int(os.environ.get("APIRO_MAX_MODEL_CONCURRENCY", "2"))
 
 # ---------------------------------------------------------------------------
 # Embedding
@@ -59,10 +60,30 @@ CHUNK_OVERLAP_TOKENS = 50
 # ---------------------------------------------------------------------------
 # Graph traversal
 # ---------------------------------------------------------------------------
-MAX_TRAVERSAL_DEPTH = 8
-MAX_NODES_PER_RUN   = 30              # hard cap on nodes expanded per traversal run
-FRONTIER_SORT       = "entropy_desc"   # always expand highest-entropy node first
 N_CHILD_HYPOTHESES  = 3                # child nodes generated per expansion
+
+# Size of the final ranked differential. Every benchmark arm must be allowed
+# the same number of candidates: the committed C-NIAH run graded the baselines
+# over their entire raw output (~7 lines per case, uncapped) while capping
+# Apiro at 3 parsed slots, so the arms were not answering the same question.
+N_DIFFERENTIAL = 3
+
+# Which uncertainty signal scores depth >= 1 nodes.
+#
+#   "posterior" — verbalized confidence that this hypothesis is the primary
+#                 diagnosis FOR THIS PATIENT, mapped through binary Shannon
+#                 entropy. Continuous.
+#   "breadth"   — the original: "how many diagnoses could cause this finding?"
+#
+# Default changed to "posterior" because "breadth" is measurably degenerate on
+# depth >= 1 nodes, which are diagnoses rather than findings: 64.3% of 3,782
+# generated hypotheses in the 2026-08-30 run scored an identical 0.10, so the
+# frontier ordering, the synthesis ranking and the saturation window were all
+# reading a near-constant. Depth-0 axioms ARE findings and keep using breadth.
+#
+# NOTE: "posterior" is a fix for a measured degeneracy, not a measured accuracy
+# gain. Set to "breadth" to reproduce runs before 2026-08-31.
+ENTROPY_SIGNAL = "posterior"
 
 # BeliefGraph construction defaults. These were previously hard-coded in the
 # BeliefGraph constructor and unreachable from config.
@@ -95,17 +116,6 @@ RELEVANCE_FLOOR = 0.4
 
 # RAG retrieval
 RAG_DOMAIN_FILTER   = True            # filter ChromaDB by node.domain when True
-
-# ---------------------------------------------------------------------------
-# Path-length / diagnostic-hit evaluation
-# ---------------------------------------------------------------------------
-# When True, diagnostic hits are only counted in *generated* nodes (depth > 0),
-# excluding seed nodes that may already contain the ground-truth diagnosis.
-EVAL_EXCLUDE_SEED_HITS = True
-
-# Secondary winner tie-breaker: if path_length is equal, EF wins if its
-# entropy_auc is this fraction lower than BF's (e.g. 0.10 = 10% lower).
-EVAL_AUC_TIEBREAKER_MARGIN = 0.10
 
 # ---------------------------------------------------------------------------
 # Heuristic seed entropy (used when entropy_engine=None in build_cases)
@@ -160,11 +170,6 @@ SATURATION_EXPLORATION_ONLY = True
 # Hard warm-up floor: never declare saturation before this many depth >= 1
 # nodes have been expanded, regardless of how flat the entropy curve looks.
 SATURATION_MIN_EXPLORATION = 8
-# Guard: do NOT declare saturation when the mean RAG retrieval depth
-# (chunks returned) across the window is below this value. Consistently
-# sparse retrieval means the corpus is dry, not that the engine converged.
-# Set to 0 to disable (default off — relies on min-chunk fallback instead).
-SATURATION_CORPUS_DRY_GUARD = 0  # set >0 to enable (e.g. 2.0)
 THETA_BY_DOMAIN = {
     "pathophysiology": 0.55,   # empirical: well-supported mechanism claims hit ~0.43
     "pharmacology":    0.55,   # empirical: nitroglycerin/angina hit 0.43 at depth 1
@@ -186,11 +191,10 @@ RABBIT_HOLE_REVERSAL_WINDOW = 4
 # ---------------------------------------------------------------------------
 # Contradiction detection
 # ---------------------------------------------------------------------------
-CONTRADICTION_MODEL    = "cross-encoder/nli-MiniLM2-L6-H768"
-# EF traversal uses a tighter threshold (0.92) to avoid false-positive edges.
-# BF baseline uses the spec threshold (0.85) — both values are published in the paper.
-CONTRADICTION_THRESHOLD_EF  = 0.92   # entropy-first: tighter to reduce noise
-CONTRADICTION_THRESHOLD_BF  = 0.92   # breadth-first: same to ensure fair comparison
+# Detection is a two-stage heuristic pipeline (keyword/antonym pre-filter,
+# then an LLM judge for pairs that survive it) — see apiro/graph/contradiction.py.
+# There is no cross-encoder/NLI model loaded anywhere in this codebase.
+CONTRADICTION_THRESHOLD_EF  = 0.92   # entropy-first traversal threshold
 CONTRADICTION_THRESHOLD     = 0.92   # default alias used by tests / standalone scripts
 CONTRADICTION_PENALTY       = 0.8    # score penalty subtracted from soft-pruned nodes
 
@@ -204,22 +208,5 @@ DOMAINS = [
     "imaging",
     "lab findings",
     "treatment",
-    "comorbidity",
-]
-
-# ---------------------------------------------------------------------------
-# Corpus sources
-# ---------------------------------------------------------------------------
-PUBMED_BATCH_SIZE    = 500
-PUBMED_MAX_ABSTRACTS = 500_000
-OMIM_API_KEY         = ""   # Set via environment variable OMIM_API_KEY
-PUBMED_SEARCH_TERMS  = [
-    "diagnosis AND treatment",
-    "differential diagnosis",
-    "clinical presentation",
-    "pathophysiology",
-    "drug mechanism of action",
-    "genetic disorder",
-    "rare disease",
     "comorbidity",
 ]

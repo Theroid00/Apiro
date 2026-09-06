@@ -12,8 +12,9 @@ class Node:
         id:              Unique identifier (e.g. "node_0001").
         claim:           The clinical statement or hypothesis this node represents.
         domain:          One of the 7 medical domains from config.DOMAINS.
-        entropy_score:   Shannon entropy of first token at time of node creation.
-                         Higher = model is more uncertain about this claim.
+        entropy_score:   Bounded exploration uncertainty. Depth-0 findings use
+                         diagnostic breadth; hypotheses use binary entropy of
+                         the model's verbalized posterior confidence.
         resolved:        True once this node has been expanded (children generated).
         is_rabbit_hole:  True if RabbitHoleDetector flagged this node.
         depth:           Depth from the seed node (0 = seed).

@@ -1,6 +1,9 @@
 # Apiro: The Complete Project Log & Architecture Journey
 
-This document is the definitive history of the Apiro project. It captures the core vision, the architectural transitions, the critical design decisions and their justifications, and the complete git commit history. 
+This document is a chronological engineering record of Apiro's architectural
+transitions and major findings. Some early descriptions reflect the design at
+that time; use `docs/PROJECT_STATUS.md` and `docs/INTERVIEW_TEXTBOOK.md` for the
+current implementation and evidence status.
 
 Anyone reading this will understand not just *what* code exists in which branch, but *why* we made each shift and what clinical or engineering problems we were trying to solve.
 
@@ -78,46 +81,39 @@ Our evaluation (`scripts/run_edar_eval.py`) showed that Zero-LLM Ontological mat
 
 ---
 
-## 4. Apiro 3.0: Hybrid Apiro & Deterministic Guardrails (July 13, 2026 - Present)
+## 4. Apiro 3.0: Hybrid Apiro and Evidence Guardrails (from July 13, 2026)
 
-### The Core Concept
-Hybrid Apiro was built to resolve the fundamental conflict of medical AI: **Generative Fluidity vs. Mathematical Determinism**. 
+### Initial concept and current form
 
-- **Pure Generative AI** (Apiro Classic) is brilliant at abstract medical reasoning and combining disparate symptoms, but it is highly vulnerable to hallucinating or being led astray by distractor symptoms in patient vignettes.
-- **Pure Deterministic AI** (HADCE) is mathematically bulletproof and never hallucinates, but it is too rigid. Small LLMs cannot generate hypotheses that survive its unforgiving rules.
+Hybrid Apiro combined generated hypotheses with findings extracted by a local
+biomedical NER model and regular-expression lab/vital parsers. Those findings
+became depth-0 graph anchors. Generated hypotheses were compared with anchors,
+and confirmed contradictions received a soft priority penalty rather than
+being deleted.
 
-**Hybrid Apiro merges them.** The LLM is allowed to generate ideas, but it does so inside a cage of deterministic facts. 
+The implementation has changed since the initial design notes were written.
+Depth-0 uncertainty now varies with finding weight, polarity, and historical or
+negated status. Generated hypotheses use binary entropy derived from verbalized
+patient-specific confidence. The live contradiction path is a keyword/antonym
+filter followed by an Ollama judge for related pairs; it does not load a
+MiniLM cross-encoder. A contradiction subtracts `0.8` from frontier priority
+and leaves the node available for later synthesis.
 
 ```mermaid
 graph TD
-    A[Raw Clinical Vignette] --> B1[Biomedical NER Extractor]
-    A --> B2[Regex Lab/Vital Parser]
-    B1 --> C[Syntactic Sentence Generator]
-    B2 --> C
-    C --> D[Belief Graph: Depth 0 Seed Nodes <br> Entropy = 0.01 Absolute Certainty]
-    D --> E[LLM Generative Exploration <br> RAG Textbooks]
-    E --> F[NLI Contradiction Detector]
-    D -.-> F
-    F -->|Contradiction Detected| G[Soft-Pruning & Entropy Penalty]
-    F -->|Verified Safe| H[Graph Expansion]
+    A[Clinical narrative] --> B[NER plus lab and vital extraction]
+    B --> C[Depth-0 belief-graph findings]
+    C --> D[Retrieval-assisted hypothesis expansion]
+    D --> E[Confidence-derived uncertainty]
+    D --> F[Lexical filter plus LLM contradiction judge]
+    F --> G[Soft frontier-priority penalty]
+    E --> H[Saturation or budget stop]
+    G --> H
+    H --> I[Differential synthesis]
 ```
 
-### The Data Pipeline in Disgusting Detail
-
-1. **Deterministic Extraction**: Before the LLM runs, the patient vignette is split and scanned by two tools:
-   - **Hugging Face NER**: A local token classification pipeline (`d4data/biomedical-ner-all`) extracts all anatomical parts, symptoms, and diseases.
-   - **Regex Lab Parser**: A suite of regular expressions that parses vitals and laboratory results (e.g. Potassium, Blood Pressure, WBC).
-2. **Syntactic Sentence Forging**: NLI models (Cross-Encoders) cannot compare raw tokens like `Potassium 5.6` against complex text. They require sentence-level semantics. Therefore, the extractors format raw findings into complete grammatical claims:
-   - *Epigastric pain* $\implies$ *"The patient presents with the clinical finding of epigastric pain."*
-   - *Potassium 5.6* $\implies$ *"The patient has a lab result showing Potassium of 5.6."*
-3. **Graph Anchoring**: These forged sentences are loaded into the `BeliefGraph` as **Depth-0 Seed Nodes**. Because they are derived deterministically, they are assigned an `entropy_score` of `0.01` (Absolute Certainty). They cannot be deleted or pruned.
-4. **Vignette Enrichment**: The extracted findings are appended to the clinical vignette under a `[Deterministic Clinical Findings]` header. This forces the LLM to explicitly read the cleaned facts during generation.
-5. **The NLI Guardrail**: As the LLM explores the graph and generates children, `traversal.py` triggers the `ContradictionDetector` (MiniLM cross-encoder). Because the deterministic findings are anchored at the root of the graph, the NLI model cross-references every generated hypothesis against them. 
-   - *Example*: If the LLM tries to hypothesize that the patient has *Hypokalemia* (low potassium), the NLI model compares this against the seed node: *"The patient has a lab result showing Potassium of 5.6."*
-   - The NLI model detects a contradiction (Score > 0.92) and soft-prunes the LLM's hypothesis, instantly killing the hallucination path.
-
-### Why this is a Cognitive Multiplier
-By locking the deterministic facts into the graph topology as seed nodes, we create a mathematical filter. The LLM can generate 50 different diagnoses, but the moment it hallucinates something that contradicts a real clinical lab value or symptom, the graph engine automatically flags and prunes the thought process. 
+The current technical contract is maintained in
+`docs/INTERVIEW_TEXTBOOK.md`; this log records how the design evolved.
 
 ---
 
@@ -182,7 +178,7 @@ Here is the commit-by-commit record of the Apiro codebase:
     1.  **Axiom Extractor**: Uses Hugging Face Medical NER (`d4data/biomedical-ner-all`) and Regex parsing to pull hard facts (labs/vitals/symptoms) from a vignette.
     2.  **Hypothesis Gauntlet**: Hypotheses are generated via repeated sampling (Method B) and cross-references against the Axioms via a MiniLM cross-encoder. If a hypothesis contradicts an Axiom, it is instantly killed.
     3.  **Expected Information Gain (EIG) Engine**: Pure matrix math calculating KL-Divergence to choose the next optimal query.
-*   **The Result**: The architecture was mathematically flawless but clinically pessimistic. A small 8B model couldn't generate initial hypotheses accurate enough to survive the ruthless NLI Gauntlet, leading to a 20% success rate on the PMC Distractor dataset. The strict mathematical cage stripped away the LLM's greatest strength: abstract generative inference.
+*   **The Result**: The architecture was internally consistent but clinically brittle. A small 8B model did not generate initial hypotheses accurate enough to survive the strict NLI gauntlet, leading to a 20% success rate on the small PMC distractor set.
 *   **Commits**:
     -   **`7e00fac` (Jul 12)**: Merge branch 'feature/hadce' into main.
 
@@ -208,7 +204,7 @@ Here is the commit-by-commit record of the Apiro codebase:
     -   **`ec87508` (Jul 14)**: docs: document Phase 8 systems optimization in Log.md.
 
 ### Phase 9: Repository Cleanup & Unification (July 2026)
-*   **The Rationale**: With the optimized Hybrid Apiro engine finalized, the codebase was heavily cluttered with dead branches, experimental directories (like `apiro/edar/`, `apiro/hypothesis/`, `apiro/curiosity/`), and temporary developer logs. We needed to prune everything except the production Hybrid Apiro components to ensure a flawless default state on the `main` branch.
+*   **The Rationale**: With the Hybrid Apiro engine consolidated, the codebase was cluttered with dead branches, experimental directories (like `apiro/edar/`, `apiro/hypothesis/`, `apiro/curiosity/`), and temporary developer logs. We pruned obsolete components to make the default path easier to inspect and test.
 *   **The Build**: Checked out a clean repository, verified active component imports, unified CLI/Web app interfaces, and deleted all legacy directories.
 *   **Commits**:
     -   **`73e5d19` (Jul 14)**: chore: remove failed EDAR engine code and temp debug files.
@@ -242,7 +238,7 @@ Here is the commit-by-commit record of the Apiro codebase:
     3.  **Synthesis Etiology Grounding (`apiro/graph/expander.py`)**: Implemented 4-step node partitioning and acute primary etiology ranking.
 *   **The Results**:
     -   **C-NIAH Benchmark ($N=25$)**: Apiro scored **68.0%** (17/25) overall vs **40.0%** (10/25) for Standard RAG (+28% lift) and **56.0%** (14/25) for the Bare LLM. On Contradiction Needles, Apiro scored **88.9%** (8/9) (vs RAG 44.4%, 4/9), on Multi-Needles scored **75.0%** (3/4) (vs RAG 25.0%, 1/4), and on 8k deep haystacks scored **100%** (5/5).
-    -   **PMC 10-Case Evaluation ($N=10$)**: Apiro scored **20.0%** (Bare LLM 20%, RAG 40%), achieving the sole win on Case 4 (Colon Adenocarcinoma) by successfully rejecting the Crohn's distractor via NLI contradiction pruning.
+    -   **PMC 10-Case Evaluation ($N=10$)**: The captured run records Apiro at **20.0%**, Bare LLM at **10.0%**, and RAG at **40.0%**. Apiro failed Case 4; the earlier claim that it uniquely solved that case came from an unidentified run. Four stored ground-truth labels are malformed, so these values are retained only as historical diagnostics.
 
 ### Phase 12: Systems Performance & Vector Caching (`feature/performance-and-cleanup`, August 2026)
 *   **The Rationale**: Live BFS graph traversal performs repeated query and token operations across candidate paths. We needed sub-millisecond pre-filtering and query caching.
@@ -252,7 +248,12 @@ Here is the commit-by-commit record of the Apiro codebase:
 
 ---
 
-## 📊 Summary of Evaluation Benchmarks
+## 📊 Historical Evaluation Summary
+
+These rows record results and interpretations at the time they were produced.
+They are underpowered, several predate measurement fixes, and they do not
+establish comparative performance. The current evidence status is in
+`docs/PROJECT_STATUS.md`.
 
 | Model Architecture | Evaluation Case Set | Accuracy (Top-3) | Primary Performance Learnings & Trade-Offs |
 | :--- | :--- | :--- | :--- |
@@ -260,5 +261,48 @@ Here is the commit-by-commit record of the Apiro codebase:
 | **Apiro 1.5 (HT)** | `pmc_cases.json` | High / Workable | Extremely fast, no memory issues. However, strayed from the detective goal into a "glorified RAG." |
 | **HADCE** | `pmc_cases.json` | 20% | Flawless math, but too pessimistic. Small models cannot survive the rigid Contradiction Gauntlet. |
 | **Hybrid Apiro (Pre-Audit)**| `pmc_cases.json` | 30% - 40% | Average runtime optimized down to ~28s using parallel execution and batched GPU tensor checks. |
-| **Hybrid Apiro (Audited)** | `pmc_cases.json` ($N=10$) | 20% (Real Ollama) | Correctly solved Case 4 (Colon cancer) by rejecting Crohn's distractor via NLI contradiction. |
-| **Hybrid Apiro (C-NIAH)** | `niah_cases.json` ($N=25$) | **68.0%** 🏆 | **+28.0% over RAG (40.0%)**. 88.9% on Contradiction Needles, 75.0% on Multi-Needles, 100% on 8k deep haystacks. |
+| **Hybrid Apiro (Audited)** | `pmc_cases.json` ($N=10$) | 20% (Real Ollama) | Captured run; malformed labels prevent a trustworthy comparison. |
+| **Hybrid Apiro (C-NIAH)** | `niah_cases.json` ($N=25$) | 68.0% | +28.0 points over RAG (40.0%), exact McNemar p = 0.119; underpowered and pre-parser fix. |
+
+### Phase 15: Trustworthy Adversarial Evaluation (September 2026)
+
+The benchmark strategy moved from aggregate accuracy toward paired robustness.
+MedEinst is now the primary external test of the mechanism, using rank-1
+control-diagnosis retention Bias Trap Rate. MedDistractQA supplies matched
+clean/distracted diagnosis cases. A MINT-style runner records commitment and
+revision across incremental evidence turns.
+
+The supporting correctness work isolates mutable traversal state per run,
+preserves complete narratives, selects long context across auditable source
+spans, fixes tied-confidence AURC and arbitrary thresholds, reports full timing,
+and separates hermetic tests from live-corpus validation. New adversarial runs
+use immutable manifests beneath `data/runs/`. One five-pair MedEinst smoke run
+was executed; no powered benchmark was executed, so all comparative accuracy
+claims above remain historical and non-reportable.
+
+All Ollama calls made through the shared runtime now pass through a bounded
+process-level scheduler. Each adversarial case records calls by purpose,
+retries, failures, timeouts, Ollama prompt/completion tokens, queue time, and
+inference time. `APIRO_MAX_MODEL_CONCURRENCY` controls the shared limit and
+defaults to two concurrent requests.
+
+RABBITS and KGGDG were reviewed but not labeled as Apiro benchmarks: their
+published contract is multiple-choice option selection or generation, while
+Apiro produces a ranked diagnostic differential. The benchmarking guide records
+the official upstream implementations and the narrative-level paired contract
+required for a valid future adaptation.
+
+The first live MedEinst smoke output exposed a scorer mismatch: the published
+metric defines one prediction per case, but the runner had applied the
+control-diagnosis retention test across all three differential slots. The
+primary control accuracy, trap accuracy, BTR, and pair resilience now use rank
+1. Rank-3 measures remain explicitly secondary, confidence intervals show the
+small denominator, and saved case outputs can be rescored without repeating
+model inference.
+
+The corrected smoke result gave every arm a 100% Bias Trap Rate with one
+eligible pair out of five. It therefore identifies no winning arm. Across ten
+case variants and all three arms, the run made 1,814 model calls; 1,192 were
+contradiction checks. Mean all-arm case latency was 116.08 seconds. The result
+made contradiction-pair reduction and rank-1 synthesis the next engineering
+priorities.

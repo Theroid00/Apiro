@@ -182,11 +182,13 @@ class ContradictionDetector:
         ollama_url: str = OLLAMA_BASE_URL,
         timeout: int = 30,
         retries: int = 2,
+        scheduler=None,
     ):
         self.model = model
         self.ollama_url = ollama_url
         self.timeout = timeout
         self.retries = retries
+        self.scheduler = scheduler
         self._cache: dict[tuple[int, int], NLIResult] = {}
         self._cache_hits = 0
         self._cache_misses = 0
@@ -410,12 +412,22 @@ class ContradictionDetector:
         }
         for attempt in range(self.retries):
             try:
-                resp = requests.post(
-                    f"{self.ollama_url}/api/generate",
-                    json=payload,
-                    timeout=self.timeout,
+                def request():
+                    response = requests.post(
+                        f"{self.ollama_url}/api/generate",
+                        json=payload,
+                        timeout=self.timeout,
+                    )
+                    response.raise_for_status()
+                    return response
+
+                resp = (
+                    self.scheduler.call(
+                        "contradiction", request, is_retry=attempt > 0
+                    )
+                    if self.scheduler is not None
+                    else request()
                 )
-                resp.raise_for_status()
                 raw = resp.json().get("response", "").strip().upper()
                 first_word = re.split(r"\s|\.", raw)[0].strip(".,!?\"'")
 

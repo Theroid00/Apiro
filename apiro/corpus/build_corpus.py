@@ -27,9 +27,7 @@ Environment variables (none required for default sources):
 import argparse
 import json
 import logging
-import sys
 import time
-from pathlib import Path
 
 from apiro.config import DATA_DIR
 from apiro.corpus.chunker import Chunker

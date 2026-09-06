@@ -19,6 +19,11 @@ from apiro.graph.edge import Edge
 from apiro.config import GRAPH_MAX_DEPTH, GRAPH_MAX_NODES, RELEVANCE_FLOOR
 
 
+#: Process-wide sentence embedder, loaded on first use by
+#: BeliefGraph._get_embedder() and shared by every graph instance.
+_SHARED_EMBEDDER = None
+
+
 class BudgetExceededError(Exception):
     """Exception raised when the node budget is exceeded."""
     pass
@@ -102,16 +107,13 @@ class BeliefGraph:
         """
         Register the patient's presentation as the relevance anchor.
 
-        The entropy signal in this engine is *differential breadth*: how many
-        diagnoses a claim is compatible with, measured on the claim alone. That
-        number is a property of the sentence, not of the patient — so a pure
-        entropy-first frontier prefers the vaguest available claim ("chest pain
-        has many causes", 0.693) over the sharpest one ("aquaporin-4 antibodies
-        indicate NMOSD", 0.10), and the engine spends its budget widening the
-        differential instead of resolving it.
+        Depth-0 findings use differential breadth. Generated hypotheses use
+        binary entropy derived from verbalized patient-specific confidence.
+        Either signal alone can favor a vague but irrelevant claim, so the
+        anchor keeps traversal priority tied to the full presentation.
 
-        With an anchor set, exploration priority becomes uncertainty *about
-        this patient*: entropy scaled by how close the claim sits to the case.
+        With an anchor set, exploration priority becomes entropy scaled by how
+        close the claim sits to the case.
         Without one the frontier falls back to raw entropy, so this is opt-in
         and never changes behaviour for callers that do not use it.
         """
@@ -236,13 +238,24 @@ class BeliefGraph:
         return len(self.nodes)
 
     def _get_embedder(self):
+        """Lazily load the process-wide sentence embedder.
+
+        One model instance is shared by every BeliefGraph: loading
+        all-mpnet-base-v2 costs seconds and hundreds of megabytes, and a
+        benchmark constructs one graph per case.
+
+        (This previously declared `global _SHARED_EMBEDDER`, never assigned to
+        that name, and read and wrote the module dict by hand instead — the
+        `global` statement did nothing and the name existed only after the
+        first call.)
+        """
         global _SHARED_EMBEDDER
         if self._embedder is None:
-            if "_SHARED_EMBEDDER" not in globals() or _SHARED_EMBEDDER is None:
+            if _SHARED_EMBEDDER is None:
                 from sentence_transformers import SentenceTransformer
                 from apiro.config import EMBED_MODEL
-                globals()["_SHARED_EMBEDDER"] = SentenceTransformer(EMBED_MODEL, device="cpu")
-            self._embedder = globals()["_SHARED_EMBEDDER"]
+                _SHARED_EMBEDDER = SentenceTransformer(EMBED_MODEL, device="cpu")
+            self._embedder = _SHARED_EMBEDDER
         return self._embedder
 
     def ancestors_of(self, node_id: str) -> set[str]:
@@ -277,16 +290,23 @@ class BeliefGraph:
         if not self.nodes:
             return None
 
-        embedder = self._get_embedder()
-        new_emb = embedder.encode(claim, normalize_embeddings=True)
+        # Embedding is best-effort (same policy as set_case_anchor() and
+        # relevance_of()): semantic merging is a quality optimization, not a
+        # hard requirement, so an unavailable/failing embedder must not take
+        # down the traversal that's calling this on every generated hypothesis.
+        try:
+            embedder = self._get_embedder()
+            new_emb = embedder.encode(claim, normalize_embeddings=True)
 
-        # Ensure all existing nodes are embedded
-        unembedded = [n for n in self.nodes.values() if n.id not in self._embeddings]
-        if unembedded:
-            texts = [n.claim for n in unembedded]
-            embs = embedder.encode(texts, normalize_embeddings=True)
-            for n, emb in zip(unembedded, embs):
-                self._embeddings[n.id] = emb
+            # Ensure all existing nodes are embedded
+            unembedded = [n for n in self.nodes.values() if n.id not in self._embeddings]
+            if unembedded:
+                texts = [n.claim for n in unembedded]
+                embs = embedder.encode(texts, normalize_embeddings=True)
+                for n, emb in zip(unembedded, embs):
+                    self._embeddings[n.id] = emb
+        except Exception:
+            return None
 
         excluded = exclude_ids or set()
 
