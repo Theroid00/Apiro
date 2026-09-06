@@ -78,7 +78,7 @@ def build_components():
 
     from apiro.llm_client import OllamaLLMClient
     llm_client = OllamaLLMClient(OLLAMA_BASE_URL, PRIMARY_MODEL)
-    
+
     expander = NodeExpander(
         entropy_engine=entropy_engine,
         chroma_client=chroma_adapter,
@@ -89,7 +89,7 @@ def build_components():
     # and must not be allowed to trigger saturation (see config comments).
     saturation = SaturationDetector(exploration_only=SATURATION_EXPLORATION_ONLY)
     rabbit_hole = RabbitHoleDetector()
-    
+
     traversal = ApiroTraversal(
         expander=expander,
         saturation=saturation,
@@ -184,7 +184,7 @@ def main():
 
     print(f"\n[*] Apiro is investigating...")
     t0 = time.time()
-    
+
     from apiro.graph.belief_graph import BeliefGraph
     graph = BeliefGraph()
 

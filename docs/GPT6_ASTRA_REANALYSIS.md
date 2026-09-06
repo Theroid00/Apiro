@@ -1,8 +1,11 @@
 # GPT-6 Astra Repository Reanalysis
 
-**Repository:** Apiro  
-**Branch:** `theroid`  
-**Revision reviewed:** `5991bde56fa9c74b8ef1fba1bc578b1dc514f1d8`  
+**Repository:** Apiro
+
+**Branch:** `theroid`
+
+**Revision reviewed:** `5991bde56fa9c74b8ef1fba1bc578b1dc514f1d8`
+
 **Review date:** 2026-09-05
 
 This document records the findings from the GPT-6 Astra reanalysis of the
