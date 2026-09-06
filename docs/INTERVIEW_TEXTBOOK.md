@@ -1,453 +1,318 @@
-# 📖 THE DEFINITIVE APIRO TEXTBOOK & ARCHITECTURAL COMPENDIUM
-### *The Complete Technical Guide: History, Mathematical Foundations, Inner Workings, Empirical Benchmarks, Failure Post-Mortems, and Interview Defense*
+# Apiro Technical and Interview Guide
 
----
+This guide explains the current implementation, the evidence it has produced,
+and the claims that the evidence does and does not support. Apiro is an
+evaluation-ready research prototype for studying diagnostic reasoning under
+misleading context. It is not a validated clinical decision-support system.
 
-## 📑 TABLE OF CONTENTS
-1. [PART I: Genesis, Original Philosophy & The Clinical Problem](#part-i-genesis-original-philosophy--the-clinical-problem)
-2. [PART II: The Complete 12-Phase Chronological Evolution](#part-ii-the-complete-12-phase-chronological-evolution)
-3. [PART III: Inner Workings & Component Architecture Deep Dive](#part-iii-inner-workings--component-architecture-deep-dive)
-4. [PART IV: Mathematical Formulations & Core Algorithms](#part-iv-mathematical-formulations--core-algorithms)
-5. [PART V: Comprehensive Benchmark Suite & Empirical Results](#part-v-comprehensive-benchmark-suite--empirical-results)
-6. [PART VI: The Engineering Post-Mortem (Top 10 Defects & Fixes)](#part-vi-the-engineering-post-mortem-top-10-defects--fixes)
-7. [PART VII: Current Operational State & Future Roadmap](#part-vii-current-operational-state--future-roadmap)
-8. [PART VIII: Master Interview Defense Bank (12 Hard Questions)](#part-viii-master-interview-defense-bank-12-hard-questions)
+For the shortest operational summary, see [PROJECT_STATUS.md](PROJECT_STATUS.md).
+For exact benchmark commands and interpretation rules, see
+[BENCHMARKING.md](BENCHMARKING.md).
 
----
+## 1. Research question
 
-# PART I: Genesis, Original Philosophy & The Clinical Problem
+Apiro tests whether an explicit search process can resist diagnostic
+distractors better than a bare language model or standard retrieval-augmented
+generation. Its working hypothesis is that three mechanisms may help:
 
-### 1. The Core Vision: The AI Medical Detective
-In clinical diagnostic medicine, existing artificial intelligence systems generally fail into one of two extremes:
-1. **Black-Box Autoregressive LLMs**: Output a differential diagnosis zero-shot via next-token prediction. They suffer from severe hallucination, cannot explain *why* an alternative was ruled out, and succumb to **anchoring bias** (over-weighting the primary complaint while ignoring subtle contradictory findings).
-2. **Passive RAG (Retrieval-Augmented Generation)**: Embed the patient vignette, perform a top-$K$ cosine similarity search over PubMed or textbooks, and inject the chunks into the prompt context. This leads to **confirmation bias**: retrieving textbook articles matching common presenting symptoms (e.g., chest pain $\implies$ Angina) floods the LLM with confirmatory evidence, actively drowning out rare or discriminative "needles".
+1. Anchor the search in findings extracted from the patient narrative.
+2. Spend exploration on uncertain hypotheses.
+3. Lower the priority of hypotheses that contradict patient evidence.
 
-**Apiro was founded on a different thesis**:
-> *"Diagnostic reasoning is not text completion, nor is it document search. Diagnostic reasoning is **active hypothesis space traversal guided by entropy reduction and constrained by contradiction pruning**."*
+These are hypotheses under evaluation. Passing unit tests proves the software
+implements them consistently; only adequately powered, held-out experiments
+can establish whether they improve diagnostic robustness.
 
-Apiro operates like a human clinical detective:
-* It begins with **indisputable patient facts** (labs, vitals, confirmed symptoms).
-* It formulates candidate hypotheses and actively queries structured and unstructured medical knowledge bases.
-* It measures **epistemic uncertainty (Shannon entropy)** across its belief state to decide what to investigate next.
-* It checks all generated claims against patient facts using **Natural Language Inference (NLI)**, mathematically soft-pruning any hypothesis that contradicts reality.
-* It self-terminates when its uncertainty saturates, producing a fully auditable, calibrated differential diagnosis.
+## 2. Current architecture
 
----
-
-### 2. Clinical Cognitive Biases Solved by Apiro
-* **Anchoring Bias**: Fixating on initial salient symptoms. (Solved by *Case-Anchored BFS Frontier Queue*).
-* **Search Satisficing / Premature Closure**: Halting investigation before evaluating alternative etiologies. (Solved by *Rolling Window Entropy Saturation Detector*).
-* **Confirmation Bias**: Selectively gathering only supporting evidence. (Solved by *Active Two-Stage Contradiction Detection*).
-* **Base-Rate / Prior Neglect**: Inability to recognize when rare evidence overrides common disease priors. (Solved by *Counterfactual Graph Traversal*).
-
----
-
-# PART II: The Complete 12-Phase Chronological Evolution
-
-Understanding the complete development history of Apiro demonstrates technical depth, iterative engineering, and honest scientific rigor:
-
-```
-[Phase 1-2: Apiro 1.0] ──> [Phase 3: EDAR Zero-LLM] ──> [Phase 4-5: Hypothesis Testing]
-        │                                                           │
-        ▼                                                           ▼
-[Phase 6: HADCE Engine] ──> [Phase 7-9: Hybrid Apiro] ──> [Phase 10: The 4-Bug Audit]
-                                                                    │
-                                                                    ▼
-[Modern State: Continuous Shannon Entropy & Counterfactual Validation (Phases 11-12)]
+```text
+clinical narrative
+      |
+      v
+axiom extraction (regex labs/vitals + biomedical NER + negation)
+      |
+      v
+depth-0 findings in a belief graph
+      |
+      v
+priority frontier --> retrieve evidence --> generate hypotheses
+      |                                      |
+      |                                      v
+      |                         patient-specific confidence score
+      |                                      |
+      +<----------- contradiction checks ----+
+      |
+      v
+saturation/budget stop --> differential synthesis --> parsed top-k diagnoses
 ```
 
----
+### Runtime isolation
 
-### Phase 1 & 2: Apiro 1.0 — The Original Entropy Engine (May – June 2026)
-* **Goal**: Build an active graph traversal system driven by Information Theory.
-* **Architecture**: A dynamic `BeliefGraph` where nodes represent clinical claims. The LLM evaluated whether retrieved medical chunks supported claims, outputting binary $\{Yes, No\}$ tokens. Shannon Entropy was calculated over token logprobs.
-* **Key Innovations**:
-  * *Depth-Aware Frontier Scoring*: Depth 0 nodes sorted by lowest entropy (anchoring on facts first); Depth $\ge 1$ nodes sorted by highest entropy (chasing uncertainty).
-  * *Contradiction Pruning*: Cross-encoder NLI flagged conflicting nodes. Early hard-pruning was abandoned because deleting nodes destroyed valid alternative differentials; *soft-pruning* (mathematical penalties) was invented.
-* **Bottlenecks**: Extremely heavy compute, GPU memory leaks, CUDA crashes, and exponential node explosion.
+Large resources such as the embedder, model client, and corpus connection can
+be shared. Mutable state is created for each investigation: the belief graph,
+frontier, saturation history, callback, run log, and traversal counters. This
+prevents concurrent web requests or benchmark cases from leaking state into
+one another.
 
----
+### Axiom extraction
 
-### Phase 3: The EDAR Zero-LLM Disaster & Ontological Trap (July 2026)
-* **Goal**: Eliminate LLM hallucination entirely by performing non-parametric ontological search.
-* **Architecture**: Parsed the Human Phenotype Ontology (HPO) and OMIM into a dedicated ChromaDB collection (`disease_profiles`, 11,800 profiles). Embedded raw patient vignettes and searched the vector database directly without any LLM in the loop.
-* **The Catastrophic Finding**: Accuracy collapsed to **10%** (1/10) compared to Standard RAG (50%) and Bare LLM (20%).
-* **Why it Failed**:
-  1. *Domain Shift*: Patient vignettes use natural language ("yellowing of eyes"), whereas HPO uses standardized clinical terms ("Jaundice"). Dense embeddings could not bridge the gap zero-shot.
-  2. *Frequency Bias*: HPO contains thousands of ultra-rare genetic diseases. Common emergencies (e.g., Appendicitis) matched rare genetic syndromes sharing generic abdominal terms, completely drowning out the true diagnosis.
-* **Lesson**: The LLM's pre-trained clinical gestalt (world knowledge of disease prevalence) is indispensable.
+`apiro/axioms/` combines deterministic parsing of laboratory values and vital
+signs with the `d4data/biomedical-ner-all` token-classification model. It also
+tracks bounded negation and assigns heuristic specificity weights. At most 20
+seed findings are retained by default.
 
----
+Seeds are strong anchors, not perfect clinical facts. Regex coverage and NER
+quality limit what is extracted. Negated and historical findings receive
+higher initial uncertainty than direct positive findings.
 
-### Phase 4 & 5: Hypothesis Testing (HT) & The Classic Purge (July 2026)
-* **Goal**: Solve the GPU memory leaks and traversal state explosion of Apiro 1.0.
-* **Architecture**: Split the system into a 3-part pipeline:
-  1. *HypothesisOracle (System 1)*: Generates 10–12 candidate diagnoses upfront.
-  2. *EvidenceMatcher (System 2)*: Algorithmic vector search over MedRAG without LLM evaluation.
-  3. *BayesianScorer*: Scores candidates based on age, sex, and risk factors.
-* **The Decision**: Highly stable and fast (~3s/case), but fundamentally abandoned the core thesis. It was no longer an active reasoning detective; it had degenerated into a "glorified RAG" with a prompt wrapper. The team merged HT, but later completely purged it in commit `8a001c7` to return to true graph traversal.
+### Belief graph and traversal
 
----
+`BeliefGraph` stores a NetworkX graph alongside explicit node and edge
+collections. Depth-0 nodes represent extracted findings. Deeper nodes represent
+generated diagnostic hypotheses or refinements.
 
-### Phase 6: Highly-Axiomatic Deterministic Curiosity Engine (HADCE) (July 2026)
-* **Goal**: Eliminate hallucinations by enforcing strict mathematical KL-divergence bounds against patient facts.
-* **Architecture**: Extracted hard facts via Medical NER and regex parsers, generated candidate hypotheses, and subjected them to an NLI "Gauntlet" where any contradiction instantly killed the hypothesis. An Expected Information Gain (EIG) matrix calculated optimal query steps.
-* **The Finding**: Mathematically elegant but clinically brittle. Small 8B models could not generate hypotheses precise enough to survive the unforgiving NLI gauntlet, leading to a poor 20% accuracy on PMC cases.
+The active defaults are:
 
----
+| Setting | Value |
+|---|---:|
+| Maximum graph nodes | 200 |
+| Maximum depth | 6 |
+| Exploration expansions | 24 |
+| Child hypotheses per expansion | 3 |
+| Output differential size | 3 |
+| Minimum relevance | 0.40 |
 
-### Phase 7 & 8: Hybrid Apiro & Systems Optimization (July 2026)
-* **Goal**: Merge the generative fluidity of Apiro Classic with the deterministic guardrails of HADCE.
-* **Architecture**:
-  * Hard patient facts extracted via HuggingFace NER (`d4data/biomedical-ner-all`) and regex lab parsers.
-  * Extracted facts forged into syntactic sentences and loaded as **Depth-0 Seed Nodes ($H \approx 0.01$)**.
-  * The LLM was given full generative freedom to explore hypotheses, but every generated node was cross-checked against the Depth-0 seed nodes by an NLI model.
-* **Performance Optimizations**:
-  * *NLI Matrix Batching*: Rewrote `traversal.py` to batch up to 16 contradiction comparisons into a single GPU forward pass via `check_batch()`.
-  * *Concurrent Scoring*: Used `ThreadPoolExecutor` in `expander.py` to score child hypotheses in parallel, reducing latency to ~28s.
+Depth-0 priority favors specific, highly weighted anchors:
 
----
-
-### Phase 9: Repository Unification & Dead Code Cleanup (July 2026)
-* Cleaned out obsolete experimental directories (`apiro/edar/`, `apiro/hypothesis/`, `apiro/curiosity/`).
-* Unified CLI (`investigate.py`) and Web backend (`app.py`) on the production Hybrid Apiro engine.
-
----
-
-### Phase 10: The Four-Bug Accuracy Audit (`feature/apiro-accuracy-fixes`, August 2026)
-* **Context**: Despite architectural completeness, accuracy hovered at 30–40%. A rigorous forensic audit uncovered four independent bugs that had secretly crippled the engine:
-  1. *Premature Saturation on Depth 0*: Saturation was calculated across all nodes. Five Depth-0 seed nodes ($H \approx 0.01$) filled the $W=5$ rolling window, causing the engine to halt before exploring a single hypothesis.
-  2. *Synthesis Starvation*: Synthesis sorted nodes by entropy *descending* and took the top 15. Since entropy is vagueness, confirmed patient facts ($H \approx 0.01$) sorted last and were always truncated.
-  3. *Dead Contradiction Guardrail*: `CONTRADICTION_THRESHOLD_EF = 0.92`, but the fast filter returned exactly `0.92`. Every consumer checked `score > 0.92`, so the fast filter never fired.
-  4. *Soft-Pruning Competing Differentials*: Contradiction penalties were applied to *any* contradicting pair, causing valid alternative differential diagnoses to prune each other.
-* **The Fix**: 45 stub regression tests in `tests/test_traversal_regressions.py` permanently locked in these fixes.
-
----
-
-### Phase 11: Concept Normalization & Clinical NIAH (August 2026)
-* **4-Tier Normalization Evaluator**: Built exact matching, medical synonym clusters, substring overlap, and SentenceTransformer embedding similarity into `apiro/eval/evaluator.py`.
-* **5-Family C-NIAH Benchmark**: Built `build_niah_cases.py` to test context lengths from 2k to 32k tokens with single needles, contradiction needles, multi-needles, and red herrings.
-
----
-
-### Phase 12: Modern Continuous Shannon Entropy & Counterfactual Validation (August 2026)
-* **The Degenerate Entropy Discovery**: Discovered that 64.3% of 3,782 nodes carried an identical $0.10$ entropy score because the prompt asked Depth $\ge 1$ nodes "how many diagnoses explain this finding?".
-* **The Continuous Rewrite**: Converted the entropy signal to continuous binary Shannon entropy over patient confidence $H(p) = -p \log_2 p - (1-p) \log_2(1-p)$.
-* **The Counterfactual Breakthrough**: Evaluated on matched adversarial (control, trap) pairs. Proved that while Bare LLMs and RAG have a 100% failure rate on bias traps, Apiro achieves **60.0% accuracy (+30pp lift) and a 25% trap escape rate**.
-
----
-
-# PART III: Inner Workings & Component Architecture Deep Dive
-
-```
-                             [Raw Clinical Text]
-                                      │
-                 ┌────────────────────┴────────────────────┐
-                 ▼                                         ▼
-     [Biomedical NER Pipeline]                 [Regex Lab/Vitals Parser]
-   (d4data/biomedical-ner-all)                 (Potassium, WBC, BP, etc.)
-                 │                                         │
-                 └────────────────────┬────────────────────┘
-                                      ▼
-                        [Syntactic Sentence Forger]
-                  ("The patient has Potassium of 5.6 mEq/L")
-                                      │
-                                      ▼
-                 [BeliefGraph: Depth-0 Seed Nodes (H=0.01)]
-                                      │
-        ┌─────────────────────────────┴─────────────────────────────┐
-        ▼                                                           ▼
-[Case-Anchored Priority Queue]                             [Frontier Node Selection]
-(Priority = H * Sim(Anchor) * 0.85^d)                     (Pops highest priority)
-        │                                                           │
-        └─────────────────────────────┬─────────────────────────────┘
-                                      ▼
-                             [Active NodeExpander]
-                 ┌────────────────────┴────────────────────┐
-                 ▼                                         ▼
-   [ChromaDB Vector Retrieval]                 [Parametric Prompt Fallback]
-  (k=3 chunks from apiro_corpus)              (Activated if chunks < MIN_CHUNKS)
-                 │                                         │
-                 └────────────────────┬────────────────────┘
-                                      ▼
-                       [Child Hypothesis Generation]
-                        (3 candidates per expansion)
-                                      │
-        ┌─────────────────────────────┴─────────────────────────────┐
-        ▼                                                           ▼
-[Continuous Shannon Entropy Engine]               [Two-Stage NLI Contradiction Guard]
-(H(p) = -p log2 p - (1-p) log2 (1-p))             (Fast-Filter + Cross-Encoder Judge)
-        │                                                           │
-        │                                         ┌─────────────────┴─────────────────┐
-        │                                         ▼                                   ▼
-        │                                 [Score > 0.92]                        [Safe / No Match]
-        │                               (w ← w * (1 - 0.8))                     (No weight penalty)
-        │                                         │                                   │
-        └─────────────────────────────┬───────────┴───────────────────────────────────┘
-                                      ▼
-                        [Entropy Saturation Detector]
-                     (Rolling window W=5 of Depth ≥ 1)
-                     (Checks Mean < 0.15, Var < 0.02)
-                                      │
-                      ┌───────────────┴───────────────┐
-                      ▼                               ▼
-               [Not Saturated]                   [Saturated]
-             (Continue Traversal)              (Halt Traversal)
-                                                      │
-                                                      ▼
-                                       [Calibrated Synthesis Layer]
-                                    (Ranks by w(u) & Injects Vignette)
-                                    (DX: Output Sentinels + Abstention)
+```text
+priority = 2.0 - entropy + 0.1 * axiom_weight
 ```
 
----
+For generated nodes, the frontier favors uncertainty that remains relevant to
+the full case:
 
-### Component-by-Component Walkthrough
-
-#### 1. Deterministic Axiom Extractor (`apiro/axioms/`)
-* **NER Extractor (`extractor.py`)**: Uses HuggingFace token classification (`d4data/biomedical-ner-all`). Extracts disease entities, symptoms, anatomical sites, and negations.
-* **Lab Parser (`lab_parser.py`)**: Regex suite parsing blood panels, electrolytes, and vitals. Normalizes units and cleans phrasing.
-* **Sentence Forger**: Formats extracted tokens into formal grammatical statements (e.g. `Serum Potassium = 5.8` $\implies$ *"The patient has a confirmed laboratory finding of Potassium of 5.8 mEq/L"*).
-* **Axiom Seeding**: Injected as Depth-0 nodes with fixed entropy $H = 0.01$ and maximum confidence $w = 1.0$.
-
-#### 2. Dynamic Belief Graph (`apiro/graph/belief_graph.py`)
-* Implemented as a directed acyclic graph ($G = (V, E)$) backed by NetworkX.
-* **Node Attributes**: `claim_text`, `depth`, `entropy_score`, `confidence`, `weight`, `is_seed`, `is_axiom`, `contradiction_penalty`.
-* **Edge Attributes**: `relation_type` (`SUPPORTS`, `CONTRADICTS`, `REFINES`), `weight`.
-* **Case Anchoring (`set_case_anchor`)**: Computes dense embedding of the initial patient vignette to modulate traversal priority.
-
-#### 3. Active Expander (`apiro/graph/expander.py`)
-* Queries ChromaDB collection `apiro_corpus` (indexed PubMed abstracts, MedRAG textbooks, HPO, and ClinVar).
-* **Parametric Fallback**: If retrieved chunks $< 2$, sets `is_grounded = False`, logs a sparse coverage warning, and triggers the `PARAMETRIC_PROMPT_TEMPLATE` with clinical gestalt.
-* **Parallel Execution**: Uses `ThreadPoolExecutor(max_workers=3)` to evaluate child hypotheses concurrently.
-
-#### 4. Continuous Shannon Entropy Engine (`apiro/entropy/engine.py`)
-* Prompts the LLM for patient-specific confidence $p \in [0, 1]$.
-* Calculates binary Shannon entropy $H(p) = -p \log_2 p - (1-p) \log_2(1-p)$.
-* High entropy ($p \approx 0.5 \implies H = 1.0$) signals an under-explored decision boundary.
-* Monitored by `signal_health()` to detect distribution collapse in real time.
-
-#### 5. Two-Stage Contradiction Detector (`apiro/graph/contradiction.py`)
-* **Stage 1 (Fast Keyword / Antonym Filter)**: $O(1)$ dictionary check over clinical antonyms (e.g., hyperkalemia vs hypokalemia, tachycardic vs bradycardic). Returns score $0.95$.
-* **Stage 2 (NLI Cross-Encoder / LLM Judge)**: Evaluates semantic contradiction between candidate claims and Depth-0 axioms.
-* **Soft-Pruning Execution**: Applied strictly if one side is a confirmed Depth-0 axiom: $w(u) \leftarrow w(u) \times 0.2$.
-
-#### 6. Rolling Window Saturation Detector (`apiro/graph/saturation.py`)
-* Tracks a sliding window of size $W = 5$ of recent Depth $\ge 1$ entropy scores.
-* Halts traversal when mean $< 0.15$, variance $< 0.02$, and linear slope $< 0.01$.
-
-#### 7. Calibrated Synthesis & Parser (`apiro/graph/expander.py`, `apiro/eval/parsing.py`)
-* Combines the raw patient vignette with top confidence-weighted graph nodes.
-* Enforces output formatting via `DX:` sentinels to guarantee exactly $N=3$ differential diagnoses.
-* Implements selective abstention: outputs `INSUFFICIENT EVIDENCE` if peak confidence $< \tau = 0.65$.
-
----
-
-# PART IV: Mathematical Formulations & Core Algorithms
-
-### 1. Continuous Binary Shannon Entropy
-$$H(p) = -p \log_2(p) - (1 - p) \log_2(1 - p), \quad p \in (0, 1)$$
-$$\lim_{p \to 0} H(p) = 0, \quad \lim_{p \to 1} H(p) = 0, \quad H(0.5) = 1.0$$
-
-### 2. Case-Anchored Frontier Priority Scoring
-For any node $u$ in the frontier queue at depth $d(u)$:
-$$\text{Priority}(u) = H(u) \cdot \cos\Big(\vec{e}(u),\, \vec{e}(\text{Case Anchor})\Big) \cdot \gamma^{d(u)}$$
-where:
-* $\vec{e}(u) \in \mathbb{R}^d$ is the dense semantic embedding of node $u$.
-* $\vec{e}(\text{Case Anchor})$ is the embedding of the patient vignette.
-* $\gamma = 0.85$ is the exponential depth decay factor.
-
-### 3. Contradiction Penalty Update
-Let $u$ be a generated hypothesis and $a \in \text{Axioms}$ be a Depth-0 seed node:
-$$\text{Score}_{\text{contra}}(u, a) = \begin{cases} 0.95 & \text{if Keyword Antonym Match} \\ P_{\text{NLI}}(\text{Contradiction} \mid u, a) & \text{otherwise} \end{cases}$$
-$$\text{If } \max_{a \in \text{Axioms}} \text{Score}_{\text{contra}}(u, a) > 0.92 \implies w(u) \leftarrow w(u) \cdot (1 - \lambda), \quad \lambda = 0.8$$
-
-### 4. Saturation Detection Criteria
-Given sliding window $W_t = [H_{t-4}, H_{t-3}, H_{t-2}, H_{t-1}, H_t]$ over Depth $\ge 1$ nodes:
-$$\mu(W_t) = \frac{1}{5} \sum_{i=0}^4 H_{t-i} < 0.15$$
-$$\sigma^2(W_t) = \frac{1}{5} \sum_{i=0}^4 \big(H_{t-i} - \mu(W_t)\big)^2 < 0.02$$
-$$\left| \frac{\sum_{i=0}^4 (i - 2)(H_{t-4+i} - \mu(W_t))}{\sum_{i=0}^4 (i - 2)^2} \right| < 0.01$$
-Traversal halts when $\mu(W_t) < 0.15 \land \sigma^2(W_t) < 0.02 \land |\text{Slope}(W_t)| < 0.01$.
-
-### 5. Selective Prediction & Risk-Coverage Formulations
-Given confidence estimator $c(x)$ and threshold $\tau \in [0, 1]$:
-$$\hat{y}(x) = \begin{cases} f(x) & \text{if } c(x) \ge \tau \\ \text{ABSTAIN} & \text{if } c(x) < \tau \end{cases}$$
-* **Coverage at $\tau$**: $\Phi(\tau) = \mathbb{E}_{x \sim \mathcal{D}} \left[ \mathbf{1}_{c(x) \ge \tau} \right]$
-* **Selective Risk at $\tau$**: $\mathcal{R}(\tau) = \frac{\mathbb{E}_{x \sim \mathcal{D}} \left[ \ell(f(x), y) \cdot \mathbf{1}_{c(x) \ge \tau} \right]}{\Phi(\tau)}$
-* **Expected Calibration Error (ECE)** over $M=10$ equal-width bins $B_1, \dots, B_M$:
-$$\text{ECE} = \sum_{m=1}^M \frac{|B_m|}{N} \left| \text{Accuracy}(B_m) - \text{Confidence}(B_m) \right|$$
-* **Brier Score**: $\text{Brier} = \frac{1}{N} \sum_{i=1}^N \big( c(x_i) - \mathbf{1}_{\hat{y}(x_i) = y_i} \big)^2$
-
----
-
-# PART V: Comprehensive Benchmark Suite & Empirical Results
-
-### 1. The 5 Benchmark Suites
-
-```
-                                  [APIRO BENCHMARK MATRIX]
-                                             │
-    ┌─────────────────┬──────────────────────┼──────────────────────┬─────────────────┐
-    ▼                 ▼                      ▼                      ▼                 ▼
-[Counterfactual]  [CUPCase Suite]      [DDXPlus Suite]      [Safety & ECE]     [Real-World PMC]
-(Control vs Trap) (N=3,562 Cases)      (N=134,529 Cases)    (Risk-Coverage)    (10 Complex Cases)
+```text
+priority = entropy * (0.4 + 0.6 * relevance) - contradiction_penalty
 ```
 
-1. **Counterfactual C-NIAH ($N=90$ cases / 40 matched pairs)**:
-   * Matched (Control, Trap) pairs where the presentation mimics a common illness but buried evidence points to a rare diagnosis. Tests **Bias Trap Rate** $P(\text{wrong on trap} \mid \text{right on control})$.
-2. **CUPCase ($N=3,562$ cases)**:
-   * Real-world clinical vignettes with 3 expert-curated distractors per case. Measures **Distractor Selection Rate**.
-3. **DDXPlus ($N=134,529$ synthetic cases)**:
-   * Rule-based synthetic case generator measuring base memorization and standard top-$K$ overlap.
-4. **Safety Calibration & Selective Abstention**:
-   * Evaluates ECE, Brier score, and Risk-Coverage AURC across confidence thresholds $\tau \in [0, 1]$.
-5. **Real-World PMC 10-Case Benchmark**:
-   * Complex real-world case reports with multi-organ comorbidities and distractors.
+The current formula has no depth-decay multiplier.
 
----
+### Retrieval and context selection
 
-### 2. Complete Empirical Results Table
+The default embedding model is `all-mpnet-base-v2`. Retrieval requests six
+chunks and rejects results beyond the configured distance threshold of 0.65.
+If fewer than two grounded chunks survive, expansion falls back to the model's
+parametric knowledge rather than presenting weak retrieval as evidence.
 
-| Evaluation Suite | Evaluated Metric | Bare LLM (LLaMA 3.1 8B) | Standard RAG | Apiro (Entropy Engine) | Empirical Delta / Clinical Impact |
-| :--- | :--- | :---: | :---: | :---: | :--- |
-| **Counterfactual C-NIAH** | **Overall Accuracy** | 30.0% | 30.0% | **60.0%** 🏆 | **+30.0 pp lift** (3 wins, 0 losses) |
-| **Counterfactual C-NIAH** | **Bias Trap Rate** | **100.0%** *(0% escape)* | **100.0%** *(0% escape)* | **75.0%** *(25% escape)* 🏆 | **Only system to override prior** |
-| **Counterfactual C-NIAH** | **Distractor Selection** | 60.0% | 40.0% | **40.0%** 🏆 | **1.5× distractor reduction** |
-| **CUPCase** (Real Cases) | **Top-3 Accuracy** | **80.0%** | 40.0% | **60.0%** 🏆 | **+20.0 pp lift over RAG** (0.467 vs 0.300 MRR) |
-| **CUPCase** ($N=3,562$) | **Distractor Selection** | 40.0% | 20.0% | **10.0%** 🏆 | **4× distractor reduction** |
-| **DDXPlus** ($N=134,529$) | **Top-3 Accuracy** | **90.0%** | 80.0% | 20.0% | Bare model memorized clean priors |
-| **DDXPlus** | **Mean Reciprocal Rank (MRR)**| **0.733** | 0.558 | 0.083 | Synthetic typical presentations |
-| **MedEinst** ($N=5$ pairs, commit `bf9dcd3`) | **Primary BTR (@Rank 1)** | 100.0% (1/1 trapped) | 100.0% (1/1 trapped) | 100.0% (1/1 trapped) | Exact official metric; CI [20.7%, 100%] (underpowered) |
-| **MedEinst** | **Pair@3 Resilience** | 20.0% (1/5) | 20.0% (1/5) | **40.0%** (2/5) 🏆 | Secondary endpoint (2× resilience, underpowered) |
-| **Safety Calibration** | **Expected Calibration Error (ECE)** | 0.3112 | 0.3734 | **0.2164** 🏆 | **Lowest calibration error across all arms** |
-| **Safety Calibration** | **Brier Score** (lower is better) | 0.3096 | 0.3740 | **0.2414** 🏆 | **Grounded in real traversal dynamics** |
-| **Safety Calibration** | **Selective Acc ($\tau = 0.65$)** | 36.4% | 41.7% | **100.0%** 🏆 | **100% precision when answering** |
-| **Real-World PMC** | **Case 9 (Diaphragmatic Hernia)** | FAILED | FAILED | **SOLVED** 🏆 | Rejected Appendicitis distractor |
+Long cases are handled with evidence-aware selection. The original narrative
+is preserved for all arms; prompt construction reserves clinically important
+content and selects relevant spans instead of keeping only a fixed prefix.
 
----
+### Entropy signal
 
-# PART VI: The Engineering Post-Mortem (Top 10 Defects & Fixes)
+Generated hypotheses are scored from a model's verbalized estimate of
+patient-specific confidence, not from token log probabilities. If the model
+returns probability `p`, Apiro computes binary entropy:
 
-Every senior ML and systems interviewer loves deep debugging stories. Here are the 10 real bugs uncovered and fixed during the project:
+```text
+H2(p) = -p log2(p) - (1-p) log2(1-p)
+```
 
-### 1. The Degenerate Entropy Collapse
-* **Symptom**: 64.3% of 3,782 generated nodes in the traversal logs carried an identical entropy score of `0.10`.
-* **Root Cause**: The prompt asked Depth $\ge 1$ nodes "how many diagnoses explain this finding?". Because candidate nodes are already specific diagnoses, the LLM answered "1" for 64% of cases, flattening the exploration queue.
-* **Fix**: Converted to continuous binary Shannon entropy over patient confidence $H(p)$.
+The result is rescaled into the traversal range `[0.05, 0.693]`. This makes it
+a useful uncertainty heuristic, but it is not a fitted probability calibrator
+and should not be described as calibrated epistemic uncertainty.
 
-### 2. Premature Saturation on Depth-0 Axioms
-* **Symptom**: Traversal stopped after 5 iterations without exploring a single hypothesis.
-* **Root Cause**: Seed nodes are seeded at $H \approx 0.01$. The $W=5$ rolling window filled with five identical 0.01 scores, triggering all three convergence criteria immediately.
-* **Fix**: Scoped `SaturationDetector(exploration_only=True)` to exclusively track Depth $\ge 1$ expansions.
+### Contradiction handling
 
-### 3. Synthesis Starvation of Patient Facts
-* **Symptom**: Final differential was missing the patient's primary symptoms.
-* **Root Cause**: Synthesis ranked nodes by entropy *descending* and took the top 15. High entropy = vague/uncertain claims; patient axioms ($H \approx 0.01$) sorted last and were truncated.
-* **Fix**: Synthesis ranks by confidence and receives the raw patient vignette.
+Contradiction detection has two stages:
 
-### 4. Dead Contradiction Guardrail
-* **Symptom**: No keyword contradiction ever fired.
-* **Root Cause**: `CONTRADICTION_THRESHOLD_EF = 0.92`, and the fast filter returned exactly `0.92`. Downstream code checked `score > 0.92` (strictly greater).
-* **Fix**: Changed fast-filter return score to `0.95`.
+1. A keyword and antonym filter handles obvious conflicts and identifies
+   medically related pairs.
+2. An Ollama judge adjudicates related pairs that require semantic reasoning.
 
-### 5. Soft-Pruning Eating Competing Differentials
-* **Symptom**: Alternative valid diagnoses disappeared from the graph.
-* **Root Cause**: Contradiction penalty was applied to *any* contradicting pair. Since competing diagnoses contradict each other by definition, valid alternatives pruned each other.
-* **Fix**: Scoped penalty exclusively to pairs where one side is a confirmed Depth-0 finding.
+The implementation does not load a cross-encoder NLI model. A confirmed
+contradiction subtracts `0.8` from frontier priority; it does not delete the
+node or multiply its weight. This soft penalty preserves competing
+differentials while making contradicted paths less attractive.
 
-### 6. Candidate Count Asymmetry (1.3 vs 7.2)
-* **Symptom**: Baselines appeared to outperform Apiro on raw hit rate.
-* **Root Cause**: Baseline evaluator counted every non-empty line (averaging 7.2 answers per case), while Apiro was capped at 3 parsed slots with broken markdown headers (`*Diagnosis 1:**`).
-* **Fix**: Built unified `apiro/parsing.py` with `DX:` output sentinels for all arms.
+### Stopping and synthesis
 
-### 7. Python 3.10 Incompatible F-String
-* **Symptom**: Benchmark crashed on Python 3.10 with `SyntaxError`.
-* **Root Cause**: `f"{'length \\ depth':<16}"` has backslashes inside an f-string expression, illegal prior to Python 3.12.
-* **Fix**: Extracted formatting string outside the f-string.
+Only explored nodes at depth one or greater enter the saturation history. The
+default detector requires at least eight exploration observations and then
+examines a five-value window. It stops when mean entropy is below `0.55`,
+variance is below `0.04`, and the trend is non-increasing. Graph, depth, and
+expansion budgets provide independent hard stops.
 
-### 8. Shadowed Incomplete AURC Function
-* **Symptom**: Risk-coverage evaluation silently failed under refactoring.
-* **Root Cause**: `_aurc_from_ranking` was defined twice in `calibration.py`; the first was a truncated stub with no return value.
-* **Fix**: Removed dead stub and pinned tests against hand-calculated values.
+Synthesis receives the original vignette, anchors, negated findings, supporting
+evidence, and contradiction annotations. A shared parser extracts at most
+three diagnoses from every arm. Experimental abstention is enabled only for
+benchmarks that explicitly permit it.
 
-### 9. CUPCase Distractor Granularity Artifact
-* **Symptom**: Distractor selection rate was originally inverted.
-* **Root Cause**: CUPCase distractors are ICD near-misses (e.g. *Cushing's Syndrome* vs *Secondary Cushing's Syndrome*). A correct answer matched a distractor and was counted as a trap.
-* **Fix**: Updated metric so that near-synonyms leave the denominator.
+### Telemetry and reproducibility
 
-### 10. Untracked Benchmark Data Loss
-* **Symptom**: Git repository lacked benchmark outputs.
-* **Root Cause**: `.gitignore` had a blanket `data/*.json` rule that ignored benchmark fixtures and results.
-* **Fix**: Explicitly whitelisted benchmark and ontology fixtures in `.gitignore`.
+Every live runner can write an immutable manifest containing the dataset
+source and revision, case-selection parameters, model configuration, prompt
+versions, Git state, and content hashes. The shared model scheduler records
+calls, retries, failures, timeouts, prompt and completion tokens, queue time,
+and inference time by purpose.
 
-### 11. MedEinst Bias Trap Rate (BTR) Rank-1 Scorer Defect & Contradiction Call Bottleneck
-* **The Bug**: BTR was originally computed over all top-3 differential slots. If the true trap diagnosis appeared anywhere in top-3, it was prematurely counted as a trap escape. But MedEinst's official dataset definition evaluates a single rank-1 prediction per case.
-* **The Rescore (`bf9dcd3`)**: Rescoring strictly at rank 1 revealed that each arm solved only 1 control case at rank 1, and each arm repeated that control diagnosis on the corresponding trap (`1/1 = 100% BTR`). With eligible $N = 1$ and a 95% CI of `[20.7%, 100.0%]`, $N=5$ pairs provides zero statistical precision on the primary endpoint. Apiro's secondary Pair@3 advantage (40% vs 20%) is secondary and underpowered.
-* **The Critical Systems Finding**: The 10-case run required **1,814 model calls**, with **1,192 calls (65.7%) spent on contradiction checking** (average latency: 116 seconds/case). Contradiction call reduction (via embedding pre-filtering or batched judge prompts) is the primary engineering bottleneck to solve before running large powered benchmark sweeps.
+## 3. Benchmark suite
 
----
+| Benchmark | What it tests | Current integration |
+|---|---|---|
+| MedEinst | Anchoring on a distractor disease after a discriminative cue changes | Official paired data from `zhui711/MedEinst`; rank-1 BTR is primary |
+| MedDistractQA | Robustness to plausible nonliteral and bystander distractions | Diagnosis-compatible subset with explicit task validation |
+| MINT-style sessions | Premature commitment as evidence arrives over turns | Incremental runner with first-commit and answer-change metrics |
+| C-NIAH | Controlled long-context needles, traps, and missing evidence | Locally generated mechanism benchmark |
+| CUPCase | Rare cases with curated distractors | External dataset adapter and runner |
+| DDXPlus | Structured symptoms and ranked differential labels | External adapter and runner |
 
-# PART VII: Current Operational State & Future Roadmap
+RABBITS and knowledge-graph-guided distractor generation are documented as
+upstream multiple-choice tools. They are not presented as direct Apiro runners
+because Apiro emits free-text diagnoses; a valid integration first needs a
+paired narrative transformation and an endpoint compatible with every arm.
 
-* **Active Codebase Location**: `/home/theroid/PycharmProjects/apiro-fixed-recovered/Apiro`.
-* **Active Git Branch**: `feature/adversarial-benchmark-suite` (commit `bf9dcd3`).
-* **Execution Stack**: Local Ollama server (`http://localhost:11434`, `llama3.1:8b`), local ChromaDB vector store (`apiro_corpus`), PyTorch 2.12.0.
-* **Unit Test Status**: **484 / 484 unit tests passing** (2 environment-dependent skips).
-* **Key Benchmarks & Findings**:
-  * **MedEinst**: BTR=100% (1/1 trapped across all arms at Rank 1, underpowered at $N=5$ pairs); Pair@3=40.0% (2/5) vs 20.0% for RAG and Bare LLM.
-  * **Safety Calibration**: ECE = 0.2164 (grounded in traversal signals, beating RAG's 0.3734); 100% selective accuracy at $\tau = 0.65$.
-  * **CUPCase**: Apiro 60.0% Top-3 accuracy vs RAG 40.0% (+20pp lift, MRR 0.467 vs 0.300).
-* **Immediate Future Roadmap**:
-  1. **Contradiction Call Gating**: Reduce the 1,192 contradiction-call bottleneck via embedding similarity pre-filtering before scaling MedEinst to $N=60+$ pairs.
-  2. **MedDistractQA**: Run diagnosis-only clean/distracted pairs to evaluate top-1 flip rate.
-  3. **MINT Incremental Evidence**: Evaluate multi-turn diagnostic sessions across arriving clinical evidence turns.
+## 4. MedEinst metrics
 
----
+For each control/trap pair, the primary prediction is the first diagnosis.
+Let `C` be the correct control diagnosis and let `T` be the answer in the trap
+version. Bias Trap Rate is:
 
-# PART VIII: Master Interview Defense Bank (12 Hard Questions)
+```text
+BTR = P(T = C | control prediction = C)
+```
 
-### Q1: What makes Apiro different from GraphRAG or Tree-of-Thoughts?
-> **Answer**: GraphRAG builds static graph indexes over text corpora. Tree-of-Thoughts uses heuristic beam search over prompt sequences. Apiro builds a **dynamic, patient-specific Belief Graph** where nodes are clinical claims and edges are verified evidential supports. Most importantly, search is guided by **mathematical Shannon entropy and constrained by NLI contradiction soft-pruning**, terminating dynamically via entropy saturation rather than fixed search budgets.
+The denominator therefore contains only pairs for which the arm solved the
+control at rank one. A trap is counted only when the trap prediction retains
+the former control diagnosis at rank one. A correct trap diagnosis appearing
+elsewhere in the top three does not cancel that rank-1 anchoring event.
 
-### Q2: Why use an 8B model (LLaMA 3.1 8B) instead of GPT-4o or Claude 3.5 Sonnet?
-> **Answer**: In clinical enterprise and hospital deployment, data privacy (HIPAA) and on-premise air-gapped constraints mandate local, open-weights models. Furthermore, testing on an 8B model proves the power of the **reasoning architecture**: if an 8B model with graph traversal beats an 8B model with standard RAG by +30pp, the gain is entirely attributable to the evidential reasoning engine, not sheer model parameter memorization.
+Pair resilience is reported separately. Top-3 accuracy remains a secondary
+capability measure and must not replace the published rank-1 BTR definition.
 
-### Q3: How do you handle negation in clinical notes (e.g., "Patient denies chest pain")?
-> **Answer**: We handle this at the deterministic axiom layer (`apiro/axioms/extractor.py`). We implement bounded negation scopes with boundary delimiters (e.g. `denies`, `without`, `rules out`). Negated symptoms are tagged as `is_negated = True` and seeded with negative polarity ($w = -1.0$). If a downstream hypothesis requires the presence of that symptom, the contradiction detector catches the sign mismatch and applies the soft-pruning penalty.
+## 5. Current evidence
 
-### Q4: Why did DDXPlus score 90% on Bare LLM and 20% on Apiro?
-> **Answer**: DDXPlus is a purely synthetic dataset generated by a rule-based simulation. The cases represent textbook, typical presentations where the prior *is* the answer. An 8B model memorizes these statistical associations and scores 90% easily. Apiro's architecture is explicitly tuned for **evidence-over-prior** (distrusting the common prior when subtle evidence conflicts). On clean synthetic data with no distractors, Apiro's exploratory search is over-cautious; but on adversarial counterfactual traps, Apiro beats the bare model **60% to 30%**.
+The first live MedEinst run was a smoke test of five pairs. After correcting
+the scorer to use the official rank-1 definition, the result is:
 
-### Q5: What is the computational latency of Apiro compared to Standard RAG?
-> **Answer**: Standard one-shot RAG takes $\approx 1.2$ seconds (1 vector query + 1 LLM generation). Apiro performs an average of 7.5 node expansions with a saturation window of $W=5$, taking $\approx 8$–12 seconds on a single GPU. However, for complex clinical differential diagnosis, trading 10 seconds for a **4× reduction in distractor capture and a +30pp accuracy lift** on deceptive cases is the clinically correct trade-off.
+| Arm | Control@1 | Trap@1 | BTR | Eligible / trapped | Pair@1 |
+|---|---:|---:|---:|---:|---:|
+| Apiro | 20% | 0% | 100% | 1 / 1 | 0% |
+| Standard RAG | 20% | 20% | 100% | 1 / 1 | 0% |
+| Bare LLM | 20% | 0% | 100% | 1 / 1 | 0% |
 
-### Q6: What is the difference between soft-pruning and hard-pruning in your graph?
-> **Answer**: Hard-pruning deletes the node and all sub-branches entirely. In clinical medicine, hard-pruning is dangerous because medical records contain false documentation, transient lab errors, or secondary diseases. If a model hard-prunes based on one conflicting lab, it can never recover the true diagnosis. **Soft-pruning applies a mathematical penalty ($w \leftarrow w \times 0.2$)**, depressing the hypothesis on the frontier queue while leaving it recoverable if overwhelming downstream evidence supports it.
+Secondary top-3 results were Apiro 60% control / 40% trap / 40% paired,
+Standard RAG 40% / 40% / 20%, and Bare LLM 60% / 40% / 20%.
 
-### Q7: How do you prevent the model from expanding infinitely into a "rabbit hole"?
-> **Answer**: We enforce three interacting boundaries:
-> 1. **Case-Anchored Priority**: Priority decays exponentially with depth ($\gamma^d, \gamma=0.85$) and is modulated by semantic relevance to the patient anchor.
-> 2. **Max Depth & Frontier Cap**: Hard boundaries at $\text{depth} = 3$ and $\text{frontier} = 20$.
-> 3. **Saturation Detector**: Measures the variance and slope of recent entropy scores. When entropy changes flatten across 5 consecutive expansions, search self-terminates.
+This run does not identify a winning arm. Each BTR estimate has only one
+eligible pair, so all three estimates are maximally fragile. The earlier table
+showing Apiro BTR at 0% resulted from applying the trap rule across top-3
+predictions and is obsolete.
 
-### Q8: What embedding model do you use in ChromaDB, and why?
-> **Answer**: We use `BAAI/bge-small-en-v1.5` (and `all-MiniLM-L6-v2` for lightweight caching). BGE-small provides a high Retrieval MRR on clinical text while running with sub-10ms inference latency, which is essential for multi-hop graph expansion where embeddings are computed in the exploration loop.
+The run also exposed the main operational bottleneck. Across ten case variants
+and all three arms, it made 1,814 model calls, used 867,582 prompt tokens, and
+took about 19.35 minutes. The mean all-arm latency was 116.08 seconds per case.
+Contradiction handling accounted for 1,192 calls, which makes pair reduction
+and deduplication the clearest performance target.
 
-### Q9: What happens if ChromaDB returns zero relevant chunks for a rare condition?
-> **Answer**: In `apiro/graph/expander.py`, the engine checks `len(chunks) < MIN_CHUNKS`. If corpus coverage is sparse, it sets `is_grounded = False`, logs a sparse coverage warning, and activates the **Parametric Prompt Fallback**. The LLM relies on its internal clinical gestalt while flagging high epistemic entropy ($H \to 0.693$), ensuring the rare disease remains on the exploration frontier without stalling the pipeline.
+Historical C-NIAH, CUPCase, DDXPlus, and PMC tables in the repository are
+exploratory. Several predate shared answer parsing and other measurement fixes,
+and their sample sizes are too small for comparative claims. Preserve them as
+engineering history; do not cite them as evidence of clinical superiority.
 
-### Q10: How do you evaluate calibration and selective abstention?
-> **Answer**: We implement Geifman & El-Yaniv's Selective Prediction framework (`apiro/eval/calibration.py`). We compute the **Risk-Coverage Curve (AURC)** across thresholds $\tau \in [0, 1]$, alongside Expected Calibration Error (ECE) and Brier Score. By grounding confidence directly in traversal dynamics (saturation convergence, exploration coverage, contradiction density), Apiro achieved an ECE of **0.2164 vs 0.3734 for RAG**, and when answering at $\tau = 0.65$, achieves **100% selective accuracy**.
+## 6. What is complete
 
-### Q11: What is the 4-tier normalization cascade in evaluation?
-> **Answer**: In `apiro/eval/evaluator.py`, exact string matching fails in medicine (e.g. "Myocardial Infarction" vs "Acute MI"). We built a 4-tier cascade:
-> 1. Exact string matching (case-insensitive, punctuation-stripped).
-> 2. Clinical synonym dictionary mapping (UMLS / SNOMED concept clusters).
-> 3. Substring & Token Jaccard overlap ($> 0.8$).
-> 4. Semantic embedding cosine similarity ($> 0.88$ via MiniLM).
+The engineering foundation for the adversarial evaluation phase is complete:
 
-### Q12: If you had another month on this project, what would you build next?
-> **Answer**: Three things:
-> 1. **Cross-Encoder NLI Fine-Tuning**: Replace the zero-shot LLM contradiction judge with a specialized, fine-tuned `DeBERTa-v3-clinical` cross-encoder for sub-5ms contradiction checks.
-> 2. **Dynamic Specificity Weights**: Replace the hand-curated `axiom_weights.yaml` with an automated Information Content (IC) metric derived from MIMIC-IV symptom frequencies.
-> 3. **MIMIC-IV Discharge Evaluation**: Run the fully powered benchmark ($N=200$) on real ICU EHR notes to establish $p < 0.001$ statistical significance.
+- per-run traversal isolation;
+- preserved full narratives and evidence-aware context selection;
+- shared, bounded model scheduling and detailed telemetry;
+- immutable manifests and pinned external dataset revisions;
+- corrected AURC and calibration-threshold handling;
+- MedEinst, MedDistractQA, and MINT-style runners;
+- corpus-schema validation; and
+- rank-1 MedEinst scoring with a rescore path for existing results.
+
+The research project is not complete. It does not yet have powered, held-out
+evidence that Apiro improves robustness, accuracy, or calibration.
+
+## 7. Next work, in order
+
+1. Reduce contradiction-judge calls by deduplicating pairs and comparing new
+   nodes only with anchors, ancestors, and a small nearest-neighbor set.
+2. Add retrieval and graph-event counters so quality can be reported per unit
+   of compute.
+3. Improve rank-1 synthesis, because the smoke run often contained the correct
+   answer below rank one.
+4. Run `scripts/validate_corpus.py` against the actual corpus and repair or
+   explicitly version any metadata mismatch.
+5. Run small train-split pilots to freeze prompts, parsing, stopping settings,
+   and the power plan.
+6. Run a powered, unseen MedEinst evaluation and the compatible
+   MedDistractQA/MINT stages without tuning on their results.
+7. Fit abstention and confidence thresholds on a held-out calibration split.
+8. Publish results with confidence intervals, paired tests, failure examples,
+   manifests, and compute-normalized metrics.
+
+## 8. Defensible interview answers
+
+**What is novel about Apiro?**
+
+The project tests a specific composition: patient-fact anchoring, uncertainty-
+guided graph traversal, and contradiction penalties, measured against
+compute-visible bare-LLM and RAG baselines. Novelty is the testable system
+design, not a claim that its individual components are new.
+
+**Is the entropy a true model-distribution entropy?**
+
+No. It is binary entropy calculated from a verbalized confidence estimate and
+then rescaled for traversal. It is an interpretable heuristic whose usefulness
+must be validated empirically.
+
+**Is contradiction detection NLI?**
+
+It is an NLI-like decision task implemented by a lexical prefilter and an LLM
+judge. The current runtime does not contain a cross-encoder NLI model.
+
+**Why soft-prune instead of delete?**
+
+Clinical alternatives can conflict with each other while remaining reasonable
+differentials. A priority penalty lets strong later evidence recover a path;
+hard deletion cannot.
+
+**Why is BTR conditioned on correct controls?**
+
+A model cannot demonstrate loss of a previously correct diagnosis if it never
+solved the control. Conditioning isolates anchoring from baseline capability.
+
+**Why did the first MedEinst table change?**
+
+The first implementation treated any top-3 retention as a trap and suppressed
+some traps when the correct answer appeared elsewhere. The benchmark defines a
+single top-1 prediction, so the scorer and tests were corrected and the saved
+run can be rescored reproducibly.
+
+**What did the smoke test prove?**
+
+It proved that the live pipeline, manifests, telemetry, and paired scorer run
+end to end. It did not prove a performance advantage: only one pair per arm
+qualified for BTR.
+
+**What is the main cost problem?**
+
+Contradiction adjudication. It consumed 1,192 of 1,814 calls in the smoke run.
+The next optimization should reduce candidate pairs while measuring recall on
+known contradictions.
+
+**How will you avoid tuning on the test set?**
+
+Freeze prompts, model versions, parser behavior, thresholds, and stopping rules
+using unit fixtures and a train-split pilot. Then execute the unseen evaluation
+once and retain the immutable manifest.
+
+**When is the project complete?**
+
+When a powered unseen run is reproducible from its manifest, all arms use equal
+answer budgets and compatible inputs, uncertainty intervals and paired tests
+are reported, calibration is fitted on held-out data, and the result is stated
+without making clinical deployment claims.

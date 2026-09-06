@@ -83,3 +83,6 @@ data/*benchmark_output.txt
 DEVELOPER_NOTES.md
 PROJECT_STATUS.md
 implementation_plan.md
+
+# This project-level status is maintained as part of the public documentation.
+!docs/PROJECT_STATUS.md
