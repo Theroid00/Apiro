@@ -39,6 +39,10 @@ def print_report(result, elapsed: float) -> None:
 
     print(f"\n  Time taken:             {elapsed:.1f} seconds")
     print(f"  Reasoning mode:         {getattr(result, 'mode', 'legacy')}")
+    if getattr(result, "rounds", 0):
+        print(f"  Investigation rounds:   {result.rounds}")
+        print(f"  Retrievals:             {result.retrieval_count}")
+        print(f"  Reasoning calls:         {result.reasoning_call_count}")
     if result.stop_reason:
         print(f"  Stop reason:            {result.stop_reason}")
 
@@ -84,7 +88,7 @@ def main():
         help="Max traversal depth (legacy mode only).",
     )
     parser.add_argument(
-        "--mode", choices=("simple", "legacy"), default=None,
+        "--mode", choices=("simple", "investigator", "legacy"), default=None,
         help="Reasoning engine. Defaults to APIRO_REASONING_MODE or simple.",
     )
     parser.add_argument(

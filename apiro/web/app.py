@@ -70,7 +70,7 @@ DOMAIN_COLORS = {
 class InvestigationRequest(BaseModel):
     findings: str
     max_depth: int = 5
-    mode: Literal["simple", "legacy"] | None = None
+    mode: Literal["simple", "investigator", "legacy"] | None = None
     # NOTE: a `real_entropy` field used to sit here. Nothing read it — the
     # engine has had exactly one entropy path since the logprob engine was
     # rewritten — so it was an API parameter that silently did nothing.
@@ -606,6 +606,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
       <div class="section-label">Reasoning Mode</div>
       <select id="mode-input">
         <option value="simple" selected>Simple (bounded)</option>
+        <option value="investigator">Investigator (bounded deep reasoning)</option>
         <option value="legacy">Legacy graph traversal</option>
       </select>
     </div>
@@ -1149,6 +1150,10 @@ def run_investigation(req: InvestigationRequest):
             "duration":    elapsed,
             "stop_reason": result.stop_reason,
             "mode":        result.mode,
+            "rounds":      result.rounds,
+            "retrieval_count": result.retrieval_count,
+            "reasoning_call_count": result.reasoning_call_count,
+            "action_history": result.action_history,
             "model_telemetry": result.model_telemetry,
         }
 

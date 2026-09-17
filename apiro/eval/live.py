@@ -80,6 +80,9 @@ def evaluate_narrative_case(
         },
         "traversal": {
             "reasoning_mode": result.mode,
+            "rounds": result.rounds,
+            "retrieval_count": result.retrieval_count,
+            "reasoning_call_count": result.reasoning_call_count,
             "stop_reason": result.stop_reason,
             "total_nodes": result.total_nodes,
             "contradictions": result.contradiction_count,

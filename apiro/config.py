@@ -34,8 +34,10 @@ MAX_MODEL_CONCURRENCY = int(os.environ.get("APIRO_MAX_MODEL_CONCURRENCY", "2"))
 # simplified engine normally uses one generation and permits one corrective
 # generation when deterministic quality checks fail.
 REASONING_MODE = os.environ.get("APIRO_REASONING_MODE", "simple").strip().lower()
-if REASONING_MODE not in {"simple", "legacy"}:
-    raise ValueError("APIRO_REASONING_MODE must be 'simple' or 'legacy'")
+if REASONING_MODE not in {"simple", "investigator", "legacy"}:
+    raise ValueError(
+        "APIRO_REASONING_MODE must be 'simple', 'investigator', or 'legacy'"
+    )
 
 SIMPLE_MAX_FACTS = int(os.environ.get("APIRO_SIMPLE_MAX_FACTS", "12"))
 SIMPLE_RAG_TOP_K = int(os.environ.get("APIRO_SIMPLE_RAG_TOP_K", "6"))
@@ -45,6 +47,21 @@ SIMPLE_MAX_CONTEXT_CHARS = int(
 SIMPLE_CORRECTIVE_PASS = os.environ.get(
     "APIRO_SIMPLE_CORRECTIVE_PASS", "true"
 ).strip().lower() in {"1", "true", "yes", "on"}
+
+INVESTIGATOR_MAX_FACTS = int(os.environ.get("APIRO_INVESTIGATOR_MAX_FACTS", "20"))
+INVESTIGATOR_MAX_CANDIDATES = int(
+    os.environ.get("APIRO_INVESTIGATOR_MAX_CANDIDATES", "6")
+)
+INVESTIGATOR_MAX_ROUNDS = int(os.environ.get("APIRO_INVESTIGATOR_MAX_ROUNDS", "3"))
+INVESTIGATOR_MAX_RETRIEVALS = int(
+    os.environ.get("APIRO_INVESTIGATOR_MAX_RETRIEVALS", "6")
+)
+INVESTIGATOR_MAX_MODEL_CALLS = int(
+    os.environ.get("APIRO_INVESTIGATOR_MAX_MODEL_CALLS", "4")
+)
+INVESTIGATOR_MAX_GRAPH_NODES = int(
+    os.environ.get("APIRO_INVESTIGATOR_MAX_GRAPH_NODES", "50")
+)
 
 # ---------------------------------------------------------------------------
 # Embedding

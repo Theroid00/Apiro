@@ -39,6 +39,13 @@ class InvestigationService:
                 allow_abstention=allow_abstention,
                 on_event=on_event,
             )
+        elif selected_mode == "investigator":
+            result = self._run_investigator(
+                narrative,
+                n_diagnoses=n_diagnoses,
+                allow_abstention=allow_abstention,
+                on_event=on_event,
+            )
         else:
             result = self._run_legacy(
                 narrative,
@@ -66,6 +73,26 @@ class InvestigationService:
             scheduler=getattr(self.resources, "model_scheduler", None),
         )
         return SimpleReasoner(
+            embedder=self.resources.embedder,
+            llm_client=self.resources.llm_client,
+            axiom_extractor=self.resources.axiom_extractor,
+            contradiction_detector=contradiction,
+            n_diagnoses=n_diagnoses,
+            allow_abstention=allow_abstention,
+        ).run(narrative, on_event=on_event)
+
+    def _run_investigator(
+        self, narrative: str, *, n_diagnoses: int, allow_abstention: bool, on_event
+    ):
+        from apiro.graph.contradiction import ContradictionDetector
+        from apiro.reasoning.investigator import InvestigatorReasoner
+
+        contradiction = ContradictionDetector(
+            model=self.resources.model,
+            ollama_url=self.resources.ollama_url,
+            scheduler=getattr(self.resources, "model_scheduler", None),
+        )
+        return InvestigatorReasoner(
             embedder=self.resources.embedder,
             llm_client=self.resources.llm_client,
             axiom_extractor=self.resources.axiom_extractor,
@@ -110,6 +137,8 @@ class InvestigationService:
     @staticmethod
     def _validate_mode(mode: str) -> str:
         normalized = str(mode).strip().lower()
-        if normalized not in {"simple", "legacy"}:
-            raise ValueError("reasoning mode must be 'simple' or 'legacy'")
+        if normalized not in {"simple", "investigator", "legacy"}:
+            raise ValueError(
+                "reasoning mode must be 'simple', 'investigator', or 'legacy'"
+            )
         return normalized

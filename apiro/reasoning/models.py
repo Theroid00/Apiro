@@ -47,6 +47,8 @@ class InvestigationResult:
     retrieval_count: int = 0
     reasoning_call_count: int = 0
     rounds: int = 0
+    action_history: list[dict] = field(default_factory=list)
+    unresolved_questions: list[str] = field(default_factory=list)
 
     @classmethod
     def from_legacy(cls, result, *, axioms: list[object]) -> "InvestigationResult":

@@ -2,7 +2,12 @@
 
 > **Entropy-guided clinical reasoning under misleading context.**
 
-Apiro is an **entropy-guided clinical reasoning engine** that constructs and traverses a **Belief Graph**. It prioritizes findings by diagnostic breadth and deeper hypotheses by the binary entropy of the model's verbalized patient-specific confidence. A keyword pre-filter plus LLM judge soft-prunes hypotheses that contradict deterministic clinical anchors. Apiro is a research system for studying distractor-heavy medical reasoning; it is not a validated clinical decision-support product.
+Apiro is a research system for evidence-grounded differential diagnosis on
+distractor-heavy clinical reports. Its default efficient engine performs
+bounded structured medical RAG; an opt-in investigator mode compares competing
+hypotheses over a few targeted retrieval rounds. The original entropy-guided
+Belief Graph traversal remains available as a legacy baseline. Apiro is not a
+validated clinical decision-support product.
 
 See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for the current completion
 state and ordered next steps. [`docs/INTERVIEW_TEXTBOOK.md`](docs/INTERVIEW_TEXTBOOK.md)
@@ -445,7 +450,8 @@ http://localhost:8000
 From the UI you can:
 
 - Paste a patient vignette.
-- Run the bounded **simple** engine or the original **legacy** traversal.
+- Run the efficient **simple** engine, bounded **investigator**, or original
+  **legacy** traversal.
 - Watch deterministic axiom extraction populate the depth-0 anchors.
 - Inspect ranked hypotheses and their supporting or conflicting edges.
 - View the final differential and exact run statistics.
@@ -454,6 +460,7 @@ The same mode switch is available from the CLI:
 
 ```bash
 apiro --findings "49yo female with dyspnea" --mode simple
+apiro --findings "49yo female with dyspnea" --mode investigator
 apiro --findings "49yo female with dyspnea" --mode legacy --max-depth 5
 ```
 
@@ -462,6 +469,13 @@ call per case. A deterministic weak-result gate may permit one targeted
 retrieval and one revision; set `APIRO_SIMPLE_CORRECTIVE_PASS=false` to enforce
 a strict one-pass run. Set `APIRO_REASONING_MODE=legacy` to retain the previous
 default for a deployment or benchmark run.
+
+`investigator` keeps up to six competing candidates and selects targeted
+retrieval actions when evidence is weak, contradictory, or fails to separate
+the leaders. It stops early when the result is adequate and always respects
+the configured round, retrieval, model-call, graph-node, and prompt bounds.
+Use it for difficult-case experiments; `simple` remains the production
+default.
 
 ---
 
@@ -480,11 +494,12 @@ Apiro/
 │   │   └── mimic_adapter.py     # MIMIC-III demo loader — available, no benchmark wired to it yet
 │   ├── application/
 │   │   ├── runtime.py           # Shared heavy resources + run-local factories
-│   │   └── service.py           # Canonical simple/legacy investigation entry point
+│   │   └── service.py           # Canonical mode-selecting investigation entry point
 │   ├── context.py               # Evidence-aware bounded-context selection with source spans
 │   ├── reasoning/
 │   │   ├── models.py            # Shared result, hypothesis, and evidence contracts
-│   │   └── simple.py            # One-retrieval, one-generation bounded reasoner
+│   │   ├── simple.py            # One-retrieval, one-generation bounded reasoner
+│   │   └── investigator.py      # Bounded multi-round hypothesis investigator
 │   ├── entropy/engine.py        # Breadth (findings) + posterior uncertainty (hypotheses)
 │   ├── eval/
 │   │   ├── evaluator.py         # Concept-normalization match cascade
