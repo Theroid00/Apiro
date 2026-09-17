@@ -30,6 +30,22 @@ OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 PRIMARY_MODEL   = os.environ.get("PRIMARY_MODEL", "llama3.1:8b")
 MAX_MODEL_CONCURRENCY = int(os.environ.get("APIRO_MAX_MODEL_CONCURRENCY", "2"))
 
+# Reasoning architecture selected by CLI, web, and live evaluation.  The
+# simplified engine normally uses one generation and permits one corrective
+# generation when deterministic quality checks fail.
+REASONING_MODE = os.environ.get("APIRO_REASONING_MODE", "simple").strip().lower()
+if REASONING_MODE not in {"simple", "legacy"}:
+    raise ValueError("APIRO_REASONING_MODE must be 'simple' or 'legacy'")
+
+SIMPLE_MAX_FACTS = int(os.environ.get("APIRO_SIMPLE_MAX_FACTS", "12"))
+SIMPLE_RAG_TOP_K = int(os.environ.get("APIRO_SIMPLE_RAG_TOP_K", "6"))
+SIMPLE_MAX_CONTEXT_CHARS = int(
+    os.environ.get("APIRO_SIMPLE_MAX_CONTEXT_CHARS", "12000")
+)
+SIMPLE_CORRECTIVE_PASS = os.environ.get(
+    "APIRO_SIMPLE_CORRECTIVE_PASS", "true"
+).strip().lower() in {"1", "true", "yes", "on"}
+
 # ---------------------------------------------------------------------------
 # Embedding
 # ---------------------------------------------------------------------------

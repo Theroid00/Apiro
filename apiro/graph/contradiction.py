@@ -276,6 +276,21 @@ class ContradictionDetector:
         self._store_cache(key, result)
         return result
 
+    def check_deterministic(self, claim_a: str, claim_b: str) -> NLIResult:
+        """Run only the rule-based contradiction stage; never call the LLM.
+
+        The bounded reasoning path uses this method to make its model-call
+        budget an enforceable contract.  An ambiguous pair is neutral here;
+        callers that explicitly want model escalation should use :meth:`check`.
+        """
+        negation_detected = self._has_negation(claim_a) or self._has_negation(claim_b)
+        result = self._fast_filter(claim_a, claim_b, negation_detected)
+        return result or NLIResult(
+            label="neutral",
+            score=0.5,
+            negation_detected=negation_detected,
+        )
+
     def check_batch(self, pairs: list[tuple[str, str]]) -> list[NLIResult]:
         """
         Check many pairs at once.

@@ -428,7 +428,8 @@ The script emits calibration metrics (ECE, Brier), the risk–coverage curve and
 
 ## Web UI
 
-Apiro ships with an interactive Web UI for inspecting the Belief Graph, entropy trajectories, and contradiction-pruning decisions in real time.
+Apiro ships with an interactive Web UI for inspecting extracted facts, ranked
+hypotheses, evidence provenance, and the resulting belief graph in real time.
 
 ```bash
 # Launch the Web UI
@@ -443,11 +444,24 @@ http://localhost:8000
 
 From the UI you can:
 
-- Paste or upload a patient vignette.
-- Watch **deterministic axiom extraction** populate the Depth 0 anchors.
-- Observe **entropy-guided expansion** at Depth ≥ 1.
-- Inspect **contradiction soft-pruning** decisions (keyword/antonym filter vs. LLM judge) per belief edge.
-- View the **halting critic's** saturation signal and the final **etiology differential**.
+- Paste a patient vignette.
+- Run the bounded **simple** engine or the original **legacy** traversal.
+- Watch deterministic axiom extraction populate the depth-0 anchors.
+- Inspect ranked hypotheses and their supporting or conflicting edges.
+- View the final differential and exact run statistics.
+
+The same mode switch is available from the CLI:
+
+```bash
+apiro --findings "49yo female with dyspnea" --mode simple
+apiro --findings "49yo female with dyspnea" --mode legacy --max-depth 5
+```
+
+`simple` is the default and normally uses one retrieval plus one generation
+call per case. A deterministic weak-result gate may permit one targeted
+retrieval and one revision; set `APIRO_SIMPLE_CORRECTIVE_PASS=false` to enforce
+a strict one-pass run. Set `APIRO_REASONING_MODE=legacy` to retain the previous
+default for a deployment or benchmark run.
 
 ---
 
@@ -464,8 +478,13 @@ Apiro/
 │   │   ├── clinical_case_adapter.py  # CUPCase / VivaBench loaders (drives the CUPCase benchmark)
 │   │   ├── ddxplus_adapter.py       # DDXPlus rows -> readable notes + reference differential
 │   │   └── mimic_adapter.py     # MIMIC-III demo loader — available, no benchmark wired to it yet
-│   ├── application/runtime.py   # Shared heavy resources + isolated per-run traversal factory
+│   ├── application/
+│   │   ├── runtime.py           # Shared heavy resources + run-local factories
+│   │   └── service.py           # Canonical simple/legacy investigation entry point
 │   ├── context.py               # Evidence-aware bounded-context selection with source spans
+│   ├── reasoning/
+│   │   ├── models.py            # Shared result, hypothesis, and evidence contracts
+│   │   └── simple.py            # One-retrieval, one-generation bounded reasoner
 │   ├── entropy/engine.py        # Breadth (findings) + posterior uncertainty (hypotheses)
 │   ├── eval/
 │   │   ├── evaluator.py         # Concept-normalization match cascade

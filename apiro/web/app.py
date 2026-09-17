@@ -26,6 +26,7 @@ import asyncio
 import uuid
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+from typing import Literal
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
@@ -33,9 +34,7 @@ from pydantic import BaseModel
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from apiro.application.runtime import RuntimeSetupError, build_runtime_resources
-from apiro.graph.belief_graph import BeliefGraph
-
+from apiro.application.runtime import build_runtime_resources
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("apiro_app")
 
@@ -45,12 +44,12 @@ app = FastAPI(title="Apiro AI Detective")
 logger.info("Initialising Apiro components...")
 try:
     runtime_resources = build_runtime_resources()
-    axiom_extractor = runtime_resources.axiom_extractor
+    investigation_service = runtime_resources.create_service()
     doc_count = runtime_resources.doc_count
     logger.info(f"Apiro ready. ChromaDB contains {doc_count:,} documents.")
 except Exception as e:
     logger.error(f"Failed to initialise Apiro components: {e}")
-    runtime_resources, axiom_extractor, doc_count = None, None, 0
+    runtime_resources, investigation_service, doc_count = None, None, 0
 
 # Thread pool for running CPU-bound traversal without blocking the event loop
 _executor = ThreadPoolExecutor(max_workers=2)
@@ -71,6 +70,7 @@ DOMAIN_COLORS = {
 class InvestigationRequest(BaseModel):
     findings: str
     max_depth: int = 5
+    mode: Literal["simple", "legacy"] | None = None
     # NOTE: a `real_entropy` field used to sit here. Nothing read it — the
     # engine has had exactly one entropy path since the logprob engine was
     # rewritten — so it was an API parameter that silently did nothing.
@@ -228,7 +228,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     margin-bottom: 2px;
   }
   .form-group { display: flex; flex-direction: column; gap: 5px; }
-  textarea, input[type="number"] {
+  textarea, input[type="number"], select {
     background: var(--bg);
     border: 1px solid var(--border2);
     border-radius: 7px;
@@ -241,22 +241,13 @@ INDEX_HTML = r"""<!DOCTYPE html>
     transition: border-color 0.2s, box-shadow 0.2s;
   }
   textarea { resize: none; height: 115px; }
-  textarea:focus, input[type="number"]:focus {
+  textarea:focus, input[type="number"]:focus, select:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-g);
   }
   .hint { font-size: 10px; color: var(--muted); line-height: 1.5; }
 
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 11.5px;
-    color: var(--muted2);
-    cursor: pointer;
-    user-select: none;
-  }
-  input[type="checkbox"] { width: 13px; height: 13px; accent-color: var(--accent); cursor: pointer; }
+  select { width: 100%; }
 
   #run-btn {
     background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
@@ -595,7 +586,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
     <div class="logo-icon">⬡</div>
     <div class="logo-text">
       <h1>Apiro · Clinical Detective</h1>
-      <div class="sub">Entropy-First Belief Graph &bull; {doc_count} corpus docs</div>
+      <div class="sub">Bounded Evidence Reasoning &bull; {doc_count} corpus docs</div>
     </div>
   </div>
   <div id="status-pill">Idle</div>
@@ -612,13 +603,16 @@ INDEX_HTML = r"""<!DOCTYPE html>
       <div class="hint">Patient history, symptoms, labs, imaging — separated by commas.</div>
     </div>
     <div class="form-group">
-      <div class="section-label">Max Graph Depth</div>
+      <div class="section-label">Reasoning Mode</div>
+      <select id="mode-input">
+        <option value="simple" selected>Simple (bounded)</option>
+        <option value="legacy">Legacy graph traversal</option>
+      </select>
+    </div>
+    <div class="form-group" id="depth-group">
+      <div class="section-label">Legacy Max Graph Depth</div>
       <input type="number" id="depth-input" value="5" min="2" max="8">
     </div>
-    <label class="toggle-row">
-      <input type="checkbox" id="real-entropy-input">
-      Real-time seed entropy (slower)
-    </label>
     <button id="run-btn" onclick="startInvestigation()">▶ Run Detective</button>
     <div class="divider"></div>
     <div class="section-label">Run Statistics</div>
@@ -897,7 +891,23 @@ function addDxBanner(dx) {
 function handleEvent(ev) {
   const t = ev.event;
 
-  if (t === 'patient_context_extracted') {
+  if (t === 'seed_added') {
+    addNodeToGraph(ev);
+    nCount = nodesData.length;
+    updateStats();
+    addCard('seed', '+', 'Clinical Fact', ev.node_id || '', ev.claim || '', ev.domain, ev.entropy, 'depth 0');
+  }
+  else if (t === 'retrieval_complete') {
+    addCard('sat', 'R', 'Evidence Retrieval', '', `${ev.evidence_count || 0} relevant corpus chunks retained`, null, null, 'single pass');
+  }
+  else if (t === 'node_expanded') {
+    addNodeToGraph(ev);
+    nCount = nodesData.length;
+    eCount += ev.parent_id ? 1 : 0;
+    updateStats();
+    addCard('hypo', '+', 'Ranked Hypothesis', ev.node_id || '', ev.claim || '', ev.domain, ev.entropy, `depth ${ev.depth || 1}`);
+  }
+  else if (t === 'patient_context_extracted') {
     addCard('seed', '🧑‍⚕️', 'Patient Profile', '', `Synthesized presentation:<br><b style="color:var(--text)">${ev.summary}</b>`, null, null, '');
   }
   else if (t === 'hypotheses_generated') {
@@ -922,6 +932,11 @@ function handleEvent(ev) {
     if (dx.length) { addDxBanner(dx); if (activeTab === 'dx') renderDx(dx); }
     document.getElementById('sv-stop').textContent = ev.stop_reason || '—';
     document.getElementById('sv-dur').textContent  = ev.duration_seconds ? `${(+ev.duration_seconds).toFixed(1)}s` : '—';
+    nCount = ev.total_nodes ?? nCount;
+    eCount = ev.total_edges ?? eCount;
+    rCount = ev.rabbit_hole_count ?? rCount;
+    cCount = ev.contradiction_count ?? cCount;
+    updateStats();
     setStatus('done', `✓ Done · ${(ev.duration_seconds||0).toFixed(1)}s`);
   }
   else if (t === 'error') {
@@ -941,7 +956,7 @@ function setStatus(state, text) {
 async function startInvestigation() {
   const findings = document.getElementById('findings-input').value.trim();
   const maxDepth = parseInt(document.getElementById('depth-input').value) || 5;
-  const realEnt  = document.getElementById('real-entropy-input').checked;
+  const mode = document.getElementById('mode-input').value;
   if (!findings) { alert('Please enter clinical findings.'); return; }
 
   // Reset all state
@@ -967,7 +982,7 @@ async function startInvestigation() {
     const resp = await fetch('/run/stream', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ findings, max_depth: maxDepth, real_entropy: realEnt }),
+      body:    JSON.stringify({ findings, max_depth: maxDepth, mode }),
     });
     if (!resp.ok) throw new Error(`Server error ${resp.status}`);
 
@@ -1054,14 +1069,9 @@ async def run_investigation_stream(req: InvestigationRequest):
                     q.put({"event": "error", "message": "No findings provided"}), loop
                 )
                 return
-            graph = BeliefGraph()
-            traversal = runtime_resources.create_traversal()
-            from apiro.axioms.seeding import build_seeds
-            seeds, _axioms, enriched_vignette = build_seeds(req.findings, axiom_extractor)
-            traversal.run(
-                seed_nodes=seeds,
-                vignette=enriched_vignette,
-                graph=graph,
+            investigation_service.investigate(
+                req.findings,
+                mode=req.mode,
                 max_depth=req.max_depth,
                 case_name=f"api_stream_{run_id}",
                 on_event=on_event,
@@ -1103,21 +1113,14 @@ def run_investigation(req: InvestigationRequest):
 
     t0 = time.time()
     try:
-        from apiro.axioms.seeding import build_seeds
-        seeds, _axioms, enriched_vignette = build_seeds(req.findings, axiom_extractor)
-        if not seeds:
-            raise HTTPException(status_code=400, detail="Could not parse any valid findings")
-
-        graph = BeliefGraph()
         run_id = uuid.uuid4().hex
-        traversal = runtime_resources.create_traversal()
-        result = traversal.run(
-            seed_nodes=seeds,
-            vignette=enriched_vignette,
-            graph=graph,
+        result = investigation_service.investigate(
+            req.findings,
+            mode=req.mode,
             max_depth=req.max_depth,
             case_name=f"api_run_{run_id}",
         )
+        graph = result.graph
         elapsed = time.time() - t0
 
         nodes_list = [
@@ -1145,6 +1148,8 @@ def run_investigation(req: InvestigationRequest):
             "edges":       edges_list,
             "duration":    elapsed,
             "stop_reason": result.stop_reason,
+            "mode":        result.mode,
+            "model_telemetry": result.model_telemetry,
         }
 
     except Exception as exc:

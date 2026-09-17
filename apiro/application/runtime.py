@@ -37,6 +37,15 @@ class RuntimeResources:
     ollama_url: str
     model_scheduler: object | None = None
 
+    def create_service(self, *, default_mode: str | None = None):
+        """Return the canonical stateless investigation orchestrator."""
+        from apiro.application.service import InvestigationService
+        from apiro.config import REASONING_MODE
+
+        return InvestigationService(
+            self, default_mode=default_mode or REASONING_MODE
+        )
+
     def create_traversal(
         self,
         *,

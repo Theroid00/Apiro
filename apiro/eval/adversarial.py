@@ -85,16 +85,23 @@ def score_meddistract(records: list[dict], matcher, arms=ARMS) -> dict:
     pairs = [(v["clean"], v["distracted"]) for v in grouped.values() if {"clean", "distracted"} <= v.keys()]
     output = {}
     for arm in arms:
-        clean, distracted, flips = [], [], 0
+        clean, distracted, top1_clean, top1_distracted, flips = [], [], [], [], 0
         for base, noisy in pairs:
             base_preds = base["predictions"][arm]
             noisy_preds = noisy["predictions"][arm]
             clean.append(first_hit_rank(base_preds, base["ground_truth"], matcher) is not None)
             distracted.append(first_hit_rank(noisy_preds, noisy["ground_truth"], matcher) is not None)
+            top1_clean.append(bool(base_preds) and matcher(base_preds[0], base["ground_truth"]))
+            top1_distracted.append(bool(noisy_preds) and matcher(noisy_preds[0], noisy["ground_truth"]))
             base_top = base_preds[0] if base_preds else ""
             noisy_top = noisy_preds[0] if noisy_preds else ""
             flips += int(bool(base_top or noisy_top) and not matcher(base_top, noisy_top))
         metrics = distractor_robustness(clean, distracted)
+        top1_metrics = distractor_robustness(top1_clean, top1_distracted)
+        metrics["top1_clean_accuracy"] = top1_metrics["clean_accuracy"]
+        metrics["top1_distracted_accuracy"] = top1_metrics["adversarial_accuracy"]
+        metrics["top1_degradation"] = top1_metrics["degradation"]
+        metrics["top1_retention"] = top1_metrics["retention"]
         metrics["top1_flip_rate"] = flips / len(pairs) if pairs else 0.0
         output[arm] = metrics
     return output

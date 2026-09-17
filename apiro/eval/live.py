@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import time
 
-from apiro.graph.belief_graph import BeliefGraph
+from apiro.config import REASONING_MODE
 from apiro.parsing import ABSTENTION_SENTINEL, parse_differential
 
 
@@ -29,6 +29,7 @@ Retrieved context:
 def evaluate_narrative_case(
     *, case_name: str, narrative: str, resources, n_diagnoses: int = 3,
     max_depth: int = 6, log_dir=None, allow_abstention: bool = False,
+    reasoning_mode: str = REASONING_MODE,
 ) -> dict:
     """Evaluate bare, RAG and isolated Apiro arms with equal answer budgets."""
     started = time.time()
@@ -46,18 +47,17 @@ def evaluate_narrative_case(
     ))
     rag = parse_differential(rag_raw, limit=n_diagnoses)
 
-    from apiro.axioms.seeding import build_seeds
-
-    traversal = resources.create_traversal(
-        n_diagnoses=n_diagnoses, log_dir=log_dir,
+    service = resources.create_service(default_mode=reasoning_mode)
+    result = service.investigate(
+        narrative,
+        mode=reasoning_mode,
+        n_diagnoses=n_diagnoses,
+        max_depth=max_depth,
+        case_name=case_name,
+        log_dir=log_dir,
         allow_abstention=allow_abstention,
     )
-    graph = BeliefGraph()
-    seeds, axioms, enriched = build_seeds(narrative, resources.axiom_extractor)
-    result = traversal.run(
-        seed_nodes=seeds, graph=graph, max_depth=max_depth,
-        case_name=case_name, vignette=enriched,
-    )
+    graph = result.graph
     apiro = list(result.synthesis or [])
     hypotheses = [
         {
@@ -79,6 +79,7 @@ def evaluate_narrative_case(
             "approx_tokens": round(len(narrative.split()) / 0.75),
         },
         "traversal": {
+            "reasoning_mode": result.mode,
             "stop_reason": result.stop_reason,
             "total_nodes": result.total_nodes,
             "contradictions": result.contradiction_count,
@@ -86,7 +87,7 @@ def evaluate_narrative_case(
             "hypotheses": hypotheses,
         },
         "wall_seconds_all_arms": round(time.time() - started, 4),
-        "n_axioms": len(axioms),
+        "n_axioms": len(result.axioms),
     }
     if scheduler is not None:
         output["model_telemetry"] = scheduler.delta(telemetry_before)

@@ -91,6 +91,10 @@ class RealComponents:
         """Create isolated mutable state for one benchmark case."""
         return self.resources.create_traversal(**kwargs)
 
+    def create_service(self, **kwargs):
+        """Create the shared investigation facade used by live benchmarks."""
+        return self.resources.create_service(**kwargs)
+
 
 def build_real_components(
     llm_timeout: int = 120,

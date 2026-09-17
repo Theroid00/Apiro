@@ -375,12 +375,17 @@ class Embedder:
         results = self._collection.query(**kwargs)
 
         output = []
-        for doc, meta, dist in zip(
+        result_ids = results.get("ids") or [[]]
+        ids = result_ids[0] or [
+            f"retrieved_{i}" for i in range(len(results["documents"][0]))
+        ]
+        for chunk_id, doc, meta, dist in zip(
+            ids,
             results["documents"][0],
             results["metadatas"][0],
             results["distances"][0],
         ):
-            entry = {"text": doc, "distance": dist}
+            entry = {"text": doc, "chunk_id": chunk_id, "distance": dist}
             entry.update(meta)
             output.append(entry)
 
