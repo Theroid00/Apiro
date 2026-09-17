@@ -1154,6 +1154,10 @@ def run_investigation(req: InvestigationRequest):
             "retrieval_count": result.retrieval_count,
             "reasoning_call_count": result.reasoning_call_count,
             "action_history": result.action_history,
+            "candidate_history": result.candidate_history,
+            "graph_context": result.graph_context,
+            "unresolved_questions": result.unresolved_questions,
+            "adjudication_count": result.adjudication_count,
             "model_telemetry": result.model_telemetry,
         }
 

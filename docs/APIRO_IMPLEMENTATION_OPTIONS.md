@@ -261,6 +261,16 @@ differential directly.
 
 ## Option B: Complete Apiro
 
+> **Implementation status:** available as `--mode investigator` on the
+> `codex/complete-apiro` branch. The implementation includes associative
+> general/similar-case recall, pattern-separated evidence selection, a
+> persisted typed concept graph with bounded Personalized PageRank,
+> graph-linked retrieval/reranking, persistent candidate branches,
+> trainable action-value weights, one bounded contradiction adjudication, and
+> explicit missing-information questions. All components retain the stopping
+> limits below; the mode falls back to a case-local graph and default policy
+> weights when optional offline artifacts have not been built.
+
 ### Goal
 
 Preserve the original "AI medical detective" behavior while replacing the

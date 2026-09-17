@@ -43,6 +43,8 @@ def print_report(result, elapsed: float) -> None:
         print(f"  Investigation rounds:   {result.rounds}")
         print(f"  Retrievals:             {result.retrieval_count}")
         print(f"  Reasoning calls:         {result.reasoning_call_count}")
+        if result.adjudication_count:
+            print(f"  Conflict adjudications: {result.adjudication_count}")
     if result.stop_reason:
         print(f"  Stop reason:            {result.stop_reason}")
 

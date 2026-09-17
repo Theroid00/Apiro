@@ -19,6 +19,12 @@ DATA_DIR   = ROOT_DIR / "data"
 CORPUS_DIR = DATA_DIR / "corpus"
 CHROMA_DIR = DATA_DIR / "chroma_db"
 LOG_DIR    = DATA_DIR / "logs"
+CONCEPT_GRAPH_PATH = Path(
+    os.environ.get("APIRO_CONCEPT_GRAPH_PATH", DATA_DIR / "concept_graph.json")
+)
+ACTION_POLICY_PATH = Path(
+    os.environ.get("APIRO_ACTION_POLICY_PATH", DATA_DIR / "action_policy.json")
+)
 
 # Paths are declarations only. Commands create the directories they write to;
 # importing ``apiro.config`` must be safe in a read-only installation.
@@ -61,6 +67,9 @@ INVESTIGATOR_MAX_MODEL_CALLS = int(
 )
 INVESTIGATOR_MAX_GRAPH_NODES = int(
     os.environ.get("APIRO_INVESTIGATOR_MAX_GRAPH_NODES", "50")
+)
+INVESTIGATOR_MAX_ADJUDICATIONS = int(
+    os.environ.get("APIRO_INVESTIGATOR_MAX_ADJUDICATIONS", "1")
 )
 
 # ---------------------------------------------------------------------------

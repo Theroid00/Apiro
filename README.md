@@ -477,6 +477,33 @@ the configured round, retrieval, model-call, graph-node, and prompt bounds.
 Use it for difficult-case experiments; `simple` remains the production
 default.
 
+The complete mode includes the bounded research components described in
+`docs/APIRO_IMPLEMENTATION_OPTIONS.md`:
+
+- associative general/similar-case retrieval with duplicate-pattern separation
+- a persisted typed medical concept graph with bounded Personalized PageRank
+- graph-linked query expansion and candidate reranking
+- persistent candidate branches with one-round backtracking
+- feature-weighted action values that can be trained from benchmark feedback
+- at most one high-impact model adjudication for an ambiguous contradiction
+- explicit missing-information questions in the audited result
+
+Build the optional offline graph from exported corpus JSON or JSONL records:
+
+```bash
+python scripts/build_concept_graph.py data/corpus/chunks.jsonl
+```
+
+Train the action policy from JSONL rows shaped as
+`{"features": {...}, "reward": 0_or_1}`:
+
+```bash
+python scripts/train_action_policy.py data/action_feedback.jsonl
+```
+
+Without those persisted files, investigator mode uses a case-local concept
+graph and conservative default action weights, so it remains operational.
+
 ---
 
 ## Repository Layout
@@ -497,9 +524,12 @@ Apiro/
 │   │   └── service.py           # Canonical mode-selecting investigation entry point
 │   ├── context.py               # Evidence-aware bounded-context selection with source spans
 │   ├── reasoning/
+│   │   ├── action_policy.py      # Trainable expected-value action selector
+│   │   ├── associative_memory.py # Pattern completion/separation retrieval
+│   │   ├── concept_graph.py      # Typed sparse graph and Personalized PageRank
+│   │   ├── investigator.py      # Bounded multi-round hypothesis investigator
 │   │   ├── models.py            # Shared result, hypothesis, and evidence contracts
-│   │   ├── simple.py            # One-retrieval, one-generation bounded reasoner
-│   │   └── investigator.py      # Bounded multi-round hypothesis investigator
+│   │   └── simple.py            # One-retrieval, one-generation bounded reasoner
 │   ├── entropy/engine.py        # Breadth (findings) + posterior uncertainty (hypotheses)
 │   ├── eval/
 │   │   ├── evaluator.py         # Concept-normalization match cascade

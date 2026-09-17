@@ -32,7 +32,7 @@ _JSON_OBJECT = re.compile(r"\{.*\}", re.DOTALL)
 _PROMPT = """You are ranking differential diagnoses for one patient.
 Use the clinical presentation, deterministic facts, and retrieved evidence below.
 Return strict JSON only, with this shape:
-{{"hypotheses":[{{"diagnosis":"name","confidence":0.0,"supporting_fact_ids":["ax_0"],"conflicting_fact_ids":[],"evidence_ids":["E1"]}}]}}
+{{"hypotheses":[{{"diagnosis":"name","confidence":0.0,"supporting_fact_ids":["ax_0"],"conflicting_fact_ids":[],"evidence_ids":["E1"]}}]{extra_schema}}}
 
 Rules:
 - Return at most {n_diagnoses} distinct diagnoses, most likely first.
@@ -295,7 +295,12 @@ class SimpleReasoner:
         return merged
 
     def _build_prompt(
-        self, narrative: str, seeds: list[Node], evidence: list[EvidenceChunk]
+        self,
+        narrative: str,
+        seeds: list[Node],
+        evidence: list[EvidenceChunk],
+        *,
+        include_missing_information: bool = False,
     ) -> str:
         facts_text = "\n".join(f"{seed.id}: {seed.claim}" for seed in seeds)
         evidence_text = "\n\n".join(
@@ -304,6 +309,10 @@ class SimpleReasoner:
         ) or "No sufficiently relevant corpus evidence was retrieved."
         return _PROMPT.format(
             n_diagnoses=self.n_diagnoses,
+            extra_schema=(
+                ',"missing_information":["one concise discriminating question"]'
+                if include_missing_information else ""
+            ),
             abstention_rule=(
                 'If evidence is insufficient, return {"hypotheses":[]}.'
                 if self.allow_abstention
