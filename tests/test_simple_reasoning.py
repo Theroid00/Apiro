@@ -194,9 +194,16 @@ def test_strong_result_stays_on_the_single_pass_fast_path():
 
 
 def test_runtime_exposes_canonical_service_with_explicit_mode():
+    response = json.dumps({"hypotheses": [{
+        "diagnosis": "Diagnosis A",
+        "confidence": 0.8,
+        "supporting_fact_ids": ["ax_0"],
+        "conflicting_fact_ids": [],
+        "evidence_ids": ["E1"],
+    }]})
     resources = RuntimeResources(
         embedder=_Embedder(),
-        llm_client=_LLM(""),
+        llm_client=_LLM(response),
         axiom_extractor=_Extractor(),
         doc_count=2,
         model="stub",
@@ -204,5 +211,8 @@ def test_runtime_exposes_canonical_service_with_explicit_mode():
     )
 
     service = resources.create_service(default_mode="simple")
+    result = service.investigate("Fever without cough")
 
     assert service.default_mode == "simple"
+    assert result.mode == "simple"
+    assert result.synthesis == ["Diagnosis A"]
