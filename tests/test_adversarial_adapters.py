@@ -15,7 +15,7 @@ def test_medeinst_selects_complete_pairs_only():
 def test_meddistract_filters_to_diagnosis_and_builds_clean_pair():
     distraction = "The patient's aunt takes metformin."
     rows = [
-        {"id": "d1", "question": f"A patient has episodic headaches. {distraction}",
+        {"id": "d1", "question": f"A patient has episodic headaches. {distraction} What is the most likely diagnosis?",
          "question_choices": {"A": "Pheochromocytoma", "B": "Migraine"},
          "correct_answer": "A", "distracting_sentence": distraction,
          "medical_competency": "Patient Care: Diagnosis"},
@@ -28,6 +28,23 @@ def test_meddistract_filters_to_diagnosis_and_builds_clean_pair():
     assert distraction not in pairs[0]["narrative"]
     assert distraction in pairs[1]["narrative"]
     assert pairs[0]["ground_truth"] == "Pheochromocytoma"
+
+
+def test_meddistract_rejects_non_diagnosis_questions_and_hashes_missing_ids():
+    rows = [
+        {"id": None, "question": "A patient has dyspnea. What is the most likely diagnosis?",
+         "question_choices": {"A": "Pulmonary embolism"}, "correct_answer": "A",
+         "distracting_sentence": "", "medical_competency": "Patient Care: Diagnosis"},
+        {"id": None, "question": "A patient has dyspnea. Which finding is expected?",
+         "question_choices": {"A": "Tricuspid regurgitation"}, "correct_answer": "A",
+         "distracting_sentence": "", "medical_competency": "Patient Care: Diagnosis"},
+    ]
+
+    pairs = diagnosis_pairs(rows, n=10, seed=7)
+
+    assert len(pairs) == 2
+    assert pairs[0]["case_id"] != "None"
+    assert pairs[0]["ground_truth"] == "Pulmonary embolism"
 
 
 def test_clean_question_removes_only_supplied_distraction():
