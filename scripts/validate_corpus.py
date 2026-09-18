@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+BATCH_SIZE = 1000
 
 
 def validate_records(ids, documents, metadatas) -> dict:
@@ -35,11 +36,24 @@ def validate_records(ids, documents, metadatas) -> dict:
     }
 
 
+def validate_collection(collection, batch_size: int = BATCH_SIZE) -> dict:
+    ids, documents, metadatas = [], [], []
+    for offset in range(0, collection.count(), batch_size):
+        batch = collection.get(
+            limit=batch_size,
+            offset=offset,
+            include=["documents", "metadatas"],
+        )
+        ids.extend(batch.get("ids", []))
+        documents.extend(batch.get("documents", []))
+        metadatas.extend(batch.get("metadatas", []))
+    return validate_records(ids, documents, metadatas)
+
+
 def main() -> int:
     from apiro.corpus.embedder import Embedder
     embedder = Embedder()
-    result = embedder._collection.get(include=["documents", "metadatas"])
-    report = validate_records(result.get("ids", []), result.get("documents", []), result.get("metadatas", []))
+    report = validate_collection(embedder._collection)
     print(json.dumps(report, indent=2))
     return 0 if report["valid"] else 1
 
