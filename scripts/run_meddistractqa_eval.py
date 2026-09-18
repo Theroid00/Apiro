@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import random
+import re
 import sys
 from pathlib import Path
 
@@ -18,7 +20,8 @@ from apiro.eval.live import evaluate_narrative_case
 from apiro.eval.manifest import build_manifest, create_run_directory
 
 DATASET = "KrithikV/MedDistractQA"
-REVISION = "main"
+REVISION = "4e57408a3a1113a350674088cdcd34c770d81a25"
+_DIAGNOSIS_QUESTION = re.compile(r"\bmost likely diagnosis\b", re.IGNORECASE)
 
 
 def clean_question(question: str, distraction: str) -> str:
@@ -27,16 +30,22 @@ def clean_question(question: str, distraction: str) -> str:
 
 
 def diagnosis_pairs(rows: list[dict], n: int, seed: int) -> list[dict]:
-    eligible = [r for r in rows if r.get("medical_competency") == "Patient Care: Diagnosis"]
+    eligible = [
+        row for row in rows
+        if row.get("medical_competency") == "Patient Care: Diagnosis"
+        and _DIAGNOSIS_QUESTION.search(str(row.get("question", "")))
+    ]
     random.Random(seed).shuffle(eligible)
     pairs = []
-    for index, row in enumerate(eligible[:min(n, len(eligible))]):
+    for row in eligible[:min(n, len(eligible))]:
         choices = row.get("question_choices") or {}
         answer = str(row.get("correct_answer", ""))
         if answer not in choices:
             raise ValueError(f"MedDistractQA row has invalid answer key {answer!r}")
         distraction = row.get("distracting_sentence", "")
-        case_id = str(row.get("id", index))
+        case_id = str(row.get("id") or hashlib.sha256(
+            row["question"].encode("utf-8")
+        ).hexdigest()[:12])
         common = {"case_id": case_id, "ground_truth": choices[answer], "choices": choices,
                   "distracting_sentence": distraction}
         pairs.extend([
@@ -75,7 +84,8 @@ def main(argv=None) -> int:
         benchmark="meddistractqa", dataset=DATASET, revision=REVISION,
         case_ids=[f"{r['case_id']}:{r['condition']}" for r in selected],
         config={"seed": args.seed, "n_pairs": len(selected)//2, "max_depth": args.max_depth,
-                "subset": "Patient Care: Diagnosis", "n_diagnoses": 3,
+                "subset": "Patient Care: Diagnosis; explicit most-likely-diagnosis question",
+                "n_diagnoses": 3,
                 "model": components.resources.model,
                 "decoding": {
                     "temperature": components.resources.llm_client.temperature,
