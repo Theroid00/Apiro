@@ -27,7 +27,7 @@ from apiro.config import (
     LOG_DIR,
 )
 from apiro.graph.belief_graph import BudgetExceededError
-from apiro.graph.critic import CriticEngine
+from apiro.legacy.critic import CriticEngine
 
 logger = logging.getLogger(__name__)
 

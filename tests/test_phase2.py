@@ -23,11 +23,11 @@ import pytest
 
 from apiro.graph.belief_graph import BeliefGraph
 from apiro.graph.node import Node
-from apiro.graph.expander import NodeExpander, StubEntropyEngine, StubChromaClient
-from apiro.graph.saturation import SaturationDetector
-from apiro.graph.rabbit_hole import RabbitHoleDetector
-from apiro.graph.traversal import ApiroTraversal
-from apiro.graph.stub_llm import StubLLMClient
+from apiro.legacy.expander import NodeExpander, StubEntropyEngine, StubChromaClient
+from apiro.legacy.saturation import SaturationDetector
+from apiro.legacy.rabbit_hole import RabbitHoleDetector
+from apiro.legacy.traversal import ApiroTraversal
+from apiro.legacy.stub_llm import StubLLMClient
 
 
 # ── Stub contradiction detector (no model download needed) ────────────────────

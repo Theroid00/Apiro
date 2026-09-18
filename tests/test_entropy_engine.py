@@ -18,7 +18,7 @@ mapping, not the old logprob-based signal these tests previously covered.
 from unittest.mock import patch
 import pytest
 
-from apiro.entropy.engine import EntropyEngine, _COUNT_TO_ENTROPY, _DEFAULT_HIGH
+from apiro.legacy.entropy import EntropyEngine, _COUNT_TO_ENTROPY, _DEFAULT_HIGH
 
 
 def make_engine() -> EntropyEngine:

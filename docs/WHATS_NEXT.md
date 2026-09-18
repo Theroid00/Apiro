@@ -6,6 +6,10 @@
 - `new/complete-apiro` provides the two-pass `investigator` evidence audit.
 - Both retain `legacy` for historical entropy-graph experiments.
 
+On `new/complete-apiro`, legacy code is isolated under `apiro/legacy/`; the
+shared `apiro/graph/` package contains only data structures reused by the
+current engines.
+
 Investigator is no longer a recursive graph or multi-round policy engine. It
 uses a patient fact ledger, candidate/evidence board, exact evidence-span
 verification, candidate-distribution entropy, a deterministic counterfactual

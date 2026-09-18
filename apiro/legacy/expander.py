@@ -130,7 +130,7 @@ class StubEntropyEngine:
     Deterministic fake entropy engine for testing.
 
     SWAP POINT — replace with the real engine adapter:
-        from apiro.entropy.engine import EntropyEngine
+        from apiro.legacy.entropy import EntropyEngine
 
         class RealEntropyAdapter:
             def __init__(self):

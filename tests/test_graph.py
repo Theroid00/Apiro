@@ -22,8 +22,8 @@ import pytest
 from apiro.graph.node import Node
 from apiro.graph.edge import Edge
 from apiro.graph.belief_graph import BeliefGraph
-from apiro.graph.saturation import SaturationDetector
-from apiro.graph.rabbit_hole import RabbitHoleDetector
+from apiro.legacy.saturation import SaturationDetector
+from apiro.legacy.rabbit_hole import RabbitHoleDetector
 
 
 # ============================================================

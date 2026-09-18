@@ -47,7 +47,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from apiro.graph.belief_graph import BeliefGraph
 from apiro.graph.node import Node
-from apiro.graph.traversal import ApiroTraversal
+from apiro.legacy.traversal import ApiroTraversal
 from apiro.axioms.extractor import AxiomExtractor
 from apiro.config import N_DIFFERENTIAL, SATURATION_EXPLORATION_ONLY
 from apiro.parsing import ABSTENTION_SENTINEL, detect_abstention, parse_differential
@@ -218,9 +218,9 @@ def _build_real_components():
 # Mock/stub component wiring
 # --------------------------------------------------------------------------- #
 def _build_stub_components():
-    from apiro.graph.expander import NodeExpander, StubEntropyEngine, StubChromaClient
-    from apiro.graph.saturation import SaturationDetector
-    from apiro.graph.rabbit_hole import RabbitHoleDetector
+    from apiro.legacy.expander import NodeExpander, StubEntropyEngine, StubChromaClient
+    from apiro.legacy.saturation import SaturationDetector
+    from apiro.legacy.rabbit_hole import RabbitHoleDetector
 
     class StubContradictionDetector:
         """

@@ -16,6 +16,10 @@ It is not clinical decision-support software.
 `investigator` is available on `new/complete-apiro`. The efficient branch
 `new/simplified-apiro` provides `simple` and `legacy`.
 
+Legacy implementation files are isolated under [`apiro/legacy/`](apiro/legacy/)
+for reproducible ablations; shared graph data types remain under
+`apiro/graph/`.
+
 ## Setup
 
 Requires Python 3.11+, a local Ollama installation, and a built ChromaDB

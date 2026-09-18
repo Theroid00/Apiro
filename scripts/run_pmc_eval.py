@@ -41,7 +41,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from apiro.graph.belief_graph import BeliefGraph
 from apiro.graph.node import Node
-from apiro.graph.traversal import ApiroTraversal
+from apiro.legacy.traversal import ApiroTraversal
 from apiro.axioms.extractor import AxiomExtractor
 from apiro.config import N_DIFFERENTIAL, SATURATION_EXPLORATION_ONLY
 from apiro.parsing import parse_differential
@@ -105,9 +105,9 @@ def run_evaluation(real_components: bool, limit: int | None = None, out_path: st
         traversal = None
     else:
         # Import stub components
-        from apiro.graph.expander import NodeExpander, StubEntropyEngine, StubChromaClient
-        from apiro.graph.saturation import SaturationDetector
-        from apiro.graph.rabbit_hole import RabbitHoleDetector
+        from apiro.legacy.expander import NodeExpander, StubEntropyEngine, StubChromaClient
+        from apiro.legacy.saturation import SaturationDetector
+        from apiro.legacy.rabbit_hole import RabbitHoleDetector
         
         # Stub Contradiction Detector simulating soft-pruning on specific distractor pairs
         class StubContradictionDetector:

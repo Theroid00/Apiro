@@ -13,6 +13,10 @@ Apiro is an evaluation-ready research prototype with three modes:
   counterfactual revision;
 - `legacy`: original entropy-guided runtime graph traversal.
 
+The legacy implementation is physically isolated in `apiro/legacy/`. The
+`apiro/graph/` package now contains only shared graph data structures used by
+the current engines.
+
 The new Complete architecture is implemented and tested. The research claim is
 not validated: no powered held-out result shows that Investigator outperforms
 Standard RAG, Bare LLM, or Simple Apiro.

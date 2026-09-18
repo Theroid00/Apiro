@@ -55,12 +55,12 @@ class RuntimeResources:
     ):
         """Return a traversal whose callbacks, logs and detectors are run-local."""
         from apiro.config import N_DIFFERENTIAL, SATURATION_EXPLORATION_ONLY
-        from apiro.entropy.engine import EntropyEngine
+        from apiro.legacy.entropy import EntropyEngine
         from apiro.graph.contradiction import ContradictionDetector
-        from apiro.graph.expander import NodeExpander
-        from apiro.graph.rabbit_hole import RabbitHoleDetector
-        from apiro.graph.saturation import SaturationDetector
-        from apiro.graph.traversal import ApiroTraversal
+        from apiro.legacy.expander import NodeExpander
+        from apiro.legacy.rabbit_hole import RabbitHoleDetector
+        from apiro.legacy.saturation import SaturationDetector
+        from apiro.legacy.traversal import ApiroTraversal
 
         contradiction = ContradictionDetector(
             model=self.model,

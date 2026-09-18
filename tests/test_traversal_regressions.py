@@ -13,7 +13,7 @@ import pytest
 
 from apiro.graph.belief_graph import BeliefGraph
 from apiro.graph.node import Node
-from apiro.graph.saturation import SaturationDetector
+from apiro.legacy.saturation import SaturationDetector
 
 
 def _seeded_graph(n_seeds: int = 8, entropy: float = 0.01) -> BeliefGraph:
@@ -130,7 +130,7 @@ def _graph_for_synthesis() -> BeliefGraph:
 
 
 def _expander(llm):
-    from apiro.graph.expander import NodeExpander, StubEntropyEngine, StubChromaClient
+    from apiro.legacy.expander import NodeExpander, StubEntropyEngine, StubChromaClient
     return NodeExpander(entropy_engine=StubEntropyEngine(),
                         chroma_client=StubChromaClient(), llm_client=llm)
 
@@ -188,7 +188,7 @@ class TestAbstentionIsOptIn:
         assert "INSUFFICIENT EVIDENCE" not in llm.prompts[0]
 
     def test_the_option_appears_when_opted_in(self):
-        from apiro.graph.expander import NodeExpander, StubEntropyEngine, StubChromaClient
+        from apiro.legacy.expander import NodeExpander, StubEntropyEngine, StubChromaClient
         llm = _RecordingLLM()
         NodeExpander(entropy_engine=StubEntropyEngine(), chroma_client=StubChromaClient(),
                      llm_client=llm, allow_abstention=True
@@ -196,7 +196,7 @@ class TestAbstentionIsOptIn:
         assert "INSUFFICIENT EVIDENCE" in llm.prompts[0]
 
     def test_an_unprompted_refusal_is_retried_not_honoured(self):
-        from apiro.graph.expander import NodeExpander, StubEntropyEngine, StubChromaClient
+        from apiro.legacy.expander import NodeExpander, StubEntropyEngine, StubChromaClient
 
         class _RefuseThenAnswer:
             def __init__(self):
@@ -216,7 +216,7 @@ class TestAbstentionIsOptIn:
         assert llm.n == 2                      # refused, then re-prompted
 
     def test_an_opted_in_refusal_is_honoured_without_badgering(self):
-        from apiro.graph.expander import NodeExpander, StubEntropyEngine, StubChromaClient
+        from apiro.legacy.expander import NodeExpander, StubEntropyEngine, StubChromaClient
         from apiro.parsing import ABSTENTION_SENTINEL
 
         class _AlwaysRefuse:
@@ -310,7 +310,7 @@ class TestContradictionGuardrail:
 
 class TestRabbitHoleLocality:
     def _detector(self):
-        from apiro.graph.rabbit_hole import RabbitHoleDetector
+        from apiro.legacy.rabbit_hole import RabbitHoleDetector
         return RabbitHoleDetector(min_depth=3, reversal_window=4)
 
     def _chain(self, entropies: list[float]) -> tuple[BeliefGraph, Node]:
@@ -546,7 +546,7 @@ class _DistanceChroma:
 
 class TestRetrieval:
     def _expander(self, chroma):
-        from apiro.graph.expander import NodeExpander, StubEntropyEngine
+        from apiro.legacy.expander import NodeExpander, StubEntropyEngine
         return NodeExpander(entropy_engine=StubEntropyEngine(),
                             chroma_client=chroma, llm_client=_RecordingLLM())
 
