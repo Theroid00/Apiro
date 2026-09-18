@@ -1,8 +1,42 @@
-from apiro.eval.adversarial import score_meddistract, score_medeinst
+from apiro.eval.adversarial import (
+    false_confidence_rate,
+    score_meddistract,
+    score_medeinst,
+)
 
 
 def match(a, b):
     return bool(a and b and a.lower() == b.lower())
+
+
+def test_false_confidence_counts_wrong_high_confidence_top1_only():
+    records = [
+        {
+            "ground_truth": "B",
+            "predictions": {"apiro": ["A"]},
+            "traversal": {"hypotheses": [{"claim": "A", "confidence": 0.8}]},
+        },
+        {
+            "ground_truth": "A",
+            "predictions": {"apiro": ["A"]},
+            "traversal": {"hypotheses": [{"claim": "A", "confidence": 0.9}]},
+        },
+    ]
+    result = false_confidence_rate(records, match, arms=("apiro",))["apiro"]
+    assert result["scored_cases"] == 2
+    assert result["confident_wrong_top1_cases"] == 1
+    assert result["false_confidence_rate"] == 0.5
+
+
+def test_false_confidence_reports_missing_baseline_confidence_as_unscored():
+    records = [{
+        "ground_truth": "B",
+        "predictions": {"rag": ["A"]},
+        "traversal": {"hypotheses": [{"claim": "A", "confidence": 0.9}]},
+    }]
+    result = false_confidence_rate(records, match, arms=("rag",))["rag"]
+    assert result["scored_cases"] == 0
+    assert result["false_confidence_rate"] is None
 
 
 def test_medeinst_counts_rank1_control_diagnosis_retention_as_bias_trap():

@@ -75,6 +75,13 @@ and inference time. The scheduler limit is recorded with those counters and can
 be set with `APIRO_MAX_MODEL_CONCURRENCY` (default `2`). Ollama token counts are
 used directly; they are not estimated from text length.
 
+Saved MedEinst and MedDistractQA results also include `false_confidence`. It
+counts wrong Apiro top-1 diagnoses whose matched hypothesis confidence is at
+least `0.70`; baseline arms report unavailable because they do not expose a
+comparable confidence signal. Both runners support
+`--rescore-results <results.json>` to add or refresh this metric without model
+calls.
+
 **Do the `--quick` run first on a new machine.** It exercises every stage at a
 tiny N, so a broken Ollama, an empty corpus or a failed download surfaces in
 minutes instead of after a multi-hour run. Its numbers are meaningless — the

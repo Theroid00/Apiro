@@ -70,10 +70,26 @@ def main(argv=None) -> int:
     parser.add_argument("--max-depth", type=int, default=6)
     parser.add_argument("--dataset-json", type=Path)
     parser.add_argument("--runs-dir", type=Path, default=ROOT / "data" / "runs")
+    parser.add_argument(
+        "--rescore-results",
+        type=Path,
+        help="Recompute metrics from a saved results.json without model calls.",
+    )
     parser.add_argument("--describe-only", action="store_true")
     args = parser.parse_args(argv)
     if args.n < 1:
         parser.error("--n must be positive")
+    if args.rescore_results is not None:
+        prior = json.loads(args.rescore_results.read_text(encoding="utf-8"))
+        records = prior.get("case_results")
+        if not isinstance(records, list):
+            parser.error("--rescore-results must contain a case_results list")
+        prior["scores"] = score_meddistract(records, make_matcher())
+        args.rescore_results.write_text(
+            json.dumps(prior, indent=2) + "\n", encoding="utf-8"
+        )
+        print(f"Rescored {args.rescore_results}")
+        return 0
     selected = diagnosis_pairs(load_rows(args.dataset_json), args.n, args.seed)
     if args.describe_only:
         print(f"MedDistractQA: {len(selected)//2} diagnosis-only clean/distracted pairs")

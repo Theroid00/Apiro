@@ -8,6 +8,59 @@ from apiro.eval.metrics import distractor_robustness, first_hit_rank, wilson_int
 
 
 ARMS = ("apiro", "rag", "bare_llm")
+FALSE_CONFIDENCE_THRESHOLD = 0.70
+
+
+def false_confidence_rate(
+    records: list[dict], matcher, arms=ARMS, *, threshold: float = FALSE_CONFIDENCE_THRESHOLD
+) -> dict:
+    """Measure wrong top-1 answers carrying a high reported confidence.
+
+    The denominator is cases with a recoverable top-1 Apiro confidence. RAG
+    and bare-LLM arms normally do not expose confidence, so they report zero
+    scored cases rather than treating missing confidence as low confidence.
+    """
+    output = {}
+    for arm in arms:
+        if arm != "apiro":
+            output[arm] = {
+                "threshold": threshold,
+                "scored_cases": 0,
+                "wrong_top1_cases": 0,
+                "confident_wrong_top1_cases": 0,
+                "false_confidence_rate": None,
+                "false_confidence_rate_on_errors": None,
+            }
+            continue
+        scored = errors = confident_errors = 0
+        for record in records:
+            predictions = record.get("predictions", {}).get(arm) or []
+            if not predictions:
+                continue
+            hypotheses = record.get("traversal", {}).get("hypotheses", [])
+            confidence = None
+            for hypothesis in hypotheses:
+                claim = str(hypothesis.get("claim") or "")
+                if claim and matcher(predictions[0], claim):
+                    value = hypothesis.get("confidence")
+                    if value is not None:
+                        confidence = float(value)
+                    break
+            if confidence is None:
+                continue
+            scored += 1
+            if not matcher(predictions[0], record.get("ground_truth", "")):
+                errors += 1
+                confident_errors += int(confidence >= threshold)
+        output[arm] = {
+            "threshold": threshold,
+            "scored_cases": scored,
+            "wrong_top1_cases": errors,
+            "confident_wrong_top1_cases": confident_errors,
+            "false_confidence_rate": confident_errors / scored if scored else None,
+            "false_confidence_rate_on_errors": confident_errors / errors if errors else None,
+        }
+    return output
 
 
 def score_medeinst(records: list[dict], matcher, arms=ARMS) -> dict:
@@ -24,6 +77,7 @@ def score_medeinst(records: list[dict], matcher, arms=ARMS) -> dict:
     pairs = [(v["control"], v["trap"]) for v in grouped.values() if {"control", "trap"} <= v.keys()]
 
     output = {}
+    confidence = false_confidence_rate(records, matcher, arms)
     for arm in arms:
         control_correct, trap_correct, retained = [], [], []
         control_top3, trap_top3 = [], []
@@ -73,6 +127,7 @@ def score_medeinst(records: list[dict], matcher, arms=ARMS) -> dict:
             "top3_trap_accuracy": sum(trap_top3) / len(pairs) if pairs else 0.0,
             "top3_pair_resilience": both_top3 / len(pairs) if pairs else 0.0,
             "rank_transitions": rank_changes,
+            "false_confidence": confidence[arm],
         }
     return output
 
@@ -84,6 +139,7 @@ def score_meddistract(records: list[dict], matcher, arms=ARMS) -> dict:
         grouped[str(record["case_id"])][record["condition"]] = record
     pairs = [(v["clean"], v["distracted"]) for v in grouped.values() if {"clean", "distracted"} <= v.keys()]
     output = {}
+    confidence = false_confidence_rate(records, matcher, arms)
     for arm in arms:
         clean, distracted, top1_clean, top1_distracted, flips = [], [], [], [], 0
         for base, noisy in pairs:
@@ -103,5 +159,6 @@ def score_meddistract(records: list[dict], matcher, arms=ARMS) -> dict:
         metrics["top1_degradation"] = top1_metrics["degradation"]
         metrics["top1_retention"] = top1_metrics["retention"]
         metrics["top1_flip_rate"] = flips / len(pairs) if pairs else 0.0
+        metrics["false_confidence"] = confidence[arm]
         output[arm] = metrics
     return output

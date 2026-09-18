@@ -55,16 +55,19 @@ The public `RuntimeResources -> InvestigationService -> reasoner` pipeline was
 run from clean commit `ab47b5c` with `llama3.1:8b`, seed 7, fixed decoding, and
 the validated corpus. The sample is still too small for a superiority claim.
 
-| Benchmark and mode | First condition@1 | Distracted/trap@1 | Pair measure | Mean Apiro time | Calls | Fallbacks |
-|---|---:|---:|---:|---:|---:|---:|
-| MedEinst Investigator | 40% | 0% | 0% pair resilience | 29.6 s | 20 | 4 |
-| MedEinst Simple | 20% | 0% | 0% pair resilience | 6.7 s | 13 | 0 |
-| MedDistractQA Investigator | 40% | 60% | 100% retention | 30.1 s | 19 | 2 |
-| MedDistractQA Simple | 40% | 40% | 100% retention | 6.7 s | 13 | 0 |
+| Benchmark and mode | First condition@1 | Distracted/trap@1 | Pair measure | False-confidence@1 (≥0.70) | Mean time | Calls | Fallbacks |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| MedEinst Investigator | 40% | 0% | 0% pair resilience | 0% (0/10) | 29.6 s | 20 | 4 |
+| MedEinst Simple | 20% | 0% | 0% pair resilience | 20% (2/10) | 6.7 s | 13 | 0 |
+| MedDistractQA Investigator | 40% | 60% | 100% retention | 10% (1/10) | 30.1 s | 19 | 2 |
+| MedDistractQA Simple | 40% | 40% | 100% retention | 20% (2/10) | 6.7 s | 13 | 0 |
 
 Investigator gained one top-1 result on each five-pair sample, but did not
 improve either paired robustness measure. It cost about 4.5 times as much per
-case and was the only new engine to require structured-output fallbacks.
+case and was the only new engine to require structured-output fallbacks. The
+false-confidence rate counts wrong top-1 Apiro diagnoses whose matched
+hypothesis confidence was at least 0.70; baseline arms do not expose a
+comparable confidence signal.
 
 A completed Legacy MedEinst run reached 40% control, 20% trap, and 20% pair
 resilience at a mean 131 seconds per Apiro case while expanding 33--82 nodes.

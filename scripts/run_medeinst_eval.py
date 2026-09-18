@@ -102,6 +102,8 @@ def main(argv=None) -> int:
         if not isinstance(records, list):
             parser.error("--rescore-results must contain a case_results list")
         scores = score_medeinst(records, make_matcher())
+        prior["scores"] = scores
+        args.rescore_results.write_text(json.dumps(prior, indent=2) + "\n", encoding="utf-8")
         n_pairs = len({str(row["case_id"]) for row in records})
         print_summary(scores, n_pairs, source=args.rescore_results)
         return 0
