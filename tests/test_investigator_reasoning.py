@@ -42,11 +42,16 @@ class _LLM:
     def __init__(self, responses):
         self.responses = list(responses)
         self.prompts = []
+        self.structured_calls = 0
 
     def chat(self, prompt):
         self.prompts.append(prompt)
         index = min(len(self.prompts) - 1, len(self.responses) - 1)
         return self.responses[index]
+
+    def generate_json(self, prompt):
+        self.structured_calls += 1
+        return self.chat(prompt)
 
 
 class _Detector:
@@ -119,6 +124,7 @@ def test_investigator_stops_early_when_initial_result_is_adequate():
     assert result.synthesis == ["Pulmonary embolism", "Pneumonia"]
     assert len(embedder.calls) == 2
     assert len(llm.prompts) == 1
+    assert llm.structured_calls == 1
     assert result.rounds == 1
     assert result.action_history == []
 

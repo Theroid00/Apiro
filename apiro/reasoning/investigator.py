@@ -239,7 +239,7 @@ class InvestigatorReasoner(SimpleReasoner):
         })
 
         stage = time.monotonic()
-        raw_output = self.llm_client.chat(
+        raw_output = self._generate_json(
             _INITIAL_PREFIX + self._build_prompt(
                 selected.text,
                 facts,
@@ -305,7 +305,7 @@ class InvestigatorReasoner(SimpleReasoner):
                 state.evidence,
                 include_missing_information=True,
             )
-            raw_output = self.llm_client.chat(revision_prompt)
+            raw_output = self._generate_json(revision_prompt)
             state.reasoning_call_count += 1
             state.rounds += 1
             proposed = self._constrain_and_rank(
