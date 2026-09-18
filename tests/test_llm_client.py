@@ -17,10 +17,10 @@ def test_json_generation_pins_seed_and_requests_json(monkeypatch):
 
     monkeypatch.setattr("apiro.llm_client.requests.post", post)
     client = OllamaLLMClient(
-        "http://ollama", "model", seed=19, json_num_predict=384
+        "http://ollama", "model", seed=19, json_num_predict=768
     )
 
     assert client.generate_json("prompt") == '{"hypotheses":[]}'
     assert captured["payload"]["format"] == "json"
     assert captured["payload"]["options"]["seed"] == 19
-    assert captured["payload"]["options"]["num_predict"] == 384
+    assert captured["payload"]["options"]["num_predict"] == 768

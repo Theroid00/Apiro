@@ -34,7 +34,7 @@ class OllamaLLMClient:
         temperature: float = 0.2,
         seed: int = 7,
         num_predict: int = 180,
-        json_num_predict: int = 384,
+        json_num_predict: int = 768,
         timeout: int = 90,
         scheduler=None,
     ):
