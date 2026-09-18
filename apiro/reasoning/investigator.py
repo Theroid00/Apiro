@@ -1,4 +1,4 @@
-"""Bounded multi-round clinical investigation with explicit resource budgets."""
+"""Bounded evidence audit for distractor-resistant differential diagnosis."""
 
 from __future__ import annotations
 
@@ -7,14 +7,10 @@ import math
 import re
 import time
 from dataclasses import dataclass, field, replace
-from pathlib import Path
 from typing import Callable
 
 from apiro.axioms.seeding import axioms_to_seed_nodes
 from apiro.config import (
-    ACTION_POLICY_PATH,
-    CONCEPT_GRAPH_PATH,
-    INVESTIGATOR_MAX_ADJUDICATIONS,
     INVESTIGATOR_MAX_CANDIDATES,
     INVESTIGATOR_MAX_FACTS,
     INVESTIGATOR_MAX_GRAPH_NODES,
@@ -27,15 +23,12 @@ from apiro.graph.belief_graph import BeliefGraph
 from apiro.graph.node import Node
 
 from .models import DiagnosticHypothesis, EvidenceChunk, InvestigationResult
-from .action_policy import ActionValuePolicy
-from .associative_memory import AssociativeMemory
-from .concept_graph import MedicalConceptGraph
 from .simple import SimpleReasoner
 
 
 @dataclass(frozen=True)
 class InvestigationAction:
-    """One auditable action selected by the bounded controller."""
+    """The single contrastive investigation allowed by the controller."""
 
     kind: str
     target: str
@@ -45,45 +38,8 @@ class InvestigationAction:
 
 
 @dataclass
-class CandidateBranch:
-    """Persistent candidate state supporting revision and backtracking."""
-
-    diagnosis: str
-    current: DiagnosticHypothesis
-    best_score: float
-    misses: int = 0
-    history: list[dict] = field(default_factory=list)
-
-    def observe(self, candidate: DiagnosticHypothesis, round_number: int) -> None:
-        self.current = candidate
-        self.best_score = max(self.best_score, candidate.score)
-        self.misses = 0
-        self.history.append({
-            "round": round_number,
-            "score": candidate.score,
-            "confidence": candidate.confidence,
-            "conflicts": list(candidate.conflicting_fact_ids),
-            "status": "active",
-        })
-
-    def decay(self, round_number: int) -> None:
-        self.misses += 1
-        self.current = replace(
-            self.current,
-            confidence=round(self.current.confidence * 0.9, 6),
-            score=round(self.current.score - 0.08, 6),
-        )
-        self.history.append({
-            "round": round_number,
-            "score": self.current.score,
-            "confidence": self.current.confidence,
-            "status": "held_for_backtracking" if self.misses == 1 else "inactive",
-        })
-
-
-@dataclass
 class CaseState:
-    """Compact working memory for one investigator-mode run."""
+    """Small auditable state for one case."""
 
     narrative: str
     facts: list[Node]
@@ -91,41 +47,49 @@ class CaseState:
     candidates: list[DiagnosticHypothesis] = field(default_factory=list)
     unresolved_questions: list[str] = field(default_factory=list)
     action_history: list[InvestigationAction] = field(default_factory=list)
-    branches: dict[str, CandidateBranch] = field(default_factory=dict)
-    graph_context: list[str] = field(default_factory=list)
+    candidate_history: dict[str, list[dict]] = field(default_factory=dict)
     rounds: int = 0
     retrieval_count: int = 0
     reasoning_call_count: int = 0
-    adjudication_count: int = 0
 
 
-_INITIAL_PREFIX = """Generate a diverse candidate set before ranking it.
-Keep rare but plausible diagnoses when patient-specific findings support them.
-Compare candidates against negated findings and retrieved evidence.
-The root JSON object must also contain "missing_information", an array of at
-most two concise patient facts that would best distinguish the candidates.
+_JSON_OBJECT = re.compile(r"\{.*\}", re.DOTALL)
+
+_INITIAL_PREFIX = """You are an evidence-auditing medical investigator.
+The raw narrative may contain irrelevant or misleading details. Patient facts
+and general medical knowledge are separate ledgers: only IDs in the patient
+fact ledger describe this patient, while retrieved passages describe medicine
+in general. An uncited detail must not affect the ranking.
+
+Generate competing diagnoses, then test each against affirmed and negated
+patient facts. For every cited evidence ID, include a short exact quote in
+"evidence_spans" using this shape:
+[{"evidence_id":"E1","quote":"exact words from the passage"}]
+The root object must also include "missing_information", containing at most two
+patient-specific questions. Never assume or retrieve an answer to those
+questions.
 
 """
 
-_REVISION_PREFIX = """You are revising a bounded differential after one targeted investigation.
-Use the new evidence to compare the candidates. You may add, remove, or reorder
-diagnoses. Do not preserve the old leader merely for consistency.
-The root JSON object must also contain "missing_information", an array of at
-most two concise patient facts that would best distinguish the candidates.
+_REVISION_PREFIX = """Perform one counterfactual evidence audit of the prior differential.
+The raw narrative may contain plausible distractors. Temporarily treat the
+identified high-impact fact as non-discriminating and compare the two leading
+diagnoses using the complete patient fact ledger and the newly retrieved
+medical knowledge. Restore the prior leader only when independent patient fact
+IDs support it. General medical knowledge cannot establish a missing patient
+fact. Return the same strict JSON schema, including exact evidence_spans and at
+most two missing_information questions.
 
-Controller action: {kind}
-Target: {target}
-Reason: {reason}
-Prior candidates:
+High-impact fact: {fact}
+Audit reason: {reason}
+Prior candidate board:
 {candidates}
 
 """
 
-_JSON_OBJECT = re.compile(r"\{.*\}", re.DOTALL)
-
 
 class InvestigatorReasoner(SimpleReasoner):
-    """Investigate competing diagnoses without unbounded graph expansion."""
+    """Rank a differential, audit its evidence use, and revise at most once."""
 
     def __init__(
         self,
@@ -142,25 +106,13 @@ class InvestigatorReasoner(SimpleReasoner):
         max_retrievals: int = INVESTIGATOR_MAX_RETRIEVALS,
         max_model_calls: int = INVESTIGATOR_MAX_MODEL_CALLS,
         max_graph_nodes: int = INVESTIGATOR_MAX_GRAPH_NODES,
-        max_adjudications: int = INVESTIGATOR_MAX_ADJUDICATIONS,
-        concept_graph: MedicalConceptGraph | None = None,
-        concept_graph_path: Path = CONCEPT_GRAPH_PATH,
-        action_policy: ActionValuePolicy | None = None,
-        action_policy_path: Path = ACTION_POLICY_PATH,
     ):
         self.output_diagnoses = max(1, int(n_diagnoses))
         self.max_candidates = max(self.output_diagnoses, int(max_candidates))
-        self.max_rounds = max(1, int(max_rounds))
-        self.max_retrievals = max(1, int(max_retrievals))
-        self.max_model_calls = max(1, int(max_model_calls))
+        self.max_rounds = min(2, max(1, int(max_rounds)))
+        self.max_retrievals = min(2, max(1, int(max_retrievals)))
+        self.max_model_calls = min(2, max(1, int(max_model_calls)))
         self.max_graph_nodes = max(self.max_candidates + 1, int(max_graph_nodes))
-        self.max_adjudications = max(0, int(max_adjudications))
-        self.concept_graph = concept_graph or self._load_concept_graph(
-            concept_graph_path
-        )
-        self.action_policy = action_policy or ActionValuePolicy.load(
-            action_policy_path
-        )
         super().__init__(
             embedder=embedder,
             llm_client=llm_client,
@@ -207,7 +159,7 @@ class InvestigatorReasoner(SimpleReasoner):
                 "entropy": fact.entropy_score,
                 "depth": 0,
             })
-        timings["extraction"] = time.monotonic() - stage
+        timings["fact_ledger"] = time.monotonic() - stage
 
         selected = select_clinical_context(
             narrative, max_characters=self.max_context_characters
@@ -215,22 +167,8 @@ class InvestigatorReasoner(SimpleReasoner):
         state = CaseState(narrative=selected.text, facts=facts)
 
         stage = time.monotonic()
-        memory = AssociativeMemory(
-            lambda query, limit: self._retrieve(
-                query, facts, n_results=limit
-            ),
-            self.concept_graph,
-        )
-        recalled = memory.recall(
-            selected.text,
-            [fact.claim for fact in facts],
-            max_results=self.rag_top_k,
-            max_calls=min(2, self.max_retrievals),
-        )
-        state.evidence = recalled.evidence
-        state.retrieval_count = recalled.retrieval_count
-        state.graph_context = list(recalled.graph_context)
-        self._ingest_runtime_evidence(state.evidence)
+        state.evidence = self._retrieve(selected.text, facts)
+        state.retrieval_count = 1
         timings["initial_retrieval"] = time.monotonic() - stage
         self._emit(on_event, {
             "event": "retrieval_complete",
@@ -245,91 +183,79 @@ class InvestigatorReasoner(SimpleReasoner):
                 facts,
                 state.evidence,
                 include_missing_information=True,
+                include_evidence_spans=True,
             )
         )
         state.reasoning_call_count = 1
         state.rounds = 1
-        proposed = self._constrain_and_rank(
-            self._parse_hypotheses(raw_output, facts, state.evidence), facts
+        state.candidates = self._rank_candidate_board(
+            self._parse_audited_hypotheses(raw_output, facts, state.evidence),
+            facts,
+            state.evidence,
         )
-        self._update_candidates(state, proposed)
+        self._record_candidates(state)
         self._add_missing_questions(state, raw_output)
-        self._adjudicate_high_impact_conflict(state)
-        timings["initial_reasoning"] = time.monotonic() - stage
+        initial_audit = self._audit(state.candidates, facts, state.evidence)
+        timings["initial_reasoning_and_audit"] = time.monotonic() - stage
 
-        stop_reason = "bounded_adequate"
-        while not self._is_adequate(state):
-            budget_reason = self._budget_stop_reason(state)
-            if budget_reason is not None:
+        stop_reason = "evidence_audit_passed"
+        if initial_audit["needs_revision"]:
+            budget_reason = self._revision_budget_reason(state)
+            if budget_reason:
                 stop_reason = budget_reason
-                break
-
-            action = self._choose_action(state)
-            state.action_history.append(action)
-            self._emit(on_event, {
-                "event": "investigation_action",
-                "round": state.rounds + 1,
-                "kind": action.kind,
-                "target": action.target,
-                "value": action.value,
-                "reason": action.reason,
-            })
-
-            graph_terms = [
-                label for label, _score in self.concept_graph.related_concepts(
-                    action.query, limit=5
+            else:
+                action = self._contrastive_action(state, initial_audit)
+                state.action_history.append(action)
+                self._emit(on_event, {
+                    "event": "investigation_action",
+                    "round": 2,
+                    "kind": action.kind,
+                    "target": action.target,
+                    "value": action.value,
+                    "reason": action.reason,
+                })
+                stage = time.monotonic()
+                extra = self._retrieve(
+                    action.query, facts, n_results=min(4, self.rag_top_k)
                 )
-            ]
-            expanded_query = action.query
-            if graph_terms:
-                expanded_query += ". Graph-linked concepts: " + ", ".join(graph_terms)
-            extra = self._retrieve(
-                expanded_query, facts, n_results=min(4, self.rag_top_k)
-            )
-            state.retrieval_count += 1
-            state.evidence = self._merge_evidence(state.evidence, extra)
-            self._ingest_runtime_evidence(extra)
+                state.retrieval_count += 1
+                state.evidence = self._merge_evidence(state.evidence, extra)
+                raw_output = self._generate_json(
+                    _REVISION_PREFIX.format(
+                        fact=initial_audit.get("influential_fact_id") or "none identified",
+                        reason="; ".join(initial_audit["reasons"]),
+                        candidates=self._format_candidate_board(state.candidates),
+                    )
+                    + self._build_prompt(
+                        selected.text,
+                        facts,
+                        state.evidence,
+                        include_missing_information=True,
+                        include_evidence_spans=True,
+                    )
+                )
+                state.reasoning_call_count += 1
+                state.rounds += 1
+                state.candidates = self._rank_candidate_board(
+                    self._parse_audited_hypotheses(
+                        raw_output, facts, state.evidence
+                    ),
+                    facts,
+                    state.evidence,
+                )
+                self._record_candidates(state)
+                self._add_missing_questions(state, raw_output)
+                timings["contrastive_revision"] = time.monotonic() - stage
+                stop_reason = "counterfactual_revision_complete"
 
-            revision_prompt = _REVISION_PREFIX.format(
-                kind=action.kind,
-                target=action.target,
-                reason=action.reason,
-                candidates="\n".join(
-                    f"- {item.diagnosis}: confidence={item.confidence:.2f}, "
-                    f"score={item.score:.2f}"
-                    for item in state.candidates
-                ) or "No usable candidates.",
-            ) + self._build_prompt(
-                selected.text,
-                facts,
-                state.evidence,
-                include_missing_information=True,
-            )
-            raw_output = self._generate_json(revision_prompt)
-            state.reasoning_call_count += 1
-            state.rounds += 1
-            proposed = self._constrain_and_rank(
-                self._parse_hypotheses(raw_output, facts, state.evidence), facts
-            )
-            self._update_candidates(state, proposed)
-            self._add_missing_questions(state, raw_output)
-            self._adjudicate_high_impact_conflict(state)
-            self._emit(on_event, {
-                "event": "investigation_round_complete",
-                "round": state.rounds,
-                "candidate_count": len(state.candidates),
-                "evidence_count": len(state.evidence),
-            })
-        else:
-            stop_reason = "bounded_adequate"
-
+        final_audit = self._audit(state.candidates, facts, state.evidence)
         if not state.candidates and self.allow_abstention:
             stop_reason = "bounded_abstained"
 
         final_candidates = state.candidates[: self.output_diagnoses]
         stage = time.monotonic()
         self._add_hypotheses(graph, final_candidates, facts, on_event)
-        timings["graph_and_validation"] = time.monotonic() - stage
+        timings["provenance_graph"] = time.monotonic() - stage
         duration = time.monotonic() - started
         timings["total"] = duration
 
@@ -355,12 +281,8 @@ class InvestigatorReasoner(SimpleReasoner):
             rounds=state.rounds,
             action_history=[action.__dict__.copy() for action in state.action_history],
             unresolved_questions=list(state.unresolved_questions),
-            candidate_history={
-                branch.diagnosis: list(branch.history)
-                for branch in state.branches.values()
-            },
-            graph_context=list(state.graph_context),
-            adjudication_count=state.adjudication_count,
+            candidate_history=state.candidate_history,
+            evidence_audit={"initial": initial_audit, "final": final_audit},
         )
         self._emit(on_event, {
             "event": "traversal_complete",
@@ -374,83 +296,234 @@ class InvestigatorReasoner(SimpleReasoner):
             "rounds": result.rounds,
             "retrieval_count": result.retrieval_count,
             "reasoning_call_count": result.reasoning_call_count,
-            "adjudication_count": result.adjudication_count,
             "duration_seconds": round(duration, 4),
         })
         return result
 
-    @staticmethod
-    def _load_concept_graph(path: Path) -> MedicalConceptGraph:
+    def _parse_audited_hypotheses(
+        self, raw: str, facts: list[Node], evidence: list[EvidenceChunk]
+    ) -> list[dict]:
+        rows = self._parse_hypotheses(raw, facts, evidence)
+        by_diagnosis: dict[str, list[tuple[str, str]]] = {}
+        match = _JSON_OBJECT.search(raw or "")
         try:
-            return MedicalConceptGraph.load(path) if Path(path).exists() else MedicalConceptGraph()
-        except (OSError, ValueError, json.JSONDecodeError):
-            return MedicalConceptGraph()
+            payload = json.loads(match.group(0)) if match else {}
+        except (TypeError, ValueError):
+            payload = {}
+        aliases = {f"E{i}": chunk.id for i, chunk in enumerate(evidence, 1)}
+        chunks = {chunk.id: chunk for chunk in evidence}
+        allowed_ids = {
+            row["diagnosis"].casefold(): set(row["evidence_ids"])
+            for row in rows
+        }
+        for row in payload.get("hypotheses", []) if isinstance(payload, dict) else []:
+            if not isinstance(row, dict):
+                continue
+            diagnosis_key = str(row.get("diagnosis") or "").strip().casefold()
+            verified = []
+            for span in row.get("evidence_spans", []):
+                if not isinstance(span, dict):
+                    continue
+                evidence_id = aliases.get(
+                    str(span.get("evidence_id") or ""),
+                    str(span.get("evidence_id") or ""),
+                )
+                quote = str(span.get("quote") or "").strip()
+                chunk = chunks.get(evidence_id)
+                verified_span = (evidence_id, quote[:240])
+                if (
+                    chunk
+                    and evidence_id in allowed_ids.get(diagnosis_key, set())
+                    and len(quote) >= 8
+                    and quote.casefold() in chunk.text.casefold()
+                    and verified_span not in verified
+                ):
+                    verified.append(verified_span)
+            by_diagnosis[diagnosis_key] = verified
+        for row in rows:
+            row["evidence_spans"] = by_diagnosis.get(
+                row["diagnosis"].casefold(), []
+            )
+        return rows
 
-    def _ingest_runtime_evidence(self, evidence: list[EvidenceChunk]) -> None:
-        records = []
-        for chunk in evidence:
-            record = dict(chunk.metadata)
-            record.update({"chunk_id": chunk.id, "text": chunk.text})
-            records.append(record)
-        self.concept_graph.ingest_records(records)
+    def _rank_candidate_board(
+        self,
+        rows: list[dict],
+        facts: list[Node],
+        evidence: list[EvidenceChunk],
+    ) -> list[DiagnosticHypothesis]:
+        fact_ids = {fact.id for fact in facts}
+        ranked = []
+        for row in rows:
+            conflicts = list(row["conflicting_fact_ids"])
+            for fact in facts:
+                result = self.contradiction_detector.check_deterministic(
+                    row["diagnosis"], fact.claim
+                )
+                if result.label == "contradiction" and fact.id not in conflicts:
+                    conflicts.append(fact.id)
+            supports = tuple(
+                fact_id for fact_id in row["supporting_fact_ids"]
+                if fact_id in fact_ids and fact_id not in conflicts
+            )
+            candidate = DiagnosticHypothesis(
+                diagnosis=row["diagnosis"],
+                confidence=row["confidence"],
+                score=0.0,
+                supporting_fact_ids=supports,
+                conflicting_fact_ids=tuple(conflicts),
+                evidence_ids=tuple(row["evidence_ids"]),
+                evidence_spans=tuple(row.get("evidence_spans", [])),
+            )
+            ranked.append(replace(
+                candidate,
+                score=self._candidate_score(candidate, facts, evidence),
+            ))
+        return sorted(
+            ranked, key=lambda item: (item.score, item.confidence), reverse=True
+        )[: self.max_candidates]
 
-    def _update_candidates(
-        self, state: CaseState, proposed: list[DiagnosticHypothesis]
-    ) -> None:
-        context = state.narrative + " " + " ".join(
-            fact.claim for fact in state.facts
+    @staticmethod
+    def _candidate_score(
+        candidate: DiagnosticHypothesis,
+        facts: list[Node],
+        evidence: list[EvidenceChunk],
+    ) -> float:
+        facts_by_id = {fact.id: fact for fact in facts}
+        evidence_by_id = {chunk.id: chunk for chunk in evidence}
+
+        def weight(fact_id: str) -> float:
+            fact = facts_by_id.get(fact_id)
+            return max(0.0, float((fact.metadata if fact else {}).get("axiom_weight", 0.0)))
+
+        support = 1.0 - math.exp(-sum(weight(i) for i in candidate.supporting_fact_ids))
+        conflict = 1.0 - math.exp(-sum(weight(i) for i in candidate.conflicting_fact_ids))
+        verified_ids = {evidence_id for evidence_id, _quote in candidate.evidence_spans}
+        relevance = [
+            1.0 - min(1.0, max(0.0, evidence_by_id[evidence_id].distance or 0.0))
+            for evidence_id in verified_ids if evidence_id in evidence_by_id
+        ]
+        knowledge = sum(relevance) / len(relevance) if relevance else 0.0
+        return round(
+            0.35 * candidate.confidence
+            + 0.50 * support
+            + 0.15 * knowledge
+            - 0.70 * conflict,
+            6,
         )
-        graph_scores = self.concept_graph.candidate_scores(
-            context, [item.diagnosis for item in proposed]
+
+    def _audit(
+        self,
+        candidates: list[DiagnosticHypothesis],
+        facts: list[Node],
+        evidence: list[EvidenceChunk],
+    ) -> dict:
+        if not candidates:
+            return {
+                "needs_revision": not self.allow_abstention,
+                "reasons": ["no_usable_candidate"],
+                "normalized_entropy": 1.0,
+                "margin": 0.0,
+                "distribution": [],
+                "influential_fact_id": None,
+                "rank_flip_without_fact": False,
+            }
+
+        peak = max(item.score for item in candidates)
+        weights = [math.exp((item.score - peak) / 0.2) for item in candidates]
+        total = sum(weights)
+        probabilities = [value / total for value in weights]
+        entropy = (
+            -sum(p * math.log2(p) for p in probabilities if p > 0.0)
+            / math.log2(len(probabilities))
+            if len(probabilities) > 1 else 0.0
         )
-        reranked = [
-            replace(
-                item,
-                score=round(
-                    item.score + 0.12 * graph_scores.get(item.diagnosis, 0.0),
-                    6,
+        top = candidates[0]
+        runner_up = candidates[1].score if len(candidates) > 1 else 0.0
+        margin = top.score - runner_up
+        influential_fact_id = None
+        largest_drop = 0.0
+        score_without_fact = top.score
+        for fact_id in top.supporting_fact_ids:
+            reduced = replace(
+                top,
+                supporting_fact_ids=tuple(
+                    item for item in top.supporting_fact_ids if item != fact_id
                 ),
             )
-            for item in proposed
-        ]
-        observed: set[str] = set()
-        for candidate in reranked:
-            key = candidate.diagnosis.casefold()
-            observed.add(key)
-            branch = state.branches.get(key)
-            if branch is None:
-                branch = CandidateBranch(
-                    diagnosis=candidate.diagnosis,
-                    current=candidate,
-                    best_score=candidate.score,
-                )
-                state.branches[key] = branch
-            branch.observe(candidate, state.rounds)
+            reduced_score = self._candidate_score(reduced, facts, evidence)
+            drop = top.score - reduced_score
+            if drop > largest_drop:
+                largest_drop = drop
+                influential_fact_id = fact_id
+                score_without_fact = reduced_score
 
-        for key, branch in state.branches.items():
-            if key not in observed:
-                branch.decay(state.rounds)
+        rank_flip = bool(
+            influential_fact_id and len(candidates) > 1
+            and score_without_fact < candidates[1].score
+        )
+        reasons = []
+        if top.conflicting_fact_ids:
+            reasons.append("leading_candidate_conflicts_with_patient_fact")
+        if not top.supporting_fact_ids:
+            reasons.append("no_cited_patient_support")
+        elif len(top.supporting_fact_ids) == 1:
+            reasons.append("single_fact_dependence")
+        if not top.evidence_spans:
+            reasons.append("no_verified_evidence_span")
+        if margin < 0.12:
+            reasons.append("small_candidate_margin")
+        if entropy > 0.82:
+            reasons.append("high_differential_entropy")
+        if rank_flip:
+            reasons.append("counterfactual_rank_flip")
+        return {
+            "needs_revision": bool(reasons),
+            "reasons": reasons,
+            "normalized_entropy": round(entropy, 6),
+            "margin": round(margin, 6),
+            "distribution": [
+                {"diagnosis": item.diagnosis, "probability": round(probability, 6)}
+                for item, probability in zip(candidates, probabilities)
+            ],
+            "influential_fact_id": influential_fact_id,
+            "rank_flip_without_fact": rank_flip,
+            "score_without_influential_fact": round(score_without_fact, 6),
+            "verified_evidence_spans": len(top.evidence_spans),
+        }
 
-        # Keep one omitted branch alive for a round. This makes backtracking
-        # explicit without allowing stale candidates to grow without bound.
-        active = [
-            branch.current
-            for branch in state.branches.values()
-            if branch.misses <= 1
-        ]
-        state.candidates = sorted(
-            active,
-            key=lambda item: (item.score, item.confidence),
-            reverse=True,
-        )[: self.max_candidates]
+    def _contrastive_action(
+        self, state: CaseState, audit: dict
+    ) -> InvestigationAction:
+        names = [item.diagnosis for item in state.candidates[:2]]
+        target = " vs ".join(names) or "differential recovery"
+        findings = "; ".join(fact.claim for fact in state.facts[:10])
+        query = (
+            f"Medical evidence distinguishing {target}. Identify which findings "
+            f"are specific, contradictory, or commonly misleading: {findings}"
+        )
+        return InvestigationAction(
+            kind="counterfactual_evidence_audit",
+            target=target,
+            query=query,
+            value=float(audit["normalized_entropy"]),
+            reason="; ".join(audit["reasons"]),
+        )
+
+    def _revision_budget_reason(self, state: CaseState) -> str | None:
+        if state.rounds >= self.max_rounds:
+            return "round_budget_exhausted"
+        if state.retrieval_count >= self.max_retrievals:
+            return "retrieval_budget_exhausted"
+        if state.reasoning_call_count >= self.max_model_calls:
+            return "model_call_budget_exhausted"
+        return None
 
     @staticmethod
     def _add_missing_questions(state: CaseState, raw_output: str) -> None:
         match = _JSON_OBJECT.search(raw_output or "")
-        if not match:
-            return
         try:
-            payload = json.loads(match.group(0))
+            payload = json.loads(match.group(0)) if match else {}
         except (TypeError, ValueError):
             return
         rows = payload.get("missing_information", []) if isinstance(payload, dict) else []
@@ -461,170 +534,27 @@ class InvestigatorReasoner(SimpleReasoner):
             if question and question not in state.unresolved_questions:
                 state.unresolved_questions.append(question[:240])
 
-    def _adjudicate_high_impact_conflict(self, state: CaseState) -> None:
-        if (
-            state.adjudication_count >= self.max_adjudications
-            or state.reasoning_call_count >= self.max_model_calls
-            or not state.candidates
-            or not hasattr(self.contradiction_detector, "check")
-        ):
-            return
-        top = state.candidates[0]
-        should_check = getattr(self.contradiction_detector, "should_check", None)
-        for fact in state.facts:
-            polarity = str(fact.metadata.get("polarity", "")).lower()
-            if polarity != "negated":
-                continue
-            if callable(should_check) and not should_check(top.diagnosis, fact.claim):
-                continue
-            before = self._detector_llm_calls()
-            result = self.contradiction_detector.check(top.diagnosis, fact.claim)
-            after = self._detector_llm_calls()
-            state.adjudication_count += 1
-            state.reasoning_call_count += max(0, after - before)
-            if result.label == "contradiction" and fact.id not in top.conflicting_fact_ids:
-                revised = replace(
-                    top,
-                    score=round(top.score - 0.35, 6),
-                    conflicting_fact_ids=top.conflicting_fact_ids + (fact.id,),
-                )
-                branch = state.branches[top.diagnosis.casefold()]
-                branch.observe(revised, state.rounds)
-                state.candidates[0] = revised
-                state.candidates.sort(
-                    key=lambda item: (item.score, item.confidence), reverse=True
-                )
-            return
-
-    def _detector_llm_calls(self) -> int:
-        info = getattr(self.contradiction_detector, "cache_info", None)
-        if not callable(info):
-            return 0
-        return int(info().get("llm_calls", 0))
-
-    def _is_adequate(self, state: CaseState) -> bool:
-        if not state.candidates:
-            return self.allow_abstention
-        top = state.candidates[0]
-        if top.conflicting_fact_ids or top.confidence < 0.65:
-            return False
-        if not top.supporting_fact_ids or not top.evidence_ids:
-            return False
-        if len(state.candidates) == 1:
-            return True
-        return top.score - state.candidates[1].score >= 0.12
-
-    def _budget_stop_reason(self, state: CaseState) -> str | None:
-        if state.rounds >= self.max_rounds:
-            return "round_budget_exhausted"
-        if state.retrieval_count >= self.max_retrievals:
-            return "retrieval_budget_exhausted"
-        if state.reasoning_call_count >= self.max_model_calls:
-            return "model_call_budget_exhausted"
-        return None
-
-    def _choose_action(self, state: CaseState) -> InvestigationAction:
-        findings = "; ".join(fact.claim for fact in state.facts[:10])
-        if not state.candidates:
-            value = self.action_policy.score({
-                "uncertainty": 1.0,
-                "small_margin": 1.0,
-                "evidence_gap": 1.0,
-                "novelty": 1.0,
-                "cost": 0.5,
+    @staticmethod
+    def _record_candidates(state: CaseState) -> None:
+        for candidate in state.candidates:
+            state.candidate_history.setdefault(candidate.diagnosis, []).append({
+                "round": state.rounds,
+                "score": candidate.score,
+                "confidence": candidate.confidence,
+                "supporting_fact_ids": list(candidate.supporting_fact_ids),
+                "conflicting_fact_ids": list(candidate.conflicting_fact_ids),
+                "verified_evidence_spans": len(candidate.evidence_spans),
             })
-            return InvestigationAction(
-                kind="candidate_recovery",
-                target="differential",
-                query=f"Differential diagnosis for these findings: {findings}",
-                value=value,
-                reason="The previous round produced no usable candidate diagnosis.",
-            )
 
-        top = state.candidates[0]
-        margin = (
-            top.score - state.candidates[1].score
-            if len(state.candidates) > 1 else 1.0
-        )
-        uncertainty = (
-            -(top.confidence * math.log2(top.confidence)
-              + (1.0 - top.confidence) * math.log2(1.0 - top.confidence))
-            if 0.0 < top.confidence < 1.0 else 0.0
-        )
-        common = {
-            "uncertainty": uncertainty,
-            "small_margin": 1.0 - min(1.0, max(0.0, margin) / 0.3),
-            "evidence_gap": float(not top.evidence_ids),
-            "contradiction": float(bool(top.conflicting_fact_ids)),
-        }
-        actions: list[InvestigationAction] = []
-        if top.conflicting_fact_ids:
-            conflicts = ", ".join(top.conflicting_fact_ids)
-            actions.append(InvestigationAction(
-                kind="contradiction_investigation",
-                target=top.diagnosis,
-                query=(
-                    f"Evidence for and against {top.diagnosis}; resolve findings "
-                    f"{conflicts}. Patient findings: {findings}"
-                ),
-                value=self.action_policy.score(common | {"cost": 0.35}),
-                reason=f"The leading candidate conflicts with facts {conflicts}.",
-            ))
-
-        if len(state.candidates) > 1:
-            second = state.candidates[1]
-            actions.append(InvestigationAction(
-                    kind="discriminating_retrieval",
-                    target=f"{top.diagnosis} vs {second.diagnosis}",
-                    query=(
-                        f"Findings that distinguish {top.diagnosis} from "
-                        f"{second.diagnosis} in a patient with: {findings}"
-                    ),
-                    value=self.action_policy.score(
-                        common | {"novelty": 0.6, "cost": 0.4}
-                    ),
-                    reason="The two leading candidates remain too close to separate.",
-            ))
-
-        if not top.evidence_ids:
-            actions.append(InvestigationAction(
-                kind="candidate_evidence",
-                target=top.diagnosis,
-                query=f"Clinical evidence for {top.diagnosis}: {findings}",
-                value=self.action_policy.score(common | {"cost": 0.3}),
-                reason="The leading candidate has no cited corpus evidence.",
-            ))
-
-        if state.unresolved_questions:
-            question = state.unresolved_questions[-1]
-            actions.append(InvestigationAction(
-                kind="missing_fact_retrieval",
-                target=question,
-                query=f"Clinical significance of {question}. Patient findings: {findings}",
-                value=self.action_policy.score(
-                    common | {"novelty": 0.8, "cost": 0.45}
-                ),
-                reason="The model identified a missing discriminating fact.",
-            ))
-
-        actions.append(InvestigationAction(
-            kind="similar_case_retrieval",
-            target=top.diagnosis,
-            query=(
-                f"Similar clinical cases and rare alternatives to {top.diagnosis}: "
-                f"{findings}"
-            ),
-            value=self.action_policy.score(
-                common | {"novelty": 0.7, "cost": 0.6}
-            ),
-            reason="Confidence or patient-specific support remains inadequate.",
-        ))
-        return max(actions, key=lambda action: action.value)
+    @staticmethod
+    def _format_candidate_board(candidates: list[DiagnosticHypothesis]) -> str:
+        return "\n".join(
+            f"- {item.diagnosis}: score={item.score:.3f}; "
+            f"patient_support={list(item.supporting_fact_ids)}; "
+            f"conflicts={list(item.conflicting_fact_ids)}; "
+            f"verified_spans={len(item.evidence_spans)}"
+            for item in candidates
+        ) or "No usable candidates."
 
 
-__all__ = [
-    "CandidateBranch",
-    "CaseState",
-    "InvestigationAction",
-    "InvestigatorReasoner",
-]
+__all__ = ["CaseState", "InvestigationAction", "InvestigatorReasoner"]

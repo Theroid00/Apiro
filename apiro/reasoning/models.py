@@ -22,6 +22,7 @@ class DiagnosticHypothesis:
     supporting_fact_ids: tuple[str, ...] = ()
     conflicting_fact_ids: tuple[str, ...] = ()
     evidence_ids: tuple[str, ...] = ()
+    evidence_spans: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass
@@ -52,6 +53,7 @@ class InvestigationResult:
     candidate_history: dict[str, list[dict]] = field(default_factory=dict)
     graph_context: list[str] = field(default_factory=list)
     adjudication_count: int = 0
+    evidence_audit: dict = field(default_factory=dict)
 
     @classmethod
     def from_legacy(cls, result, *, axioms: list[object]) -> "InvestigationResult":

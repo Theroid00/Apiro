@@ -86,6 +86,7 @@ def evaluate_narrative_case(
             "adjudication_count": result.adjudication_count,
             "action_history": result.action_history,
             "unresolved_questions": result.unresolved_questions,
+            "evidence_audit": result.evidence_audit,
             "stop_reason": result.stop_reason,
             "total_nodes": result.total_nodes,
             "contradictions": result.contradiction_count,

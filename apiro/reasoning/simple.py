@@ -33,7 +33,7 @@ _DIAGNOSIS_FIELD = re.compile(r'"diagnosis"\s*:\s*"([^"\r\n]+)', re.IGNORECASE)
 _PROMPT = """You are ranking differential diagnoses for one patient.
 Use the clinical presentation, deterministic facts, and retrieved evidence below.
 Return strict JSON only, with this shape:
-{{"hypotheses":[{{"diagnosis":"name","confidence":0.0,"supporting_fact_ids":["ax_0"],"conflicting_fact_ids":[],"evidence_ids":["E1"]}}]{extra_schema}}}
+{{"hypotheses":[{{"diagnosis":"name","confidence":0.0,"supporting_fact_ids":["ax_0"],"conflicting_fact_ids":[],"evidence_ids":["E1"]{hypothesis_extra_schema}}}]{extra_schema}}}
 
 Rules:
 - Return at most {n_diagnoses} distinct diagnoses, most likely first.
@@ -302,6 +302,7 @@ class SimpleReasoner:
         evidence: list[EvidenceChunk],
         *,
         include_missing_information: bool = False,
+        include_evidence_spans: bool = False,
     ) -> str:
         facts_text = "\n".join(f"{seed.id}: {seed.claim}" for seed in seeds)
         evidence_text = "\n\n".join(
@@ -310,6 +311,10 @@ class SimpleReasoner:
         ) or "No sufficiently relevant corpus evidence was retrieved."
         return _PROMPT.format(
             n_diagnoses=self.n_diagnoses,
+            hypothesis_extra_schema=(
+                ',"evidence_spans":[{"evidence_id":"E1","quote":"exact quote"}]'
+                if include_evidence_spans else ""
+            ),
             extra_schema=(
                 ',"missing_information":["one concise discriminating question"]'
                 if include_missing_information else ""
@@ -488,6 +493,10 @@ class SimpleReasoner:
                     "supporting_fact_ids": list(hypothesis.supporting_fact_ids),
                     "conflicting_fact_ids": list(hypothesis.conflicting_fact_ids),
                     "evidence_ids": list(hypothesis.evidence_ids),
+                    "evidence_spans": [
+                        {"evidence_id": evidence_id, "quote": quote}
+                        for evidence_id, quote in hypothesis.evidence_spans
+                    ],
                 },
             )
             graph.add_node(node)
