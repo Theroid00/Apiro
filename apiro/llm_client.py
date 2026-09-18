@@ -34,6 +34,7 @@ class OllamaLLMClient:
         temperature: float = 0.2,
         seed: int = 7,
         num_predict: int = 180,
+        json_num_predict: int = 384,
         timeout: int = 90,
         scheduler=None,
     ):
@@ -42,6 +43,7 @@ class OllamaLLMClient:
         self.temperature = temperature
         self.seed = seed
         self.num_predict = num_predict
+        self.json_num_predict = json_num_predict
         self.timeout = timeout
         self.scheduler = scheduler
 
@@ -54,7 +56,9 @@ class OllamaLLMClient:
                 "options": {
                     "temperature": self.temperature,
                     "seed": self.seed,
-                    "num_predict": self.num_predict,
+                    "num_predict": (
+                        self.json_num_predict if json_mode else self.num_predict
+                    ),
                 },
             }
             if json_mode:
