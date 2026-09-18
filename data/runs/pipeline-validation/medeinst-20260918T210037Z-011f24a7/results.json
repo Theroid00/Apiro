@@ -1,0 +1,2145 @@
+{
+  "manifest": {
+    "schema_version": "1.0",
+    "run_id": "medeinst-20260918T210037Z-011f24a7",
+    "created_at": "2026-09-18T21:00:37.900758+00:00",
+    "benchmark": "medeinst",
+    "dataset": {
+      "id": "zhui711/MedEinst",
+      "revision": "354f4b5"
+    },
+    "cases": {
+      "count": 10,
+      "ids_sha256": "47e35224c63ba7077f2d45cf83577e7826ed48e6985dbe128bd8d236a86e4ab8"
+    },
+    "code": {
+      "git_commit": "ab47b5ca02863b5e19a174114fe7786315881b3f",
+      "dirty": false
+    },
+    "configuration": {
+      "split": "test",
+      "seed": 7,
+      "n_pairs": 5,
+      "max_depth": 6,
+      "n_diagnoses": 3,
+      "model": "llama3.1:8b",
+      "decoding": {
+        "temperature": 0.2,
+        "seed": 7,
+        "num_predict": 180,
+        "json_num_predict": 768
+      }
+    },
+    "environment": {
+      "python": "3.14.6",
+      "platform": "Linux-7.1.8-200.nobara.fc44.x86_64-x86_64-with-glibc2.43"
+    }
+  },
+  "scores": {
+    "apiro": {
+      "n_pairs": 5,
+      "n_control_correct": 2,
+      "n_bias_traps": 0,
+      "bias_trap_rate": 0.0,
+      "bias_trap_rate_ci": [
+        0.0,
+        0.6576197728563925
+      ],
+      "control_accuracy": 0.4,
+      "trap_accuracy": 0.0,
+      "pair_resilience": 0.0,
+      "conditional_trap_error_rate": 1.0,
+      "top3_control_accuracy": 0.4,
+      "top3_trap_accuracy": 0.0,
+      "top3_pair_resilience": 0.0,
+      "rank_transitions": [
+        {
+          "case_id": "case_60495",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_85085",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_106645",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_101087",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_114619",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        }
+      ],
+      "false_confidence": {
+        "threshold": 0.7,
+        "scored_cases": 10,
+        "wrong_top1_cases": 8,
+        "confident_wrong_top1_cases": 0,
+        "false_confidence_rate": 0.0,
+        "false_confidence_rate_on_errors": 0.0
+      }
+    },
+    "rag": {
+      "n_pairs": 5,
+      "n_control_correct": 1,
+      "n_bias_traps": 1,
+      "bias_trap_rate": 1.0,
+      "bias_trap_rate_ci": [
+        0.2065493141129836,
+        0.9999999999999999
+      ],
+      "control_accuracy": 0.2,
+      "trap_accuracy": 0.2,
+      "pair_resilience": 0.0,
+      "conditional_trap_error_rate": 1.0,
+      "top3_control_accuracy": 0.4,
+      "top3_trap_accuracy": 0.4,
+      "top3_pair_resilience": 0.2,
+      "rank_transitions": [
+        {
+          "case_id": "case_60495",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_85085",
+          "control_truth_rank_control": 3,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": 1
+        },
+        {
+          "case_id": "case_106645",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_101087",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": 2
+        },
+        {
+          "case_id": "case_114619",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": 1,
+          "trap_truth_rank_trap": null
+        }
+      ],
+      "false_confidence": {
+        "threshold": 0.7,
+        "scored_cases": 0,
+        "wrong_top1_cases": 0,
+        "confident_wrong_top1_cases": 0,
+        "false_confidence_rate": null,
+        "false_confidence_rate_on_errors": null
+      }
+    },
+    "bare_llm": {
+      "n_pairs": 5,
+      "n_control_correct": 2,
+      "n_bias_traps": 1,
+      "bias_trap_rate": 0.5,
+      "bias_trap_rate_ci": [
+        0.0945312056223091,
+        0.9054687943776909
+      ],
+      "control_accuracy": 0.4,
+      "trap_accuracy": 0.0,
+      "pair_resilience": 0.0,
+      "conditional_trap_error_rate": 1.0,
+      "top3_control_accuracy": 0.8,
+      "top3_trap_accuracy": 0.2,
+      "top3_pair_resilience": 0.2,
+      "rank_transitions": [
+        {
+          "case_id": "case_60495",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_85085",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": 2
+        },
+        {
+          "case_id": "case_106645",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": 1,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_101087",
+          "control_truth_rank_control": 3,
+          "control_truth_rank_trap": 3,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_114619",
+          "control_truth_rank_control": 2,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        }
+      ],
+      "false_confidence": {
+        "threshold": 0.7,
+        "scored_cases": 0,
+        "wrong_top1_cases": 0,
+        "confident_wrong_top1_cases": 0,
+        "false_confidence_rate": null,
+        "false_confidence_rate_on_errors": null
+      }
+    }
+  },
+  "case_results": [
+    {
+      "case_id": "case_60495",
+      "case_type": "control",
+      "ground_truth": "Myocarditis",
+      "predictions": {
+        "apiro": [
+          "Panic Disorder"
+        ],
+        "rag": [
+          "Acute Coronary Syndrome",
+          "Pulmonary Embolism",
+          "Costochondritis"
+        ],
+        "bare_llm": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Congestive Heart Failure"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Panic Disorder"
+        ],
+        "rag": "1. Acute Coronary Syndrome\n2. Pulmonary Embolism\n3. Costochondritis",
+        "bare_llm": "Pulmonary Embolism\nAcute Coronary Syndrome\nCongestive Heart Failure"
+      },
+      "n_candidates": {
+        "apiro": 1,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "94c28850c3e5ac84d767beba601f198b7b9f19df9b2742e307165e993fc4a510",
+        "characters": 845,
+        "approx_tokens": 205
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Acute Coronary Syndrome vs Pulmonary Embolism",
+            "query": "Medical evidence distinguishing Acute Coronary Syndrome vs Pulmonary Embolism. Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of feel.; The patient presents with the clinical finding of pain.; The patient presents with the clinical finding of side.; The patient presents with the clinical finding of chest.; The patient presents with the clinical finding of breast.; The patient presents with the clinical finding of out of breath.; The patient presents with the clinical finding of shortness of breath.; The patient presents with the clinical finding of difficulty breathing.; The patient presents with the clinical finding of symptoms.; The patient presents with the clinical finding of worse.",
+            "value": 0.980105,
+            "reason": "single_fact_dependence; small_candidate_margin; high_differential_entropy; counterfactual_rank_flip"
+          }
+        ],
+        "unresolved_questions": [
+          "What is the patient's medical history of cardiac conditions?",
+          "Has the patient experienced any recent trauma or injury?",
+          "What is the patient's medical history?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.980105,
+            "margin": 0.03399,
+            "distribution": [
+              {
+                "diagnosis": "Acute Coronary Syndrome",
+                "probability": 0.229344
+              },
+              {
+                "diagnosis": "Pulmonary Embolism",
+                "probability": 0.193499
+              },
+              {
+                "diagnosis": "Costochondritis",
+                "probability": 0.176935
+              },
+              {
+                "diagnosis": "Sickle Cell Crisis",
+                "probability": 0.162434
+              },
+              {
+                "diagnosis": "Gallbladder Disease",
+                "probability": 0.148529
+              },
+              {
+                "diagnosis": "Panic Disorder",
+                "probability": 0.089259
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.206237,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence"
+            ],
+            "normalized_entropy": 0.0,
+            "margin": 0.28289,
+            "distribution": [
+              {
+                "diagnosis": "Panic Disorder",
+                "probability": 1.0
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.153299,
+            "verified_evidence_spans": 1
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 15,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.051527,
+          "initial_retrieval": 0.128689,
+          "initial_reasoning_and_audit": 14.686727,
+          "contrastive_revision": 3.440813,
+          "provenance_graph": 2.8e-05,
+          "total": 18.307825
+        },
+        "hypotheses": [
+          {
+            "claim": "Panic Disorder",
+            "depth": 1,
+            "entropy": 0.60228160255664,
+            "confidence": 0.147,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 24.113,
+      "n_axioms": 14,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 6212,
+          "completion_tokens": 776,
+          "queue_seconds": 2.1e-05,
+          "inference_seconds": 23.706357
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 6212,
+            "completion_tokens": 776,
+            "queue_seconds": 2.1e-05,
+            "inference_seconds": 23.706357
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_60495",
+      "case_type": "trap",
+      "ground_truth": "Acute pulmonary edema",
+      "predictions": {
+        "apiro": [
+          "Myocardial Ischemia",
+          "Unstable Angina",
+          "Prinzmetal Angina"
+        ],
+        "rag": [
+          "Acute Coronary Syndrome (ACS)",
+          "Unstable Angina",
+          "Pulmonary Embolism"
+        ],
+        "bare_llm": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Congestive Heart Failure"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Myocardial Ischemia",
+          "Unstable Angina",
+          "Prinzmetal Angina"
+        ],
+        "rag": "1. Acute Coronary Syndrome (ACS)\n2. Unstable Angina\n3. Pulmonary Embolism",
+        "bare_llm": "Pulmonary Embolism\nAcute Coronary Syndrome\nCongestive Heart Failure"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "7ebc6cf3e00602f2b2254af0cc23881876caa8735ad7b333dfccd1f46fc4bcde",
+        "characters": 883,
+        "approx_tokens": 203
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 1,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Myocardial Ischemia vs Unstable Angina",
+            "query": "Medical evidence distinguishing Myocardial Ischemia vs Unstable Angina. Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of feel.; The patient presents with the clinical finding of pain.; The patient presents with the clinical finding of side.; The patient presents with the clinical finding of chest.; The patient presents with the clinical finding of breast.; The patient presents with the clinical finding of out of breath.; The patient presents with the clinical finding of shortness of breath.; The patient presents with the clinical finding of difficulty breathing.; The patient presents with the clinical finding of symptoms.; The patient presents with the clinical finding of worse.",
+            "value": 0.99165,
+            "reason": "no_cited_patient_support; no_verified_evidence_span; small_candidate_margin; high_differential_entropy"
+          }
+        ],
+        "unresolved_questions": [],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "no_cited_patient_support",
+              "no_verified_evidence_span",
+              "small_candidate_margin",
+              "high_differential_entropy"
+            ],
+            "normalized_entropy": 0.99165,
+            "margin": 0.035,
+            "distribution": [
+              {
+                "diagnosis": "Myocardial Ischemia",
+                "probability": 0.22316
+              },
+              {
+                "diagnosis": "Unstable Angina",
+                "probability": 0.187333
+              },
+              {
+                "diagnosis": "Prinzmetal Angina",
+                "probability": 0.157258
+              },
+              {
+                "diagnosis": "Pleuritic Discomfort",
+                "probability": 0.144083
+              },
+              {
+                "diagnosis": "Non-Cardiopulmonary Cause",
+                "probability": 0.144083
+              },
+              {
+                "diagnosis": "Heart Failure",
+                "probability": 0.144083
+              }
+            ],
+            "influential_fact_id": null,
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.21,
+            "verified_evidence_spans": 0
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "no_verified_evidence_span",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.989006,
+            "margin": 0.035,
+            "distribution": [
+              {
+                "diagnosis": "Myocardial Ischemia",
+                "probability": 0.228681
+              },
+              {
+                "diagnosis": "Unstable Angina",
+                "probability": 0.191968
+              },
+              {
+                "diagnosis": "Prinzmetal Angina",
+                "probability": 0.161149
+              },
+              {
+                "diagnosis": "Pleuritic Discomfort",
+                "probability": 0.147648
+              },
+              {
+                "diagnosis": "Non-Cardiopulmonary Cause",
+                "probability": 0.135277
+              },
+              {
+                "diagnosis": "Heart Failure",
+                "probability": 0.135277
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.1225,
+            "verified_evidence_spans": 0
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 17,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.037454,
+          "initial_retrieval": 0.150586,
+          "initial_reasoning_and_audit": 17.542555,
+          "contrastive_revision": 14.309221,
+          "provenance_graph": 6.9e-05,
+          "total": 32.039945
+        },
+        "hypotheses": [
+          {
+            "claim": "Myocardial Ischemia",
+            "depth": 1,
+            "entropy": 0.934068055375491,
+            "confidence": 0.35,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Unstable Angina",
+            "depth": 1,
+            "entropy": 0.8112781244591328,
+            "confidence": 0.25,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Prinzmetal Angina",
+            "depth": 1,
+            "entropy": 0.6098403047164004,
+            "confidence": 0.15,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 34.2087,
+      "n_axioms": 14,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 3942,
+          "completion_tokens": 812,
+          "queue_seconds": 1.8e-05,
+          "inference_seconds": 33.837008
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 3942,
+            "completion_tokens": 812,
+            "queue_seconds": 1.8e-05,
+            "inference_seconds": 33.837008
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_85085",
+      "case_type": "control",
+      "ground_truth": "Spontaneous pneumothorax",
+      "predictions": {
+        "apiro": [
+          "Pneumothorax",
+          "Myocardial Ischemia",
+          "Chronic Obstructive Pulmonary Disease (COPD)"
+        ],
+        "rag": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Pneumothorax"
+        ],
+        "bare_llm": [
+          "Pneumothorax",
+          "Acute Coronary Syndrome",
+          "Chronic Obstructive Pulmonary Disease exacerbation"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pneumothorax",
+          "Myocardial Ischemia",
+          "Chronic Obstructive Pulmonary Disease (COPD)"
+        ],
+        "rag": "Pulmonary Embolism\nAcute Coronary Syndrome\nPneumothorax",
+        "bare_llm": "Pneumothorax\nAcute Coronary Syndrome\nChronic Obstructive Pulmonary Disease exacerbation"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "917cff960956d4e92fc960c164a6a5fd2eb7c17d96918a532770a592fc1b394e",
+        "characters": 971,
+        "approx_tokens": 237
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Pneumothorax vs Acute Chest Syndrome",
+            "query": "Medical evidence distinguishing Pneumothorax vs Acute Chest Syndrome. Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of pain.; The patient presents with the clinical finding of heartbreaking.; The patient presents with the clinical finding of lower chest.; The patient presents with the clinical finding of side of the chest.; The patient presents with the clinical finding of upper chest.; The patient presents with the clinical finding of breast.; The patient presents with the clinical finding of shortness of breath.; The patient presents with the clinical finding of difficulty breathing.; The patient presents with the clinical finding of symptoms.; The patient presents with the clinical finding of alleviate.",
+            "value": 0.951635,
+            "reason": "small_candidate_margin; high_differential_entropy; counterfactual_rank_flip"
+          }
+        ],
+        "unresolved_questions": [
+          "Does the patient have a history of sickle cell disease?",
+          "Has the patient recently traveled to an area with high altitude?",
+          "What is the patient's oxygen saturation level?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.951635,
+            "margin": 0.034558,
+            "distribution": [
+              {
+                "diagnosis": "Pneumothorax",
+                "probability": 0.288638
+              },
+              {
+                "diagnosis": "Acute Chest Syndrome",
+                "probability": 0.242835
+              },
+              {
+                "diagnosis": "Costochondritis",
+                "probability": 0.128637
+              },
+              {
+                "diagnosis": "Myocardial Ischemia",
+                "probability": 0.127185
+              },
+              {
+                "diagnosis": "Pulmonary Embolism",
+                "probability": 0.106766
+              },
+              {
+                "diagnosis": "Chronic Obstructive Pulmonary Disease (COPD)",
+                "probability": 0.105939
+              }
+            ],
+            "influential_fact_id": "ax_2",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.373657,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.964866,
+            "margin": 0.102528,
+            "distribution": [
+              {
+                "diagnosis": "Pneumothorax",
+                "probability": 0.296989
+              },
+              {
+                "diagnosis": "Myocardial Ischemia",
+                "probability": 0.17787
+              },
+              {
+                "diagnosis": "Chronic Obstructive Pulmonary Disease (COPD)",
+                "probability": 0.148157
+              },
+              {
+                "diagnosis": "Pulmonary Embolism",
+                "probability": 0.147757
+              },
+              {
+                "diagnosis": "Acute Chest Syndrome",
+                "probability": 0.124616
+              },
+              {
+                "diagnosis": "Costochondritis",
+                "probability": 0.10461
+              }
+            ],
+            "influential_fact_id": "ax_11",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.278691,
+            "verified_evidence_spans": 1
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 16,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.042992,
+          "initial_retrieval": 0.143875,
+          "initial_reasoning_and_audit": 14.585089,
+          "contrastive_revision": 12.755292,
+          "provenance_graph": 5.5e-05,
+          "total": 27.52735
+        },
+        "hypotheses": [
+          {
+            "claim": "Pneumothorax",
+            "depth": 1,
+            "entropy": 1.0,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Myocardial Ischemia",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.2,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Chronic Obstructive Pulmonary Disease (COPD)",
+            "depth": 1,
+            "entropy": 0.4689955935892812,
+            "confidence": 0.1,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 29.6621,
+      "n_axioms": 13,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 6145,
+          "completion_tokens": 1203,
+          "queue_seconds": 2.8e-05,
+          "inference_seconds": 29.280017
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 6145,
+            "completion_tokens": 1203,
+            "queue_seconds": 2.8e-05,
+            "inference_seconds": 29.280017
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_85085",
+      "case_type": "trap",
+      "ground_truth": "Pulmonary embolism",
+      "predictions": {
+        "apiro": [
+          "Myocardial Ischemia"
+        ],
+        "rag": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Costochondritis"
+        ],
+        "bare_llm": [
+          "Pneumonia",
+          "Pulmonary Embolism",
+          "Pleurisy"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Myocardial Ischemia"
+        ],
+        "rag": "Pulmonary Embolism\nAcute Coronary Syndrome\nCostochondritis",
+        "bare_llm": "Pneumonia\nPulmonary Embolism\nPleurisy"
+      },
+      "n_candidates": {
+        "apiro": 1,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "acf6831119f4ea4f603176edb8773e9cd16d9468e466c9bc4fcfd6e12a2c96d8",
+        "characters": 973,
+        "approx_tokens": 240
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 1,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Myocardial Ischemia vs Costochondritis",
+            "query": "Medical evidence distinguishing Myocardial Ischemia vs Costochondritis. Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of pain.; The patient presents with the clinical finding of heartbreaking.; The patient presents with the clinical finding of lower chest.; The patient presents with the clinical finding of side of the chest.; The patient presents with the clinical finding of upper chest.; The patient presents with the clinical finding of breast.; The patient presents with the clinical finding of shortness of breath.; The patient presents with the clinical finding of difficulty breathing.; The patient presents with the clinical finding of symptoms.; The patient presents with the clinical finding of alleviate.",
+            "value": 0.954653,
+            "reason": "high_differential_entropy"
+          }
+        ],
+        "unresolved_questions": [
+          "Is the patient's pain exacerbated by exertion?",
+          "Has the patient experienced any recent trauma or injury?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "high_differential_entropy"
+            ],
+            "normalized_entropy": 0.954653,
+            "margin": 0.16249,
+            "distribution": [
+              {
+                "diagnosis": "Myocardial Ischemia",
+                "probability": 0.325616
+              },
+              {
+                "diagnosis": "Costochondritis",
+                "probability": 0.144498
+              },
+              {
+                "diagnosis": "Gallbladder Disease",
+                "probability": 0.144498
+              },
+              {
+                "diagnosis": "Chronic Obstructive Pulmonary Disease (COPD)",
+                "probability": 0.142642
+              },
+              {
+                "diagnosis": "Acute Chest Syndrome",
+                "probability": 0.142255
+              },
+              {
+                "diagnosis": "Pleuritic Discomfort",
+                "probability": 0.10049
+              }
+            ],
+            "influential_fact_id": "ax_0",
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.373719,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "no_cited_patient_support",
+              "no_verified_evidence_span"
+            ],
+            "normalized_entropy": 0.0,
+            "margin": 0.21,
+            "distribution": [
+              {
+                "diagnosis": "Myocardial Ischemia",
+                "probability": 1.0
+              }
+            ],
+            "influential_fact_id": null,
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.21,
+            "verified_evidence_spans": 0
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 16,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.0518,
+          "initial_retrieval": 0.145642,
+          "initial_reasoning_and_audit": 14.065179,
+          "contrastive_revision": 4.380503,
+          "provenance_graph": 2.2e-05,
+          "total": 18.643172
+        },
+        "hypotheses": [
+          {
+            "claim": "Myocardial Ischemia",
+            "depth": 1,
+            "entropy": 0.9709505944546686,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 20.462,
+      "n_axioms": 15,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 3748,
+          "completion_tokens": 640,
+          "queue_seconds": 2.2e-05,
+          "inference_seconds": 20.064506
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 3748,
+            "completion_tokens": 640,
+            "queue_seconds": 2.2e-05,
+            "inference_seconds": 20.064506
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_106645",
+      "case_type": "control",
+      "ground_truth": "Pneumonia",
+      "predictions": {
+        "apiro": [
+          "Pulmonary TB",
+          "Kawasaki Disease"
+        ],
+        "rag": [
+          "Pulmonary TB",
+          "Kawasaki disease",
+          "Infectious mononucleosis"
+        ],
+        "bare_llm": [
+          "Pneumonia",
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Acute Bronchitis"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pulmonary TB",
+          "Kawasaki Disease"
+        ],
+        "rag": "Pulmonary TB\nKawasaki disease\nInfectious mononucleosis",
+        "bare_llm": "Pneumonia\nChronic Obstructive Pulmonary Disease (COPD)\nAcute Bronchitis"
+      },
+      "n_candidates": {
+        "apiro": 2,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "a54650a6c076b91e90ab9007e7e21585193652d25a600b39cdf5a12c8abb718a",
+        "characters": 1359,
+        "approx_tokens": 356
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Pulmonary TB vs Kawasaki Disease",
+            "query": "Medical evidence distinguishing Pulmonary TB vs Kawasaki Disease. Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of pain.; The patient presents with the clinical finding of side.; The patient presents with the clinical finding of chest.; The patient presents with the clinical finding of cough.; The patient presents with the clinical finding of rash.; The patient presents with the clinical finding of com.; The patient presents with the clinical finding of les.; The patient presents with the clinical finding of ion.; The patient denies the clinical finding of larger.; The patient presents with the clinical finding of ching.",
+            "value": 0.997299,
+            "reason": "single_fact_dependence; small_candidate_margin; high_differential_entropy; counterfactual_rank_flip"
+          }
+        ],
+        "unresolved_questions": [
+          "Is the patient experiencing any night sweats?",
+          "Are there any palpable lymph nodes?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.997299,
+            "margin": 0.018753,
+            "distribution": [
+              {
+                "diagnosis": "Pulmonary TB",
+                "probability": 0.195333
+              },
+              {
+                "diagnosis": "Kawasaki Disease",
+                "probability": 0.17785
+              },
+              {
+                "diagnosis": "Infectious Mononucleosis",
+                "probability": 0.169814
+              },
+              {
+                "diagnosis": "Pneumonia",
+                "probability": 0.157862
+              },
+              {
+                "diagnosis": "COPD",
+                "probability": 0.152432
+              },
+              {
+                "diagnosis": "Infective Endocarditis",
+                "probability": 0.146708
+              }
+            ],
+            "influential_fact_id": "ax_3",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.174366,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "no_verified_evidence_span",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.999801,
+            "margin": 0.00665,
+            "distribution": [
+              {
+                "diagnosis": "Pulmonary TB",
+                "probability": 0.508312
+              },
+              {
+                "diagnosis": "Kawasaki Disease",
+                "probability": 0.491688
+              }
+            ],
+            "influential_fact_id": "ax_3",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.1064,
+            "verified_evidence_spans": 0
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 22,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.05929,
+          "initial_retrieval": 0.158301,
+          "initial_reasoning_and_audit": 13.780487,
+          "contrastive_revision": 18.777599,
+          "provenance_graph": 2.7e-05,
+          "total": 32.775742
+        },
+        "hypotheses": [
+          {
+            "claim": "Pulmonary TB",
+            "depth": 1,
+            "entropy": 0.8861256474645222,
+            "confidence": 0.304,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Kawasaki Disease",
+            "depth": 1,
+            "entropy": 0.8621745299412247,
+            "confidence": 0.285,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 35.1522,
+      "n_axioms": 20,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 7951,
+          "completion_tokens": 1389,
+          "queue_seconds": 2.2e-05,
+          "inference_seconds": 34.666233
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 7951,
+            "completion_tokens": 1389,
+            "queue_seconds": 2.2e-05,
+            "inference_seconds": 34.666233
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_106645",
+      "case_type": "trap",
+      "ground_truth": "Bronchitis",
+      "predictions": {
+        "apiro": [
+          "Pulmonary TB",
+          "Kawasaki Disease"
+        ],
+        "rag": [
+          "Pulmonary TB",
+          "Kawasaki disease",
+          "Infectious mononucleosis"
+        ],
+        "bare_llm": [
+          "Pneumonia",
+          "COPD exacerbation",
+          "Cardiac tamponade"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pulmonary TB",
+          "Kawasaki Disease"
+        ],
+        "rag": "Pulmonary TB\nKawasaki disease\nInfectious mononucleosis",
+        "bare_llm": "Pneumonia\nCOPD exacerbation\nCardiac tamponade"
+      },
+      "n_candidates": {
+        "apiro": 2,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "a48b5212bdc9c24661455229c3df427e51a8aa5655ed04a2415c1a881c9b913d",
+        "characters": 1433,
+        "approx_tokens": 356
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Pulmonary TB vs Kawasaki Disease",
+            "query": "Medical evidence distinguishing Pulmonary TB vs Kawasaki Disease. Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of pain.; The patient presents with the clinical finding of side.; The patient presents with the clinical finding of chest.; The patient presents with the clinical finding of cough.; The patient presents with the clinical finding of rash.; The patient presents with the clinical finding of com.; The patient presents with the clinical finding of les.; The patient presents with the clinical finding of ion.; The patient denies the clinical finding of larger.; The patient presents with the clinical finding of ching.",
+            "value": 0.997036,
+            "reason": "single_fact_dependence; no_verified_evidence_span; small_candidate_margin; high_differential_entropy; counterfactual_rank_flip"
+          }
+        ],
+        "unresolved_questions": [],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "no_verified_evidence_span",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.997036,
+            "margin": 0.0175,
+            "distribution": [
+              {
+                "diagnosis": "Pulmonary TB",
+                "probability": 0.197509
+              },
+              {
+                "diagnosis": "Kawasaki Disease",
+                "probability": 0.180962
+              },
+              {
+                "diagnosis": "Infectious Mononucleosis",
+                "probability": 0.1658
+              },
+              {
+                "diagnosis": "Pneumonia",
+                "probability": 0.15191
+              },
+              {
+                "diagnosis": "Chronic Obstructive Pulmonary Disease (COPD)",
+                "probability": 0.15191
+              },
+              {
+                "diagnosis": "Infective Endocarditis",
+                "probability": 0.15191
+              }
+            ],
+            "influential_fact_id": "ax_3",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.07,
+            "verified_evidence_spans": 0
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "no_verified_evidence_span",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.999821,
+            "margin": 0.0063,
+            "distribution": [
+              {
+                "diagnosis": "Pulmonary TB",
+                "probability": 0.507874
+              },
+              {
+                "diagnosis": "Kawasaki Disease",
+                "probability": 0.492126
+              }
+            ],
+            "influential_fact_id": "ax_3",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.07,
+            "verified_evidence_spans": 0
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 22,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.076048,
+          "initial_retrieval": 0.168887,
+          "initial_reasoning_and_audit": 17.911617,
+          "contrastive_revision": 18.898764,
+          "provenance_graph": 2.8e-05,
+          "total": 37.055383
+        },
+        "hypotheses": [
+          {
+            "claim": "Pulmonary TB",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.2,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Kawasaki Disease",
+            "depth": 1,
+            "entropy": 0.6844328071995737,
+            "confidence": 0.182,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 39.4163,
+      "n_axioms": 20,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 8148,
+          "completion_tokens": 1570,
+          "queue_seconds": 2.5e-05,
+          "inference_seconds": 38.878136
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 8148,
+            "completion_tokens": 1570,
+            "queue_seconds": 2.5e-05,
+            "inference_seconds": 38.878136
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_101087",
+      "case_type": "control",
+      "ground_truth": "Acute laryngitis",
+      "predictions": {
+        "apiro": [
+          "Pulmonary Tuberculosis",
+          "Acute Bronchitis",
+          "Lymphoma"
+        ],
+        "rag": [
+          "Acute bronchitis",
+          "Pharyngitis",
+          "Infectious mononucleosis"
+        ],
+        "bare_llm": [
+          "Tonsillitis",
+          "Thyroiditis",
+          "Laryngitis"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pulmonary Tuberculosis",
+          "Acute Bronchitis",
+          "Lymphoma"
+        ],
+        "rag": "1. Acute bronchitis\n2. Pharyngitis\n3. Infectious mononucleosis",
+        "bare_llm": "Tonsillitis\nThyroiditis\nLaryngitis"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "f9c6c8cadd8053f947388d6d22390544ed79764591f3ba4972350df465842846",
+        "characters": 612,
+        "approx_tokens": 163
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Acute Bronchitis vs Pulmonary Tuberculosis",
+            "query": "Medical evidence distinguishing Acute Bronchitis vs Pulmonary Tuberculosis. Identify which findings are specific, contradictory, or commonly misleading: The patient has a lab result or vital sign showing I live 4 or.; The patient presents with the clinical finding of america.; The patient presents with the clinical finding of pain.; The patient presents with the clinical finding of burning.; The patient presents with the clinical finding of tons.; The patient presents with the clinical finding of thyroid.; The patient presents with the clinical finding of under the jaw.; The patient presents with the clinical finding of fever.; The patient presents with the clinical finding of coughing.; The patient presents with the clinical finding of cold.",
+            "value": 0.968664,
+            "reason": "small_candidate_margin; high_differential_entropy; counterfactual_rank_flip"
+          }
+        ],
+        "unresolved_questions": [
+          "What is the patient's occupation?",
+          "Has the patient had any recent travel history?",
+          "What are the patient's travel and family history?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.968664,
+            "margin": 0.002167,
+            "distribution": [
+              {
+                "diagnosis": "Acute Bronchitis",
+                "probability": 0.248945
+              },
+              {
+                "diagnosis": "Pulmonary Tuberculosis",
+                "probability": 0.246263
+              },
+              {
+                "diagnosis": "Gallbladder Disease",
+                "probability": 0.131941
+              },
+              {
+                "diagnosis": "Costochondritis",
+                "probability": 0.131941
+              },
+              {
+                "diagnosis": "Pulmonary Embolism",
+                "probability": 0.120455
+              },
+              {
+                "diagnosis": "Lymphoma",
+                "probability": 0.120455
+              }
+            ],
+            "influential_fact_id": "ax_8",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.292899,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.974464,
+            "margin": 0.046533,
+            "distribution": [
+              {
+                "diagnosis": "Pulmonary Tuberculosis",
+                "probability": 0.261683
+              },
+              {
+                "diagnosis": "Acute Bronchitis",
+                "probability": 0.207363
+              },
+              {
+                "diagnosis": "Lymphoma",
+                "probability": 0.148566
+              },
+              {
+                "diagnosis": "Gallbladder Disease",
+                "probability": 0.136608
+              },
+              {
+                "diagnosis": "Costochondritis",
+                "probability": 0.136608
+              },
+              {
+                "diagnosis": "Pulmonary Embolism",
+                "probability": 0.109173
+              }
+            ],
+            "influential_fact_id": "ax_2",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.244841,
+            "verified_evidence_spans": 1
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 13,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.026593,
+          "initial_retrieval": 0.112896,
+          "initial_reasoning_and_audit": 17.490318,
+          "contrastive_revision": 17.323305,
+          "provenance_graph": 3.9e-05,
+          "total": 34.953193
+        },
+        "hypotheses": [
+          {
+            "claim": "Pulmonary Tuberculosis",
+            "depth": 1,
+            "entropy": 0.9709505944546686,
+            "confidence": 0.4,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute Bronchitis",
+            "depth": 1,
+            "entropy": 0.8812908992306927,
+            "confidence": 0.3,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Lymphoma",
+            "depth": 1,
+            "entropy": 0.4689955935892812,
+            "confidence": 0.1,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 36.9634,
+      "n_axioms": 10,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 6547,
+          "completion_tokens": 1519,
+          "queue_seconds": 2.3e-05,
+          "inference_seconds": 36.64571
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 6547,
+            "completion_tokens": 1519,
+            "queue_seconds": 2.3e-05,
+            "inference_seconds": 36.64571
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_101087",
+      "case_type": "trap",
+      "ground_truth": "Bronchitis",
+      "predictions": {
+        "apiro": [
+          "Pulmonary Tuberculosis",
+          "Infectious Mononucleosis",
+          "Allergic Bronchopulmonary Aspergillosis"
+        ],
+        "rag": [
+          "Tonsillitis",
+          "Acute bronchitis",
+          "Pulmonary TB"
+        ],
+        "bare_llm": [
+          "Tonsillitis",
+          "Pneumonia",
+          "Laryngitis"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pulmonary Tuberculosis",
+          "Infectious Mononucleosis",
+          "Allergic Bronchopulmonary Aspergillosis"
+        ],
+        "rag": "Tonsillitis\nAcute bronchitis\nPulmonary TB",
+        "bare_llm": "Tonsillitis\nPneumonia\nLaryngitis"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "199e1a5d1c5f7a9539c9aaa9095cdef9e3eca28be066f39223366bba5a1b38a8",
+        "characters": 675,
+        "approx_tokens": 167
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Pulmonary Tuberculosis vs Infectious Mononucleosis",
+            "query": "Medical evidence distinguishing Pulmonary Tuberculosis vs Infectious Mononucleosis. Identify which findings are specific, contradictory, or commonly misleading: The patient has a lab result or vital sign showing I live 4 or.; The patient presents with the clinical finding of pain.; The patient presents with the clinical finding of burning.; The patient presents with the clinical finding of tons.; The patient presents with the clinical finding of thyroid.; The patient presents with the clinical finding of under the jaw.; The patient presents with the clinical finding of fever.; The patient presents with the clinical finding of coughing.; The patient presents with the clinical finding of sputum.; The patient presents with the clinical finding of cold.",
+            "value": 0.937547,
+            "reason": "high_differential_entropy"
+          }
+        ],
+        "unresolved_questions": [
+          "Is the patient's cough productive or non-productive?",
+          "Has the patient experienced any recent travel or exposure to infectious diseases?",
+          "What is the patient's travel history?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "high_differential_entropy"
+            ],
+            "normalized_entropy": 0.937547,
+            "margin": 0.13473,
+            "distribution": [
+              {
+                "diagnosis": "Pulmonary Tuberculosis",
+                "probability": 0.345871
+              },
+              {
+                "diagnosis": "Infectious Mononucleosis",
+                "probability": 0.176341
+              },
+              {
+                "diagnosis": "Allergic Bronchopulmonary Aspergillosis",
+                "probability": 0.14782
+              },
+              {
+                "diagnosis": "Gastroesophageal Reflux Disease",
+                "probability": 0.132905
+              },
+              {
+                "diagnosis": "Pneumonia",
+                "probability": 0.107646
+              },
+              {
+                "diagnosis": "Cystic Fibrosis",
+                "probability": 0.089418
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.339137,
+            "verified_evidence_spans": 2
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.986285,
+            "margin": 0.051826,
+            "distribution": [
+              {
+                "diagnosis": "Pulmonary Tuberculosis",
+                "probability": 0.234098
+              },
+              {
+                "diagnosis": "Infectious Mononucleosis",
+                "probability": 0.180659
+              },
+              {
+                "diagnosis": "Allergic Bronchopulmonary Aspergillosis",
+                "probability": 0.169683
+              },
+              {
+                "diagnosis": "Gastroesophageal Reflux Disease",
+                "probability": 0.160505
+              },
+              {
+                "diagnosis": "Cystic Fibrosis",
+                "probability": 0.142442
+              },
+              {
+                "diagnosis": "Pneumonia",
+                "probability": 0.112613
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.257645,
+            "verified_evidence_spans": 1
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 14,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.07289,
+          "initial_retrieval": 0.121783,
+          "initial_reasoning_and_audit": 14.254323,
+          "contrastive_revision": 12.873928,
+          "provenance_graph": 6e-05,
+          "total": 27.32304
+        },
+        "hypotheses": [
+          {
+            "claim": "Pulmonary Tuberculosis",
+            "depth": 1,
+            "entropy": 0.9877746553159469,
+            "confidence": 0.435,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Infectious Mononucleosis",
+            "depth": 1,
+            "entropy": 0.8812908992306927,
+            "confidence": 0.3,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Allergic Bronchopulmonary Aspergillosis",
+            "depth": 1,
+            "entropy": 0.8341980958607491,
+            "confidence": 0.265,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 29.243,
+      "n_axioms": 11,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 6694,
+          "completion_tokens": 1155,
+          "queue_seconds": 2.4e-05,
+          "inference_seconds": 28.850206
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 6694,
+            "completion_tokens": 1155,
+            "queue_seconds": 2.4e-05,
+            "inference_seconds": 28.850206
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_114619",
+      "case_type": "control",
+      "ground_truth": "Bronchiectasis",
+      "predictions": {
+        "apiro": [
+          "Bronchiectasis",
+          "Cystic Fibrosis",
+          "Allergic Bronchopulmonary Aspergillosis"
+        ],
+        "rag": [
+          "Bronchiectasis",
+          "COPD (Chronic Obstructive Pulmonary Disease)",
+          "Pneumonia"
+        ],
+        "bare_llm": [
+          "Pneumonia",
+          "Bronchiectasis",
+          "Acute Respiratory Distress Syndrome (ARDS)"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Bronchiectasis",
+          "Cystic Fibrosis",
+          "Allergic Bronchopulmonary Aspergillosis"
+        ],
+        "rag": "Bronchiectasis\nCOPD (Chronic Obstructive Pulmonary Disease)\nPneumonia",
+        "bare_llm": "Pneumonia\nBronchiectasis\nAcute Respiratory Distress Syndrome (ARDS)"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "a8eb5a31ba691b0de205cb6232c9c2c7dd7f89f46198102917a3a02e390e9639",
+        "characters": 648,
+        "approx_tokens": 159
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 1,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Pneumonia vs Chronic Obstructive Pulmonary Disease (COPD)",
+            "query": "Medical evidence distinguishing Pneumonia vs Chronic Obstructive Pulmonary Disease (COPD). Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of coughing up.; The patient presents with the clinical finding of shortness of breath.; The patient presents with the clinical finding of difficulty breathing.; The patient presents with the clinical finding of cough.; The patient presents with the clinical finding of sputum.; The patient presents with the clinical finding of stic fi.; The patient has a documented diagnosis of brosis.; The patient has a documented diagnosis of rhe.; The patient has a documented diagnosis of umatoid arthritis.; The patient has a documented diagnosis of crohn \u2019 s disease.",
+            "value": 0.99165,
+            "reason": "no_cited_patient_support; no_verified_evidence_span; small_candidate_margin; high_differential_entropy"
+          }
+        ],
+        "unresolved_questions": [
+          "What is the patient's travel history in the past year?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "no_cited_patient_support",
+              "no_verified_evidence_span",
+              "small_candidate_margin",
+              "high_differential_entropy"
+            ],
+            "normalized_entropy": 0.99165,
+            "margin": 0.035,
+            "distribution": [
+              {
+                "diagnosis": "Pneumonia",
+                "probability": 0.22316
+              },
+              {
+                "diagnosis": "Chronic Obstructive Pulmonary Disease (COPD)",
+                "probability": 0.187333
+              },
+              {
+                "diagnosis": "Bronchiectasis",
+                "probability": 0.157258
+              },
+              {
+                "diagnosis": "Cystic Fibrosis",
+                "probability": 0.144083
+              },
+              {
+                "diagnosis": "Pulmonary Tuberculosis",
+                "probability": 0.144083
+              },
+              {
+                "diagnosis": "Allergic Bronchopulmonary Aspergillosis",
+                "probability": 0.144083
+              }
+            ],
+            "influential_fact_id": null,
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.21,
+            "verified_evidence_spans": 0
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.931674,
+            "margin": 0.051308,
+            "distribution": [
+              {
+                "diagnosis": "Bronchiectasis",
+                "probability": 0.261773
+              },
+              {
+                "diagnosis": "Cystic Fibrosis",
+                "probability": 0.20254
+              },
+              {
+                "diagnosis": "Allergic Bronchopulmonary Aspergillosis",
+                "probability": 0.200945
+              },
+              {
+                "diagnosis": "Pulmonary Tuberculosis",
+                "probability": 0.167214
+              },
+              {
+                "diagnosis": "Chronic Obstructive Pulmonary Disease (COPD)",
+                "probability": 0.140369
+              },
+              {
+                "diagnosis": "Pneumonia",
+                "probability": 0.027158
+              }
+            ],
+            "influential_fact_id": "ax_4",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.17714,
+            "verified_evidence_spans": 1
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 18,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.034237,
+          "initial_retrieval": 0.160326,
+          "initial_reasoning_and_audit": 17.810097,
+          "contrastive_revision": 12.79798,
+          "provenance_graph": 3.9e-05,
+          "total": 30.802729
+        },
+        "hypotheses": [
+          {
+            "claim": "Bronchiectasis",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.2,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Cystic Fibrosis",
+            "depth": 1,
+            "entropy": 0.28639695711595625,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Allergic Bronchopulmonary Aspergillosis",
+            "depth": 1,
+            "entropy": 0.28639695711595625,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 32.852,
+      "n_axioms": 15,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 6799,
+          "completion_tokens": 1307,
+          "queue_seconds": 2.4e-05,
+          "inference_seconds": 32.428724
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 6799,
+            "completion_tokens": 1307,
+            "queue_seconds": 2.4e-05,
+            "inference_seconds": 32.428724
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_114619",
+      "case_type": "trap",
+      "ground_truth": "Bronchitis",
+      "predictions": {
+        "apiro": [
+          "Pulmonary Tuberculosis",
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Cystic Fibrosis"
+        ],
+        "rag": [
+          "Bronchiectasis",
+          "Pneumonia",
+          "Cystic Fibrosis exacerbation"
+        ],
+        "bare_llm": [
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Pneumonia",
+          "Acute Exacerbation of Asthma"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pulmonary Tuberculosis",
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Cystic Fibrosis"
+        ],
+        "rag": "Bronchiectasis\nPneumonia\nCystic Fibrosis exacerbation",
+        "bare_llm": "Chronic Obstructive Pulmonary Disease (COPD)\nPneumonia\nAcute Exacerbation of Asthma"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "8b0258f76a146b75f4322e119921c40140659bf217fdf5e30f7608702c6df870",
+        "characters": 727,
+        "approx_tokens": 169
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 1,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Pulmonary Tuberculosis vs Chronic Obstructive Pulmonary Disease (COPD)",
+            "query": "Medical evidence distinguishing Pulmonary Tuberculosis vs Chronic Obstructive Pulmonary Disease (COPD). Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of cough.; The patient presents with the clinical finding of shortness of breath.; The patient presents with the clinical finding of difficulty breathing.; The patient presents with the clinical finding of stic fi.; The patient has a documented diagnosis of bro.; The patient presents with the clinical finding of sis.; The patient has a documented diagnosis of rheumatoid arthritis.; The patient has a documented diagnosis of ohn \u2019 s disease.; The patient has a documented diagnosis of ulceritis.; The patient has a documented diagnosis of pneumonia.",
+            "value": 0.993671,
+            "reason": "single_fact_dependence; small_candidate_margin; high_differential_entropy; counterfactual_rank_flip"
+          }
+        ],
+        "unresolved_questions": [
+          "What is the patient's travel history in the past year?",
+          "Has the patient experienced any recent changes in sputum character or frequency?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.993671,
+            "margin": 0.047973,
+            "distribution": [
+              {
+                "diagnosis": "Pulmonary Tuberculosis",
+                "probability": 0.220276
+              },
+              {
+                "diagnosis": "Chronic Obstructive Pulmonary Disease (COPD)",
+                "probability": 0.173299
+              },
+              {
+                "diagnosis": "Cystic Fibrosis",
+                "probability": 0.161704
+              },
+              {
+                "diagnosis": "Pneumonia",
+                "probability": 0.151002
+              },
+              {
+                "diagnosis": "Asthma",
+                "probability": 0.150659
+              },
+              {
+                "diagnosis": "Immunodeficiency",
+                "probability": 0.14306
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.222974,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "no_cited_patient_support",
+              "no_verified_evidence_span",
+              "small_candidate_margin",
+              "high_differential_entropy"
+            ],
+            "normalized_entropy": 0.99165,
+            "margin": 0.035,
+            "distribution": [
+              {
+                "diagnosis": "Pulmonary Tuberculosis",
+                "probability": 0.22316
+              },
+              {
+                "diagnosis": "Chronic Obstructive Pulmonary Disease (COPD)",
+                "probability": 0.187333
+              },
+              {
+                "diagnosis": "Cystic Fibrosis",
+                "probability": 0.157258
+              },
+              {
+                "diagnosis": "Pneumonia",
+                "probability": 0.144083
+              },
+              {
+                "diagnosis": "Asthma",
+                "probability": 0.144083
+              },
+              {
+                "diagnosis": "Immunodeficiency",
+                "probability": 0.144083
+              }
+            ],
+            "influential_fact_id": null,
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.21,
+            "verified_evidence_spans": 0
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 18,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.037546,
+          "initial_retrieval": 0.170187,
+          "initial_reasoning_and_audit": 17.267394,
+          "contrastive_revision": 18.56156,
+          "provenance_graph": 3.5e-05,
+          "total": 36.036758
+        },
+        "hypotheses": [
+          {
+            "claim": "Pulmonary Tuberculosis",
+            "depth": 1,
+            "entropy": 0.9709505944546686,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Chronic Obstructive Pulmonary Disease (COPD)",
+            "depth": 1,
+            "entropy": 1.0,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Cystic Fibrosis",
+            "depth": 1,
+            "entropy": 0.9709505944546686,
+            "confidence": 0.39999999999999997,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 38.1501,
+      "n_axioms": 15,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 6303,
+          "completion_tokens": 1561,
+          "queue_seconds": 2.8e-05,
+          "inference_seconds": 37.694362
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 6303,
+            "completion_tokens": 1561,
+            "queue_seconds": 2.8e-05,
+            "inference_seconds": 37.694362
+          }
+        }
+      }
+    }
+  ]
+}

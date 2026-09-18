@@ -1,0 +1,1333 @@
+{
+  "manifest": {
+    "schema_version": "1.0",
+    "run_id": "medeinst-20260918T211221Z-994cd3f3",
+    "created_at": "2026-09-18T21:12:21.434295+00:00",
+    "benchmark": "medeinst",
+    "dataset": {
+      "id": "zhui711/MedEinst",
+      "revision": "354f4b5"
+    },
+    "cases": {
+      "count": 10,
+      "ids_sha256": "47e35224c63ba7077f2d45cf83577e7826ed48e6985dbe128bd8d236a86e4ab8"
+    },
+    "code": {
+      "git_commit": "ab47b5ca02863b5e19a174114fe7786315881b3f",
+      "dirty": false
+    },
+    "configuration": {
+      "split": "test",
+      "seed": 7,
+      "n_pairs": 5,
+      "max_depth": 6,
+      "n_diagnoses": 3,
+      "model": "llama3.1:8b",
+      "decoding": {
+        "temperature": 0.2,
+        "seed": 7,
+        "num_predict": 180,
+        "json_num_predict": 768
+      }
+    },
+    "environment": {
+      "python": "3.14.6",
+      "platform": "Linux-7.1.8-200.nobara.fc44.x86_64-x86_64-with-glibc2.43"
+    }
+  },
+  "scores": {
+    "apiro": {
+      "n_pairs": 5,
+      "n_control_correct": 1,
+      "n_bias_traps": 0,
+      "bias_trap_rate": 0.0,
+      "bias_trap_rate_ci": [
+        5.551115123125783e-17,
+        0.7934506858870163
+      ],
+      "control_accuracy": 0.2,
+      "trap_accuracy": 0.0,
+      "pair_resilience": 0.0,
+      "conditional_trap_error_rate": 1.0,
+      "top3_control_accuracy": 0.4,
+      "top3_trap_accuracy": 0.2,
+      "top3_pair_resilience": 0.2,
+      "rank_transitions": [
+        {
+          "case_id": "case_60495",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_85085",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": 2
+        },
+        {
+          "case_id": "case_106645",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_101087",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_114619",
+          "control_truth_rank_control": 2,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        }
+      ],
+      "false_confidence": {
+        "threshold": 0.7,
+        "scored_cases": 10,
+        "wrong_top1_cases": 9,
+        "confident_wrong_top1_cases": 2,
+        "false_confidence_rate": 0.2,
+        "false_confidence_rate_on_errors": 0.2222222222222222
+      }
+    },
+    "rag": {
+      "n_pairs": 5,
+      "n_control_correct": 1,
+      "n_bias_traps": 1,
+      "bias_trap_rate": 1.0,
+      "bias_trap_rate_ci": [
+        0.2065493141129836,
+        0.9999999999999999
+      ],
+      "control_accuracy": 0.2,
+      "trap_accuracy": 0.2,
+      "pair_resilience": 0.0,
+      "conditional_trap_error_rate": 1.0,
+      "top3_control_accuracy": 0.4,
+      "top3_trap_accuracy": 0.4,
+      "top3_pair_resilience": 0.2,
+      "rank_transitions": [
+        {
+          "case_id": "case_60495",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_85085",
+          "control_truth_rank_control": 3,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": 1
+        },
+        {
+          "case_id": "case_106645",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_101087",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": 2
+        },
+        {
+          "case_id": "case_114619",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": 1,
+          "trap_truth_rank_trap": null
+        }
+      ],
+      "false_confidence": {
+        "threshold": 0.7,
+        "scored_cases": 0,
+        "wrong_top1_cases": 0,
+        "confident_wrong_top1_cases": 0,
+        "false_confidence_rate": null,
+        "false_confidence_rate_on_errors": null
+      }
+    },
+    "bare_llm": {
+      "n_pairs": 5,
+      "n_control_correct": 2,
+      "n_bias_traps": 1,
+      "bias_trap_rate": 0.5,
+      "bias_trap_rate_ci": [
+        0.0945312056223091,
+        0.9054687943776909
+      ],
+      "control_accuracy": 0.4,
+      "trap_accuracy": 0.0,
+      "pair_resilience": 0.0,
+      "conditional_trap_error_rate": 1.0,
+      "top3_control_accuracy": 0.8,
+      "top3_trap_accuracy": 0.2,
+      "top3_pair_resilience": 0.2,
+      "rank_transitions": [
+        {
+          "case_id": "case_60495",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_85085",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": 2
+        },
+        {
+          "case_id": "case_106645",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": 1,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_101087",
+          "control_truth_rank_control": 3,
+          "control_truth_rank_trap": 3,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_114619",
+          "control_truth_rank_control": 2,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        }
+      ],
+      "false_confidence": {
+        "threshold": 0.7,
+        "scored_cases": 0,
+        "wrong_top1_cases": 0,
+        "confident_wrong_top1_cases": 0,
+        "false_confidence_rate": null,
+        "false_confidence_rate_on_errors": null
+      }
+    }
+  },
+  "case_results": [
+    {
+      "case_id": "case_60495",
+      "case_type": "control",
+      "ground_truth": "Myocarditis",
+      "predictions": {
+        "apiro": [
+          "Myocardial ischemia",
+          "Costochondritis",
+          "Acute chest syndrome"
+        ],
+        "rag": [
+          "Acute Coronary Syndrome",
+          "Pulmonary Embolism",
+          "Costochondritis"
+        ],
+        "bare_llm": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Pneumonia"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Myocardial ischemia",
+          "Costochondritis",
+          "Acute chest syndrome"
+        ],
+        "rag": "1. Acute Coronary Syndrome\n2. Pulmonary Embolism\n3. Costochondritis",
+        "bare_llm": "Pulmonary Embolism\nAcute Coronary Syndrome\nPneumonia"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "94c28850c3e5ac84d767beba601f198b7b9f19df9b2742e307165e993fc4a510",
+        "characters": 845,
+        "approx_tokens": 205
+      },
+      "traversal": {
+        "reasoning_mode": "simple",
+        "rounds": 1,
+        "retrieval_count": 1,
+        "reasoning_call_count": 1,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "bounded_complete",
+        "total_nodes": 15,
+        "contradictions": 0,
+        "stage_timings": {
+          "extraction": 0.06013,
+          "retrieval": 0.129755,
+          "generation": 4.964121,
+          "constraints_and_ranking": 5.2e-05,
+          "total": 5.154062
+        },
+        "hypotheses": [
+          {
+            "claim": "Myocardial ischemia",
+            "depth": 1,
+            "entropy": 0.9709505944546686,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Costochondritis",
+            "depth": 1,
+            "entropy": 0.8812908992306927,
+            "confidence": 0.3,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute chest syndrome",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.2,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 7.2349,
+      "n_axioms": 12,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 3,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 3365,
+          "completion_tokens": 228,
+          "queue_seconds": 1.7e-05,
+          "inference_seconds": 6.889983
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 3,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 3365,
+            "completion_tokens": 228,
+            "queue_seconds": 1.7e-05,
+            "inference_seconds": 6.889983
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_60495",
+      "case_type": "trap",
+      "ground_truth": "Acute pulmonary edema",
+      "predictions": {
+        "apiro": [
+          "Acute Coronary Syndrome (ACS)",
+          "Unstable Angina",
+          "Pulmonary Embolism"
+        ],
+        "rag": [
+          "Acute Coronary Syndrome (ACS)",
+          "Unstable Angina",
+          "Pulmonary Embolism"
+        ],
+        "bare_llm": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Congestive Heart Failure"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Acute Coronary Syndrome (ACS)",
+          "Unstable Angina",
+          "Pulmonary Embolism"
+        ],
+        "rag": "1. Acute Coronary Syndrome (ACS)\n2. Unstable Angina\n3. Pulmonary Embolism",
+        "bare_llm": "Pulmonary Embolism\nAcute Coronary Syndrome\nCongestive Heart Failure"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "7ebc6cf3e00602f2b2254af0cc23881876caa8735ad7b333dfccd1f46fc4bcde",
+        "characters": 883,
+        "approx_tokens": 203
+      },
+      "traversal": {
+        "reasoning_mode": "simple",
+        "rounds": 1,
+        "retrieval_count": 1,
+        "reasoning_call_count": 1,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "bounded_complete",
+        "total_nodes": 15,
+        "contradictions": 1,
+        "stage_timings": {
+          "extraction": 0.039426,
+          "retrieval": 0.127761,
+          "generation": 5.070801,
+          "constraints_and_ranking": 3.7e-05,
+          "total": 5.238031
+        },
+        "hypotheses": [
+          {
+            "claim": "Acute Coronary Syndrome (ACS)",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Unstable Angina",
+            "depth": 1,
+            "entropy": 0.9709505944546686,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pulmonary Embolism",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.2,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 7.4047,
+      "n_axioms": 12,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 3,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 3738,
+          "completion_tokens": 236,
+          "queue_seconds": 1.4e-05,
+          "inference_seconds": 7.157012
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 3,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 3738,
+            "completion_tokens": 236,
+            "queue_seconds": 1.4e-05,
+            "inference_seconds": 7.157012
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_85085",
+      "case_type": "control",
+      "ground_truth": "Spontaneous pneumothorax",
+      "predictions": {
+        "apiro": [
+          "Pneumothorax",
+          "Costochondritis",
+          "Gallbladder disease"
+        ],
+        "rag": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Pneumothorax"
+        ],
+        "bare_llm": [
+          "Pneumothorax",
+          "Acute Coronary Syndrome",
+          "Chronic Obstructive Pulmonary Disease exacerbation"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pneumothorax",
+          "Costochondritis",
+          "Gallbladder disease"
+        ],
+        "rag": "Pulmonary Embolism\nAcute Coronary Syndrome\nPneumothorax",
+        "bare_llm": "Pneumothorax\nAcute Coronary Syndrome\nChronic Obstructive Pulmonary Disease exacerbation"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "917cff960956d4e92fc960c164a6a5fd2eb7c17d96918a532770a592fc1b394e",
+        "characters": 971,
+        "approx_tokens": 237
+      },
+      "traversal": {
+        "reasoning_mode": "simple",
+        "rounds": 1,
+        "retrieval_count": 1,
+        "reasoning_call_count": 1,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "bounded_complete",
+        "total_nodes": 15,
+        "contradictions": 0,
+        "stage_timings": {
+          "extraction": 0.058698,
+          "retrieval": 0.177064,
+          "generation": 3.893264,
+          "constraints_and_ranking": 3.7e-05,
+          "total": 4.129065
+        },
+        "hypotheses": [
+          {
+            "claim": "Pneumothorax",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Costochondritis",
+            "depth": 1,
+            "entropy": 0.9709505944546686,
+            "confidence": 0.4,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Gallbladder disease",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.2,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 6.2219,
+      "n_axioms": 12,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 3,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 3403,
+          "completion_tokens": 183,
+          "queue_seconds": 1.5e-05,
+          "inference_seconds": 5.884347
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 3,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 3403,
+            "completion_tokens": 183,
+            "queue_seconds": 1.5e-05,
+            "inference_seconds": 5.884347
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_85085",
+      "case_type": "trap",
+      "ground_truth": "Pulmonary embolism",
+      "predictions": {
+        "apiro": [
+          "Acute Coronary Syndrome",
+          "Pulmonary Embolism",
+          "Costochondritis"
+        ],
+        "rag": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Costochondritis"
+        ],
+        "bare_llm": [
+          "Pneumonia",
+          "Pulmonary Embolism",
+          "Pleurisy"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Acute Coronary Syndrome",
+          "Pulmonary Embolism",
+          "Costochondritis"
+        ],
+        "rag": "Pulmonary Embolism\nAcute Coronary Syndrome\nCostochondritis",
+        "bare_llm": "Pneumonia\nPulmonary Embolism\nPleurisy"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "acf6831119f4ea4f603176edb8773e9cd16d9468e466c9bc4fcfd6e12a2c96d8",
+        "characters": 973,
+        "approx_tokens": 240
+      },
+      "traversal": {
+        "reasoning_mode": "simple",
+        "rounds": 1,
+        "retrieval_count": 1,
+        "reasoning_call_count": 1,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "bounded_complete",
+        "total_nodes": 15,
+        "contradictions": 0,
+        "stage_timings": {
+          "extraction": 0.04891,
+          "retrieval": 0.16651,
+          "generation": 4.706524,
+          "constraints_and_ranking": 6.7e-05,
+          "total": 4.922015
+        },
+        "hypotheses": [
+          {
+            "claim": "Acute Coronary Syndrome",
+            "depth": 1,
+            "entropy": 0.9709505944546686,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pulmonary Embolism",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.2,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Costochondritis",
+            "depth": 1,
+            "entropy": 0.4689955935892812,
+            "confidence": 0.1,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 6.7367,
+      "n_axioms": 12,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 3,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 3485,
+          "completion_tokens": 209,
+          "queue_seconds": 1.4e-05,
+          "inference_seconds": 6.420224
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 3,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 3485,
+            "completion_tokens": 209,
+            "queue_seconds": 1.4e-05,
+            "inference_seconds": 6.420224
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_106645",
+      "case_type": "control",
+      "ground_truth": "Pneumonia",
+      "predictions": {
+        "apiro": [
+          "Pulmonary TB",
+          "Kawasaki disease",
+          "Infective endocarditis"
+        ],
+        "rag": [
+          "Pulmonary TB",
+          "Kawasaki disease",
+          "Infectious mononucleosis"
+        ],
+        "bare_llm": [
+          "Pneumonia",
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Acute Bronchitis"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pulmonary TB",
+          "Kawasaki disease",
+          "Infective endocarditis"
+        ],
+        "rag": "Pulmonary TB\nKawasaki disease\nInfectious mononucleosis",
+        "bare_llm": "Pneumonia\nChronic Obstructive Pulmonary Disease (COPD)\nAcute Bronchitis"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "a54650a6c076b91e90ab9007e7e21585193652d25a600b39cdf5a12c8abb718a",
+        "characters": 1359,
+        "approx_tokens": 356
+      },
+      "traversal": {
+        "reasoning_mode": "simple",
+        "rounds": 1,
+        "retrieval_count": 1,
+        "reasoning_call_count": 1,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "bounded_complete",
+        "total_nodes": 15,
+        "contradictions": 1,
+        "stage_timings": {
+          "extraction": 0.068636,
+          "retrieval": 0.175698,
+          "generation": 5.443405,
+          "constraints_and_ranking": 3.4e-05,
+          "total": 5.687776
+        },
+        "hypotheses": [
+          {
+            "claim": "Pulmonary TB",
+            "depth": 1,
+            "entropy": 0.9709505944546686,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Kawasaki disease",
+            "depth": 1,
+            "entropy": 0.8812908992306927,
+            "confidence": 0.3,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Infective endocarditis",
+            "depth": 1,
+            "entropy": 0.4689955935892812,
+            "confidence": 0.1,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 8.0661,
+      "n_axioms": 12,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 3,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 4513,
+          "completion_tokens": 241,
+          "queue_seconds": 1.5e-05,
+          "inference_seconds": 7.661981
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 3,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 4513,
+            "completion_tokens": 241,
+            "queue_seconds": 1.5e-05,
+            "inference_seconds": 7.661981
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_106645",
+      "case_type": "trap",
+      "ground_truth": "Bronchitis",
+      "predictions": {
+        "apiro": [
+          "Pulmonary TB",
+          "Kawasaki Disease",
+          "Infective Endocarditis"
+        ],
+        "rag": [
+          "Pulmonary TB",
+          "Kawasaki disease",
+          "Infectious mononucleosis"
+        ],
+        "bare_llm": [
+          "Pneumonia",
+          "COPD exacerbation",
+          "Cardiac tamponade"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pulmonary TB",
+          "Kawasaki Disease",
+          "Infective Endocarditis"
+        ],
+        "rag": "Pulmonary TB\nKawasaki disease\nInfectious mononucleosis",
+        "bare_llm": "Pneumonia\nCOPD exacerbation\nCardiac tamponade"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "a48b5212bdc9c24661455229c3df427e51a8aa5655ed04a2415c1a881c9b913d",
+        "characters": 1433,
+        "approx_tokens": 356
+      },
+      "traversal": {
+        "reasoning_mode": "simple",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "corrective_complete",
+        "total_nodes": 15,
+        "contradictions": 1,
+        "stage_timings": {
+          "extraction": 0.071669,
+          "retrieval": 0.181672,
+          "generation": 10.166757,
+          "constraints_and_ranking": 3.8e-05,
+          "total": 10.420141
+        },
+        "hypotheses": [
+          {
+            "claim": "Pulmonary TB",
+            "depth": 1,
+            "entropy": 0.9927744539878083,
+            "confidence": 0.45,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Kawasaki Disease",
+            "depth": 1,
+            "entropy": 0.6098403047164004,
+            "confidence": 0.15,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Infective Endocarditis",
+            "depth": 1,
+            "entropy": 0.8112781244591328,
+            "confidence": 0.25,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 12.7344,
+      "n_axioms": 12,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 4470,
+          "completion_tokens": 222,
+          "queue_seconds": 2.3e-05,
+          "inference_seconds": 12.135053
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 4470,
+            "completion_tokens": 222,
+            "queue_seconds": 2.3e-05,
+            "inference_seconds": 12.135053
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_101087",
+      "case_type": "control",
+      "ground_truth": "Acute laryngitis",
+      "predictions": {
+        "apiro": [
+          "Pulmonary TB",
+          "Acute bronchitis",
+          "Gallbladder disease"
+        ],
+        "rag": [
+          "Acute bronchitis",
+          "Pharyngitis",
+          "Infectious mononucleosis"
+        ],
+        "bare_llm": [
+          "Tonsillitis",
+          "Thyroiditis",
+          "Laryngitis"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pulmonary TB",
+          "Acute bronchitis",
+          "Gallbladder disease"
+        ],
+        "rag": "1. Acute bronchitis\n2. Pharyngitis\n3. Infectious mononucleosis",
+        "bare_llm": "Tonsillitis\nThyroiditis\nLaryngitis"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "f9c6c8cadd8053f947388d6d22390544ed79764591f3ba4972350df465842846",
+        "characters": 612,
+        "approx_tokens": 163
+      },
+      "traversal": {
+        "reasoning_mode": "simple",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "corrective_complete",
+        "total_nodes": 13,
+        "contradictions": 0,
+        "stage_timings": {
+          "extraction": 0.038449,
+          "retrieval": 0.124837,
+          "generation": 9.730627,
+          "constraints_and_ranking": 5.4e-05,
+          "total": 9.893972
+        },
+        "hypotheses": [
+          {
+            "claim": "Pulmonary TB",
+            "depth": 1,
+            "entropy": 0.9927744539878083,
+            "confidence": 0.45,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute bronchitis",
+            "depth": 1,
+            "entropy": 0.8112781244591328,
+            "confidence": 0.25,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Gallbladder disease",
+            "depth": 1,
+            "entropy": 0.6098403047164004,
+            "confidence": 0.15,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 11.9687,
+      "n_axioms": 10,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 6164,
+          "completion_tokens": 369,
+          "queue_seconds": 2.6e-05,
+          "inference_seconds": 11.541034
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 6164,
+            "completion_tokens": 369,
+            "queue_seconds": 2.6e-05,
+            "inference_seconds": 11.541034
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_101087",
+      "case_type": "trap",
+      "ground_truth": "Bronchitis",
+      "predictions": {
+        "apiro": [
+          "Pulmonary TB",
+          "Gastroesophageal reflux disease",
+          "Costochondritis"
+        ],
+        "rag": [
+          "Tonsillitis",
+          "Acute bronchitis",
+          "Pulmonary TB"
+        ],
+        "bare_llm": [
+          "Tonsillitis",
+          "Pneumonia",
+          "Laryngitis"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pulmonary TB",
+          "Gastroesophageal reflux disease",
+          "Costochondritis"
+        ],
+        "rag": "Tonsillitis\nAcute bronchitis\nPulmonary TB",
+        "bare_llm": "Tonsillitis\nPneumonia\nLaryngitis"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "199e1a5d1c5f7a9539c9aaa9095cdef9e3eca28be066f39223366bba5a1b38a8",
+        "characters": 675,
+        "approx_tokens": 167
+      },
+      "traversal": {
+        "reasoning_mode": "simple",
+        "rounds": 1,
+        "retrieval_count": 1,
+        "reasoning_call_count": 1,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "bounded_complete",
+        "total_nodes": 14,
+        "contradictions": 0,
+        "stage_timings": {
+          "extraction": 0.045953,
+          "retrieval": 0.126584,
+          "generation": 5.199543,
+          "constraints_and_ranking": 4.3e-05,
+          "total": 5.372128
+        },
+        "hypotheses": [
+          {
+            "claim": "Pulmonary TB",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Gastroesophageal reflux disease",
+            "depth": 1,
+            "entropy": 0.6098403047164004,
+            "confidence": 0.15,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Costochondritis",
+            "depth": 1,
+            "entropy": 0.28639695711595625,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 7.2941,
+      "n_axioms": 11,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 3,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 3600,
+          "completion_tokens": 226,
+          "queue_seconds": 1.7e-05,
+          "inference_seconds": 7.038727
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 3,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 3600,
+            "completion_tokens": 226,
+            "queue_seconds": 1.7e-05,
+            "inference_seconds": 7.038727
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_114619",
+      "case_type": "control",
+      "ground_truth": "Bronchiectasis",
+      "predictions": {
+        "apiro": [
+          "Pulmonary Tuberculosis",
+          "Bronchiectasis",
+          "Chronic Obstructive Pulmonary Disease (COPD)"
+        ],
+        "rag": [
+          "Bronchiectasis",
+          "COPD (Chronic Obstructive Pulmonary Disease)",
+          "Pneumonia"
+        ],
+        "bare_llm": [
+          "Pneumonia",
+          "Bronchiectasis",
+          "Acute Respiratory Distress Syndrome (ARDS)"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pulmonary Tuberculosis",
+          "Bronchiectasis",
+          "Chronic Obstructive Pulmonary Disease (COPD)"
+        ],
+        "rag": "Bronchiectasis\nCOPD (Chronic Obstructive Pulmonary Disease)\nPneumonia",
+        "bare_llm": "Pneumonia\nBronchiectasis\nAcute Respiratory Distress Syndrome (ARDS)"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "a8eb5a31ba691b0de205cb6232c9c2c7dd7f89f46198102917a3a02e390e9639",
+        "characters": 648,
+        "approx_tokens": 159
+      },
+      "traversal": {
+        "reasoning_mode": "simple",
+        "rounds": 1,
+        "retrieval_count": 1,
+        "reasoning_call_count": 1,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "bounded_complete",
+        "total_nodes": 15,
+        "contradictions": 0,
+        "stage_timings": {
+          "extraction": 0.045812,
+          "retrieval": 0.24397,
+          "generation": 5.208848,
+          "constraints_and_ranking": 3.9e-05,
+          "total": 5.498673
+        },
+        "hypotheses": [
+          {
+            "claim": "Pulmonary Tuberculosis",
+            "depth": 1,
+            "entropy": 0.9709505944546686,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Bronchiectasis",
+            "depth": 1,
+            "entropy": 0.8812908992306927,
+            "confidence": 0.3,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Chronic Obstructive Pulmonary Disease (COPD)",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.2,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 7.6663,
+      "n_axioms": 12,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 3,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 3453,
+          "completion_tokens": 232,
+          "queue_seconds": 2.9e-05,
+          "inference_seconds": 7.235694
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 3,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 3453,
+            "completion_tokens": 232,
+            "queue_seconds": 2.9e-05,
+            "inference_seconds": 7.235694
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_114619",
+      "case_type": "trap",
+      "ground_truth": "Bronchitis",
+      "predictions": {
+        "apiro": [
+          "Pulmonary Tuberculosis",
+          "Allergic Bronchopulmonary Aspergillosis (ABPA)",
+          "Chronic Obstructive Pulmonary Disease (COPD)"
+        ],
+        "rag": [
+          "Bronchiectasis",
+          "Pneumonia",
+          "Cystic Fibrosis exacerbation"
+        ],
+        "bare_llm": [
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Pneumonia",
+          "Acute Exacerbation of Asthma"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pulmonary Tuberculosis",
+          "Allergic Bronchopulmonary Aspergillosis (ABPA)",
+          "Chronic Obstructive Pulmonary Disease (COPD)"
+        ],
+        "rag": "Bronchiectasis\nPneumonia\nCystic Fibrosis exacerbation",
+        "bare_llm": "Chronic Obstructive Pulmonary Disease (COPD)\nPneumonia\nAcute Exacerbation of Asthma"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "8b0258f76a146b75f4322e119921c40140659bf217fdf5e30f7608702c6df870",
+        "characters": 727,
+        "approx_tokens": 169
+      },
+      "traversal": {
+        "reasoning_mode": "simple",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "corrective_complete",
+        "total_nodes": 15,
+        "contradictions": 0,
+        "stage_timings": {
+          "extraction": 0.057676,
+          "retrieval": 0.315921,
+          "generation": 10.29606,
+          "constraints_and_ranking": 3.8e-05,
+          "total": 10.669703
+        },
+        "hypotheses": [
+          {
+            "claim": "Pulmonary Tuberculosis",
+            "depth": 1,
+            "entropy": 0.9814538950336535,
+            "confidence": 0.42,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Allergic Bronchopulmonary Aspergillosis (ABPA)",
+            "depth": 1,
+            "entropy": 0.8931734583778568,
+            "confidence": 0.31,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Chronic Obstructive Pulmonary Disease (COPD)",
+            "depth": 1,
+            "entropy": 0.8414646362081757,
+            "confidence": 0.27,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 12.9211,
+      "n_axioms": 12,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 5909,
+          "completion_tokens": 393,
+          "queue_seconds": 5.1e-05,
+          "inference_seconds": 12.147264
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 5909,
+            "completion_tokens": 393,
+            "queue_seconds": 5.1e-05,
+            "inference_seconds": 12.147264
+          }
+        }
+      }
+    }
+  ]
+}

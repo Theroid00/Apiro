@@ -1,0 +1,3945 @@
+{
+  "manifest": {
+    "schema_version": "1.0",
+    "run_id": "medeinst-20260918T211610Z-f9d4f77b",
+    "created_at": "2026-09-18T21:16:10.213488+00:00",
+    "benchmark": "medeinst",
+    "dataset": {
+      "id": "zhui711/MedEinst",
+      "revision": "354f4b5"
+    },
+    "cases": {
+      "count": 10,
+      "ids_sha256": "47e35224c63ba7077f2d45cf83577e7826ed48e6985dbe128bd8d236a86e4ab8"
+    },
+    "code": {
+      "git_commit": "ab47b5ca02863b5e19a174114fe7786315881b3f",
+      "dirty": false
+    },
+    "configuration": {
+      "split": "test",
+      "seed": 7,
+      "n_pairs": 5,
+      "max_depth": 6,
+      "n_diagnoses": 3,
+      "model": "llama3.1:8b",
+      "decoding": {
+        "temperature": 0.2,
+        "seed": 7,
+        "num_predict": 180,
+        "json_num_predict": 768
+      }
+    },
+    "environment": {
+      "python": "3.14.6",
+      "platform": "Linux-7.1.8-200.nobara.fc44.x86_64-x86_64-with-glibc2.43"
+    }
+  },
+  "scores": {
+    "apiro": {
+      "n_pairs": 5,
+      "n_control_correct": 2,
+      "n_bias_traps": 0,
+      "bias_trap_rate": 0.0,
+      "bias_trap_rate_ci": [
+        0.0,
+        0.6576197728563925
+      ],
+      "control_accuracy": 0.4,
+      "trap_accuracy": 0.2,
+      "pair_resilience": 0.2,
+      "conditional_trap_error_rate": 0.5,
+      "top3_control_accuracy": 0.4,
+      "top3_trap_accuracy": 0.4,
+      "top3_pair_resilience": 0.2,
+      "rank_transitions": [
+        {
+          "case_id": "case_60495",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_85085",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": 3,
+          "trap_truth_rank_trap": 1
+        },
+        {
+          "case_id": "case_106645",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": 1,
+          "trap_truth_rank_trap": 3
+        },
+        {
+          "case_id": "case_101087",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_114619",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        }
+      ],
+      "false_confidence": {
+        "threshold": 0.7,
+        "scored_cases": 10,
+        "wrong_top1_cases": 7,
+        "confident_wrong_top1_cases": 1,
+        "false_confidence_rate": 0.1,
+        "false_confidence_rate_on_errors": 0.14285714285714285
+      }
+    },
+    "rag": {
+      "n_pairs": 5,
+      "n_control_correct": 1,
+      "n_bias_traps": 1,
+      "bias_trap_rate": 1.0,
+      "bias_trap_rate_ci": [
+        0.2065493141129836,
+        0.9999999999999999
+      ],
+      "control_accuracy": 0.2,
+      "trap_accuracy": 0.2,
+      "pair_resilience": 0.0,
+      "conditional_trap_error_rate": 1.0,
+      "top3_control_accuracy": 0.4,
+      "top3_trap_accuracy": 0.4,
+      "top3_pair_resilience": 0.2,
+      "rank_transitions": [
+        {
+          "case_id": "case_60495",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_85085",
+          "control_truth_rank_control": 3,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": 1
+        },
+        {
+          "case_id": "case_106645",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_101087",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": 2
+        },
+        {
+          "case_id": "case_114619",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": 1,
+          "trap_truth_rank_trap": null
+        }
+      ],
+      "false_confidence": {
+        "threshold": 0.7,
+        "scored_cases": 0,
+        "wrong_top1_cases": 0,
+        "confident_wrong_top1_cases": 0,
+        "false_confidence_rate": null,
+        "false_confidence_rate_on_errors": null
+      }
+    },
+    "bare_llm": {
+      "n_pairs": 5,
+      "n_control_correct": 2,
+      "n_bias_traps": 1,
+      "bias_trap_rate": 0.5,
+      "bias_trap_rate_ci": [
+        0.0945312056223091,
+        0.9054687943776909
+      ],
+      "control_accuracy": 0.4,
+      "trap_accuracy": 0.0,
+      "pair_resilience": 0.0,
+      "conditional_trap_error_rate": 1.0,
+      "top3_control_accuracy": 0.8,
+      "top3_trap_accuracy": 0.2,
+      "top3_pair_resilience": 0.2,
+      "rank_transitions": [
+        {
+          "case_id": "case_60495",
+          "control_truth_rank_control": null,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_85085",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": 2
+        },
+        {
+          "case_id": "case_106645",
+          "control_truth_rank_control": 1,
+          "control_truth_rank_trap": 1,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_101087",
+          "control_truth_rank_control": 3,
+          "control_truth_rank_trap": 3,
+          "trap_truth_rank_trap": null
+        },
+        {
+          "case_id": "case_114619",
+          "control_truth_rank_control": 2,
+          "control_truth_rank_trap": null,
+          "trap_truth_rank_trap": null
+        }
+      ],
+      "false_confidence": {
+        "threshold": 0.7,
+        "scored_cases": 0,
+        "wrong_top1_cases": 0,
+        "confident_wrong_top1_cases": 0,
+        "false_confidence_rate": null,
+        "false_confidence_rate_on_errors": null
+      }
+    }
+  },
+  "case_results": [
+    {
+      "case_id": "case_60495",
+      "case_type": "control",
+      "ground_truth": "Myocarditis",
+      "predictions": {
+        "apiro": [
+          "Acute Myocardial Infarction",
+          "Pulmonary Edema",
+          "Viral-Induced Stress Cardiomyopathy"
+        ],
+        "rag": [
+          "Acute Coronary Syndrome",
+          "Pulmonary Embolism",
+          "Costochondritis"
+        ],
+        "bare_llm": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Pneumonia"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Acute Myocardial Infarction",
+          "Pulmonary Edema",
+          "Viral-Induced Stress Cardiomyopathy"
+        ],
+        "rag": "1. Acute Coronary Syndrome\n2. Pulmonary Embolism\n3. Costochondritis",
+        "bare_llm": "Pulmonary Embolism\nAcute Coronary Syndrome\nPneumonia"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "94c28850c3e5ac84d767beba601f198b7b9f19df9b2742e307165e993fc4a510",
+        "characters": 845,
+        "approx_tokens": 205
+      },
+      "traversal": {
+        "reasoning_mode": "legacy",
+        "rounds": 0,
+        "retrieval_count": 0,
+        "reasoning_call_count": 0,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "saturation",
+        "total_nodes": 76,
+        "contradictions": 50,
+        "stage_timings": {
+          "traversal_seconds": 165.4034,
+          "synthesis_seconds": 1.4907,
+          "log_write_seconds": 0.0012,
+          "total_seconds": 166.8953
+        },
+        "hypotheses": [
+          {
+            "claim": "Pleurisy due to viral infection causing inflammation of the pleura leading to chest pain and shortness of breath.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute coronary syndrome with myocardial infarction resulting in chest pain radiating to the side of the chest.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pulmonary embolism caused by deep vein thrombosis from recent viral infection leading to sudden onset of chest pain and difficulty breathing.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The breast pain may be caused by inflammation of the mammary gland due to viral infection.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The breast tissue may be experiencing ischemia or infarction due to compromised blood flow.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Elevated troponin levels suggesting acute coronary syndrome given the patient's chest pain and shortness of breath.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Hyperkalemia causing cardiac arrhythmias and muscle weakness, consistent with the patient's recent viral infection and increased potassium levels.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute myocardial infarction leading to pulmonary edema and respiratory distress, supported by the patient's ECG findings and clinical presentation.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleuritic chest pain radiating to the side of the chest may indicate pulmonary embolism given recent viral infection and shortness of breath.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Increased respiratory distress when lying down and alleviated by sitting up suggests possible pulmonary edema or congestive heart failure.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pulmonary edema may be exacerbated by diaphragmatic weakness due to viral infection-induced muscle fatigue.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Congestive heart failure could be contributing to orthopnea and alleviation of symptoms with sitting up, as per patient presentation.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Left atrial myxoma or hepatopulmonary syndrome should be considered in the differential diagnosis given the patient's platypnea.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Elevated troponin levels may be due to renal impairment causing CKD-related troponin elevation without acute ischemia.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Serial measurements of cardiac troponins are needed in patients with CKD to differentiate between CKD-related and ACS-related elevations.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "High-sensitivity troponin assays may detect small myocardial injuries or skeletal muscle damage, complicating the diagnosis of ACS.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pulmonary edema may be exacerbated by diaphragmatic weakness due to viral infection-induced muscle fatigue, as evidenced by chest x-ray showing pleural effusions and atelectasis.",
+            "depth": 3,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Chest imaging findings of bilateral opacities with shunt physiology requiring positive end-expiratory pressure (PEEP) suggest acute respiratory distress syndrome (ARDS), characterized by low-pressure pulmonary edema.",
+            "depth": 3,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Left ventricular systolic dysfunction could be contributing to orthopnea and alleviation of symptoms with sitting up due to increased venous return from the lower extremities.",
+            "depth": 3,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Increased pulmonary congestion may be exacerbating dyspnea on exertion, leading to worsening symptoms when lying down and relief while sitting or standing.",
+            "depth": 3,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Reduced cardiac reserve during exercise may result in inadequate oxygen delivery to tissues, manifesting as exertional intolerance with breathlessness or fatigue.",
+            "depth": 3,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Increased pulmonary congestion may be exacerbating dyspnea on exertion due to right ventricular failure and tricuspid regurgitation.",
+            "depth": 4,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Reduced pulmonary compliance and increased airway resistance may be contributing to the patient's exertional dyspnea.",
+            "depth": 4,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute myocardial infarction involving the interventricular septum and apex secondary to an occlusion of the left anterior descending coronary artery as evidenced by echocardiography findings.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pulmonary embolism with right heart failure, presenting with sudden-onset dyspnea, pleuritic chest pain, low-grade fever, cough, and hemoptysis on chest radiograph.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Myocardial edema characterized by reduced coronary flow, detectable via multiparametric CMR imaging in patients with acute chest pain.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Left ventricular systolic dysfunction may be confirmed by echocardiography showing reduced ejection fraction and abnormal left ventricular wall motion.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Right-sided heart failure could be suggested by imaging findings of peripheral edema, pleural effusion, and ascites on CT or MRI scans.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Transthoracic echocardiogram may reveal a distinctive pattern of transvalvular flow velocity with exaggerated reduction in blood flow velocity during inspiration.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Increased pulmonary congestion may be exacerbating dyspnea on exertion due to right ventricular failure and tricuspid regurgitation.",
+            "depth": 5,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Right ventricular failure leads to increased pulmonary vascular resistance, causing decreased cardiac output during exercise.",
+            "depth": 5,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Tricuspid regurgitation results in volume overload of the right ventricle, increasing pulmonary congestion and worsening dyspnea on exertion.",
+            "depth": 5,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Increased pulmonary congestion may be exacerbating dyspnea on exertion due to right ventricular failure and tricuspid regurgitation.",
+            "depth": 6,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Reduced pulmonary compliance may be exacerbated by interstitial edema due to viral infection-induced inflammation.",
+            "depth": 5,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Increased airway resistance could be contributing to exertional dyspnea through bronchoconstriction triggered by viral infection.",
+            "depth": 5,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Cardiac dysfunction, such as right ventricular failure, may be underlying the patient's symptoms of exertional dyspnea.",
+            "depth": 5,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Interstitial edema due to viral infection-induced inflammation may be visualized as bilateral ground-glass opacities on chest x-ray.",
+            "depth": 6,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pulmonary venous pressure increase, leading to interstitial and alveolar edema, may be evident on chest radiographs as perihilar infiltrates.",
+            "depth": 6,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Noncardiogenic pulmonary edema, characterized by increased lung water and decreased compliance, may manifest as diffuse alveolar infiltrates on CT scans.",
+            "depth": 6,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Reduced cardiac reserve during exercise may result in inadequate oxygen delivery to tissues due to increased myocardial wall stress from elevated arterial pressure.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Increased O2 consumption by exercising muscles may lead to tissue hypoxia if perfusion does not correspondingly increase, exacerbating exertional intolerance.",
+            "depth": 4,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Myocardial ischemia may be caused by an imbalance between myocardial oxygen supply and demand, particularly in the presence of coronary atherosclerosis or other underlying anatomic abnormalities.",
+            "depth": 4,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Myocardial oxygen supply-demand imbalance may be exacerbated by endothelial dysfunction in patients with coronary atherosclerosis.",
+            "depth": 5,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Increased myocardial contractility due to viral infection-induced stress may precipitate myocardial ischemia in susceptible individuals.",
+            "depth": 5,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Reduced coronary blood flow during diastole, as seen in large epicardial artery disease, can lead to transient disturbances of myocardial function.",
+            "depth": 5,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Increased myocardial contractility due to viral infection-induced stress may precipitate myocardial ischemia in susceptible individuals.",
+            "depth": 6,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Echocardiogram findings of increased left ventricular wall thickness and decreased ejection fraction suggest dilated cardiomyopathy secondary to chronic viral myocarditis.",
+            "depth": 6,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Magnetic resonance imaging reveals increased tissue edema and gadolinium enhancement in the mid-wall, consistent with acute pericarditis caused by coxsackievirus A or B.",
+            "depth": 6,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Increased pleural effusion may be contributing to exertional dyspnea through increased work of breathing and atelectasis.",
+            "depth": 6,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Atelectasis secondary to viral pneumonia could be exacerbating exertional dyspnea by stimulating pulmonary receptors.",
+            "depth": 6,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Reduced lung compliance due to alveolar edema or intrinsic positive end-expiratory pressure (auto-PEEP) may be contributing to exertional dyspnea.",
+            "depth": 6,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Elevated cardiac troponin levels in this patient may indicate CKD-related elevations rather than ACS-related elevations due to the absence of acute ischemia evidence.",
+            "depth": 3,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Serial measurements of cardiac troponins are needed to differentiate between CKD-related and ACS-related elevations, as a single elevated level is not diagnostic of MI.",
+            "depth": 3,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The trend in cardiac troponin levels over hours after presentation may be more informative than a single, elevated level in this patient with suspected CKD.",
+            "depth": 3,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Echocardiography should be performed to evaluate the patient's cardiac function and rule out pericardial effusion or tamponade.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of a \"bat wing\" distribution of alveolar edema fluid on chest x-ray may indicate low-pressure pulmonary edema due to CKD.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "A transthoracic echocardiogram should be ordered to assess for signs of cardiomyopathy, including ventricular apical thrombus or endocardial thickening.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Right ventricular dysfunction may be indicated by echocardiogram findings of apical four-chamber view abnormalities after exercise.",
+            "depth": 6,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Echocardiography may reveal regional wall motion abnormality in the distal septum through the apex, consistent with left anterior descending artery stenosis.",
+            "depth": 6,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Reduced coronary blood flow during diastole may be due to significant stenoses of the left main and circumflex coronary arteries.",
+            "depth": 6,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Echocardiography findings suggest impaired mitral annular relaxation velocity, indicating severe diastolic dysfunction.",
+            "depth": 6,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Dobutamine stress echocardiography may reveal a transient perfusion defect in segments of the coronary vasculature.",
+            "depth": 6,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 168.9762,
+      "n_axioms": 14,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 341,
+          "retries": 2,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 137147,
+          "completion_tokens": 3927,
+          "queue_seconds": 159.61598,
+          "inference_seconds": 216.267906
+        },
+        "by_purpose": {
+          "contradiction": {
+            "calls": 236,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 39536,
+            "completion_tokens": 481,
+            "queue_seconds": 146.050118,
+            "inference_seconds": 74.556159
+          },
+          "entropy_confidence": {
+            "calls": 67,
+            "retries": 2,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 35877,
+            "completion_tokens": 536,
+            "queue_seconds": 13.56561,
+            "inference_seconds": 46.456401
+          },
+          "generation": {
+            "calls": 38,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 61734,
+            "completion_tokens": 2910,
+            "queue_seconds": 0.000252,
+            "inference_seconds": 95.255346
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_60495",
+      "case_type": "trap",
+      "ground_truth": "Acute pulmonary edema",
+      "predictions": {
+        "apiro": [
+          "Heart Failure",
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome"
+        ],
+        "rag": [
+          "Acute Coronary Syndrome (ACS)",
+          "Unstable Angina",
+          "Pulmonary Embolism"
+        ],
+        "bare_llm": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Congestive Heart Failure"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Heart Failure",
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome"
+        ],
+        "rag": "1. Acute Coronary Syndrome (ACS)\n2. Unstable Angina\n3. Pulmonary Embolism",
+        "bare_llm": "Pulmonary Embolism\nAcute Coronary Syndrome\nCongestive Heart Failure"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "7ebc6cf3e00602f2b2254af0cc23881876caa8735ad7b333dfccd1f46fc4bcde",
+        "characters": 883,
+        "approx_tokens": 203
+      },
+      "traversal": {
+        "reasoning_mode": "legacy",
+        "rounds": 0,
+        "retrieval_count": 0,
+        "reasoning_call_count": 0,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "saturation",
+        "total_nodes": 36,
+        "contradictions": 8,
+        "stage_timings": {
+          "traversal_seconds": 102.7554,
+          "synthesis_seconds": 1.3424,
+          "log_write_seconds": 0.0003,
+          "total_seconds": 104.098
+        },
+        "hypotheses": [
+          {
+            "claim": "Pulmonary embolism may be causing the patient's side pain and shortness of breath due to blockage in the pulmonary arteries.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute coronary syndrome could be responsible for the patient's chest pain radiating to the left arm, exacerbated by physical exertion.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Cardiac tamponade might explain the patient's worsening symptoms when lying down, including difficulty breathing and increased pain on the right side.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pain management strategies may be ineffective due to underlying depressive state, as suggested by Neurology_Adams for patients with persistent complaints beyond a year.",
+            "depth": 1,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Antidepressant medications may provide relief from both pain and depressive symptoms, aligning with InternalMed_Harrison's emphasis on minimizing patient discomfort.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The use of venlafaxine, an SNRI that blocks both serotonin and norepinephrine reuptake, may provide relief from both pain and depression in this patient.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The combination of duloxetine with a low dose of an opioid analgesic may be effective in managing the patient's chronic pain while also addressing depressive symptoms.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The use of venlafaxine may exacerbate heart failure symptoms due to its effects on cardiac potassium channels and sodium-potassium pumps.",
+            "depth": 3,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The combination of duloxetine with a low dose of an opioid analgesic may exacerbate orthostatic hypotension, a common side effect of tricyclic antidepressants.",
+            "depth": 3,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Duloxetine's efficacy in managing fibromyalgia pain suggests its potential utility in treating the patient's chronic pain, particularly given its balanced serotonin and norepinephrine reuptake inhibitory effects.",
+            "depth": 3,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Functional magnetic resonance imaging (fMRI) may demonstrate altered brain activity in the dorsal lateral prefrontal cortex (DLPFC) and rostral anterior cingulate cortex (rACC).",
+            "depth": 4,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Abnormalities in the descending pain control system, as evidenced by fMRI, may contribute to the patient's chronic pain experience.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Abnormalities in the descending pain control system, as evidenced by fMRI, may be related to increased activity in the rostral ventral medulla (RVM).",
+            "depth": 5,
+            "entropy": 0.175,
+            "confidence": 0.03,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Functional MRI studies suggest that the patient's chronic pain may be linked to abnormal activation of the dorsal lateral prefrontal cortex (DLPFC).",
+            "depth": 5,
+            "entropy": 0.175,
+            "confidence": 0.03,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Abnormal activation of the dorsal lateral prefrontal cortex (DLPFC) may be linked to increased activity in the anterior cingulate cortex (ACC).",
+            "depth": 6,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Functional MRI studies suggest that abnormal placebo-enhanced brain activity in the DLPFC may contribute to the patient's chronic pain.",
+            "depth": 6,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Increased activity in the rostral ventral medulla (RVM) may be related to aberrant descending pain control system modulation due to heart failure.",
+            "depth": 6,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Functional magnetic resonance imaging (fMRI) findings suggest that placebo-enhanced brain activity in the RVM correlates with opioidergic descending pain control system modulation.",
+            "depth": 6,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The somatotopic organization of the corticospinal tract in the human brainstem, as mapped by MRI-based analysis, may be disrupted in patients with abnormal descending pain control system function.",
+            "depth": 6,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Thoracic aortic dissection may be undiagnosed due to atypical presentation of chest pain and shortness of breath in a patient with heart failure.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Contrast-enhanced MRI may reveal a vascular loop compressing the fifth nerve, consistent with Neurology_Adams' description of basilar artery compression.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Axial imaging findings suggestive of annulus fibrosus innervation or epidural steroid injection may be warranted to address lumbar radicular pain and associated symptoms.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 106.5228,
+      "n_axioms": 14,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 141,
+          "retries": 1,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 69595,
+          "completion_tokens": 2306,
+          "queue_seconds": 66.2136,
+          "inference_seconds": 128.687115
+        },
+        "by_purpose": {
+          "contradiction": {
+            "calls": 93,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 16232,
+            "completion_tokens": 192,
+            "queue_seconds": 63.85591,
+            "inference_seconds": 37.899475
+          },
+          "entropy_confidence": {
+            "calls": 23,
+            "retries": 1,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 12776,
+            "completion_tokens": 184,
+            "queue_seconds": 2.357477,
+            "inference_seconds": 19.064957
+          },
+          "generation": {
+            "calls": 25,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 40587,
+            "completion_tokens": 1930,
+            "queue_seconds": 0.000213,
+            "inference_seconds": 71.722683
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_85085",
+      "case_type": "control",
+      "ground_truth": "Spontaneous pneumothorax",
+      "predictions": {
+        "apiro": [
+          "Tension pneumothorax",
+          "Pulmonary embolism",
+          "Acute bronchitis exacerbation"
+        ],
+        "rag": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Pneumothorax"
+        ],
+        "bare_llm": [
+          "Pneumothorax",
+          "Acute Coronary Syndrome",
+          "Chronic Obstructive Pulmonary Disease exacerbation"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Tension pneumothorax",
+          "Pulmonary embolism",
+          "Acute bronchitis exacerbation"
+        ],
+        "rag": "Pulmonary Embolism\nAcute Coronary Syndrome\nPneumothorax",
+        "bare_llm": "Pneumothorax\nAcute Coronary Syndrome\nChronic Obstructive Pulmonary Disease exacerbation"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "917cff960956d4e92fc960c164a6a5fd2eb7c17d96918a532770a592fc1b394e",
+        "characters": 971,
+        "approx_tokens": 237
+      },
+      "traversal": {
+        "reasoning_mode": "legacy",
+        "rounds": 0,
+        "retrieval_count": 0,
+        "reasoning_call_count": 0,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "saturation",
+        "total_nodes": 41,
+        "contradictions": 17,
+        "stage_timings": {
+          "traversal_seconds": 98.0142,
+          "synthesis_seconds": 1.4188,
+          "log_write_seconds": 0.0005,
+          "total_seconds": 99.4336
+        },
+        "hypotheses": [
+          {
+            "claim": "Pleurisy with effusion is suspected due to the patient's description of heartbreaking pain and shortness of breath.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute bronchitis is considered given the patient's history of COPD, increased symptoms with exertion, and alleviation with rest.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pulmonary embolism is a possibility due to the patient's recent history of spontaneous pneumothorax and current presentation of chest pain radiating to the side.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pulmonary embolism could be a possible cause of the patient's sudden onset of shortness of breath.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Dynamic hyperinflation due to severe airflow obstruction is contributing to the patient's sensation of difficulty inhaling.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleurisy due to chronic obstructive pulmonary disease exacerbation causing sharp chest pain and shortness of breath upon deep breathing.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute bronchitis with cough and mucus production, exacerbated by smoking history and COPD diagnosis, leading to chest pain and difficulty breathing.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Spontaneous pneumothorax recurrence or incomplete resolution, indicated by persistent chest pain and shortness of breath despite previous diagnosis.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute bronchitis exacerbation may be triggered by increased sputum production due to chronic bronchitis.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "COPD severity may be underestimated if prior exacerbations are not thoroughly documented and analyzed.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Increased airflow obstruction in COPD patients may lead to more frequent acute bronchitis exacerbations.",
+            "depth": 2,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pulmonary embolism causing acute right ventricular failure and subsequent pulmonary edema due to increased pulmonary venular pressure.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute myocardial infarction leading to reduced left ventricular function, increased pulmonary venous pressure, and resulting shortness of breath.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Massive spontaneous pneumothorax causing sudden shift in mediastinal structures, decreased lung volume, and resultant shortness of breath.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pulmonary bullae are likely contributing to the patient's severe airflow obstruction and dynamic hyperinflation due to COPD.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Atelectasis of the lower lobes, possibly caused by pleural effusions or pneumothorax, is exacerbating the patient's respiratory symptoms.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Compression atelectasis resulting from a recent spontaneous pneumothorax may be contributing to the patient's difficulty inhaling and increased pain with deep breathing.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Compression atelectasis may be caused by the recent spontaneous pneumothorax due to air entering the pleural cavity and compressing the lung.",
+            "depth": 3,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Atelectasis may be contributing to the patient's symptoms due to ventilation-perfusion mismatching and intrapulmonary venous shunting, as described in postoperative pulmonary complications.",
+            "depth": 3,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Compression atelectasis may be caused by the recent spontaneous pneumothorax due to air entering the pleural cavity and compressing the lung.",
+            "depth": 4,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Atelectasis is potentially reversible and should be treated promptly to prevent hypoxemia and superimposed infection of the collapsed lung, as evidenced by the patient's chronic obstructive pulmonary disease.",
+            "depth": 4,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Compression atelectasis may be caused by the recent spontaneous pneumothorax due to air entering the pleural cavity and compressing the lung.",
+            "depth": 5,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleural effusion with fluid accumulation in the pleural cavity is a potential cause of compression atelectasis, as stated in Pathology_Robbins [1].",
+            "depth": 5,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Tension pneumothorax may have occurred due to leakage of air into the pleural cavity, causing compression atelectasis and mediastinal displacement, as described in Anatomy_Gray [2].",
+            "depth": 5,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Compression atelectasis may be caused by the recent spontaneous pneumothorax due to air entering the pleural cavity and compressing the lung.",
+            "depth": 6,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Tension pneumothorax with mediastinal displacement and compression atelectasis due to leakage of air into the pleural cavity.",
+            "depth": 6,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleural effusion causing compression atelectasis and respiratory compromise, as evidenced by shortness of breath and decreased breath sounds.",
+            "depth": 6,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Air/fluid level in the pleural cavity on chest radiograph indicating pneumothorax with potential for tension pneumothorax.",
+            "depth": 6,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 101.6534,
+      "n_axioms": 13,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 139,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 71806,
+          "completion_tokens": 2371,
+          "queue_seconds": 69.222615,
+          "inference_seconds": 124.385973
+        },
+        "by_purpose": {
+          "contradiction": {
+            "calls": 84,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 13904,
+            "completion_tokens": 168,
+            "queue_seconds": 61.533682,
+            "inference_seconds": 32.079987
+          },
+          "entropy_confidence": {
+            "calls": 31,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 17836,
+            "completion_tokens": 248,
+            "queue_seconds": 7.688775,
+            "inference_seconds": 25.00714
+          },
+          "generation": {
+            "calls": 24,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 40066,
+            "completion_tokens": 1955,
+            "queue_seconds": 0.000158,
+            "inference_seconds": 67.298845
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_85085",
+      "case_type": "trap",
+      "ground_truth": "Pulmonary embolism",
+      "predictions": {
+        "apiro": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Spontaneous Pneumothorax"
+        ],
+        "rag": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Costochondritis"
+        ],
+        "bare_llm": [
+          "Pneumonia",
+          "Pulmonary Embolism",
+          "Pleurisy"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pulmonary Embolism",
+          "Acute Coronary Syndrome",
+          "Spontaneous Pneumothorax"
+        ],
+        "rag": "Pulmonary Embolism\nAcute Coronary Syndrome\nCostochondritis",
+        "bare_llm": "Pneumonia\nPulmonary Embolism\nPleurisy"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "acf6831119f4ea4f603176edb8773e9cd16d9468e466c9bc4fcfd6e12a2c96d8",
+        "characters": 973,
+        "approx_tokens": 240
+      },
+      "traversal": {
+        "reasoning_mode": "legacy",
+        "rounds": 0,
+        "retrieval_count": 0,
+        "reasoning_call_count": 0,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "saturation",
+        "total_nodes": 39,
+        "contradictions": 15,
+        "stage_timings": {
+          "traversal_seconds": 104.9612,
+          "synthesis_seconds": 1.432,
+          "log_write_seconds": 0.0006,
+          "total_seconds": 106.3938
+        },
+        "hypotheses": [
+          {
+            "claim": "Pleurisy with effusion is suspected due to the patient's description of pain radiating to the side of the chest and shortness of breath.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute pulmonary embolism is considered given the patient's history of DVT, smoking, and symptoms exacerbated by physical exertion.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pneumothorax is a possible diagnosis given the patient's family history and symptoms of increased pain with deep breathing.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pulmonary embolism may be suspected due to the patient's history of DVT and symptoms of increased pain with breathing in deeply.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Elevated troponin levels could indicate myocardial infarction, given the patient's chest pain radiating to the upper chest and difficulty breathing.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute respiratory distress syndrome (ARDS) is a possible diagnosis, considering the patient's shortness of breath, difficulty breathing, and history of COPD.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pulmonary embolism with possible right ventricular strain given the patient's history of DVT and COPD exacerbation.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute coronary syndrome with possible ST-elevation myocardial infarction due to chest pain radiating to the breast area.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Spontaneous pneumothorax with possible tension pneumothorax given the patient's family history and symptoms of shortness of breath.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pulmonary embolism may be the underlying cause of the patient's pain and shortness of breath given their history of DVT.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute coronary syndrome could be contributing to the patient's chest pain and shortness of breath, particularly in light of their smoking history and COPD diagnosis.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "A spiral CT scan of the chest with IV contrast may reveal segmental areas of mismatch indicative of pulmonary embolism.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "A ventilation-perfusion lung scan may show defects in perfusion without matching ventilation defects, suggesting a pulmonary embolus.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A helical CT angiogram of the chest may detect an intravascular thrombus, confirming the presence of pulmonary emboli.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Tension pneumothorax is likely due to the patient's history of deep vein thrombosis and smoking, which increases the risk of pulmonary embolism and subsequent pleural rupture.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pulmonary emboli may cause acute dyspnea and pleuritic chest pain due to involvement of the pleural surface of the lung adjacent to a resultant pulmonary infarction.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Small emboli may cause typical pleuritic chest pain, which is exacerbated by breathing and may affect respiratory function.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pulmonary embolism with right ventricular strain due to DVT-induced increased pulmonary vascular resistance and subsequent right ventricular hypertrophy.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "A large saddle embolus from the femoral vein is obstructing more than 60% of the total pulmonary vasculature, causing acute mechanical obstruction and increased vascular resistance.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "A ventilation-perfusion lung scan may show defects in perfusion without matching ventilation defects, suggesting a pulmonary embolus.",
+            "depth": 3,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A high probability ventilation-perfusion scan or detection of an intravascular thrombus on helical computed tomography (CT) is diagnostic of pulmonary emboli.",
+            "depth": 3,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "A ventilation-perfusion lung scan may show defects in perfusion without matching ventilation defects, suggesting a pulmonary embolus.",
+            "depth": 4,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A ventilation-perfusion lung scan may show defects in perfusion without matching ventilation defects, suggesting a pulmonary embolus.",
+            "depth": 5,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A ventilation-perfusion lung scan may show defects in perfusion without matching ventilation defects, suggesting a pulmonary embolus.",
+            "depth": 6,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 108.3257,
+      "n_axioms": 15,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 143,
+          "retries": 1,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 75291,
+          "completion_tokens": 2395,
+          "queue_seconds": 83.063427,
+          "inference_seconds": 133.717939
+        },
+        "by_purpose": {
+          "contradiction": {
+            "calls": 89,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 14438,
+            "completion_tokens": 184,
+            "queue_seconds": 78.251087,
+            "inference_seconds": 36.375509
+          },
+          "entropy_confidence": {
+            "calls": 28,
+            "retries": 1,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 16877,
+            "completion_tokens": 224,
+            "queue_seconds": 4.812159,
+            "inference_seconds": 25.514888
+          },
+          "generation": {
+            "calls": 26,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 43976,
+            "completion_tokens": 1987,
+            "queue_seconds": 0.000182,
+            "inference_seconds": 71.827543
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_106645",
+      "case_type": "control",
+      "ground_truth": "Pneumonia",
+      "predictions": {
+        "apiro": [
+          "Herpes zoster reactivation",
+          "Acute bronchitis due to viral or atypical bacterial infection",
+          "Pleural effusion with large volume and high protein content"
+        ],
+        "rag": [
+          "Pulmonary TB",
+          "Kawasaki disease",
+          "Infectious mononucleosis"
+        ],
+        "bare_llm": [
+          "Pneumonia",
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Acute Bronchitis"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Herpes zoster reactivation",
+          "Acute bronchitis due to viral or atypical bacterial infection",
+          "Pleural effusion with large volume and high protein content"
+        ],
+        "rag": "Pulmonary TB\nKawasaki disease\nInfectious mononucleosis",
+        "bare_llm": "Pneumonia\nChronic Obstructive Pulmonary Disease (COPD)\nAcute Bronchitis"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "a54650a6c076b91e90ab9007e7e21585193652d25a600b39cdf5a12c8abb718a",
+        "characters": 1359,
+        "approx_tokens": 356
+      },
+      "traversal": {
+        "reasoning_mode": "legacy",
+        "rounds": 0,
+        "retrieval_count": 0,
+        "reasoning_call_count": 0,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "saturation",
+        "total_nodes": 69,
+        "contradictions": 25,
+        "stage_timings": {
+          "traversal_seconds": 148.6741,
+          "synthesis_seconds": 2.0791,
+          "log_write_seconds": 0.0006,
+          "total_seconds": 150.7538
+        },
+        "hypotheses": [
+          {
+            "claim": "Pleurisy due to pneumonia may be causing the patient's side pain and cough.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Inflammation of the intercostal muscles (intercostal myositis) could be causing the patient's side pain and muscle tenderness.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The cough could be related to gastroesophageal reflux disease causing postnasal drip.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pertussis or foreign body aspiration may be a possible cause of the patient's paroxysmal cough.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleurisy due to pneumonia exacerbation is likely given the patient's history of COPD and recent surgery.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute bronchitis with secondary bacterial infection is possible, considering the patient's cough and sputum production.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Herpes zoster reactivation causing a rash and pain in the chest wall is a plausible diagnosis given the patient's age and symptoms.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pleurisy with effusion is suspected due to the patient's chest pain radiating to the side and posterior chest wall.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute bronchitis or pneumonia is possible given the cough, colored sputum, fever, and recent history of COPD.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Herpes zoster reactivation (shingles) is a consideration due to the presence of a rash at the commissure with associated pain.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleurisy due to pneumonia is suspected given the patient's cough and chest pain radiating to the side.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute bronchitis with secondary bacterial infection is possible, considering the patient's history of COPD and recent surgery.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Herpes zoster reactivation causing a rash and associated pain in the commissure area is a plausible explanation for the patient's symptoms.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Muscle weakness due to denervation of the muscle fibers as evidenced by atrophy and decreased muscle mass.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Decreased muscle strength in the patient is likely due to a neuromuscular junction disorder, such as myasthenia gravis.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The cough pattern, worsening at night and improving with sleep, is suggestive of asthma or exercise-induced bronchospasm.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Elevated erythrocyte sedimentation rate (ESR) may indicate an underlying inflammatory process such as rheumatoid arthritis or lupus.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A positive C-reactive protein (CRP) level may indicate an acute infection, such as pneumonia, given the patient's recent history.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Alcohol-induced mood disorder, characterized by intense sadness lasting days to weeks, may be temporarily present in the patient.",
+            "depth": 1,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "C. pneumoniae infection should be considered as the etiologic agent of mild atypical pneumonia in this young adult patient.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A significant pleural effusion is likely present, warranting tapping for both diagnostic and therapeutic purposes.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pneumonia exacerbation with secondary bacterial infection causing worsening cough and fever in patient with pre-existing COPD.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute bronchitis due to viral or atypical bacterial infection triggering cough, fever, and muscle pain in a patient with history of smoking.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Cardiac tamponade as a complication of pneumonia leading to pleuritic chest pain, shortness of breath, and orthopnea in a patient with pre-existing heart failure.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Chest radiography may reveal small segmental infiltrates consistent with C. pneumoniae pneumonitis in this young adult patient.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The presence of diffuse interstitial pattern on chest radiography suggests atypical pneumonia, possibly caused by Mycoplasma pneumoniae or other pathogens.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A high-resolution computed tomography (HRCT) scan may show patchy consolidation or lobar consolidation typical of pneumococcal pneumonia.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Bilateral perihilar peribronchial thickening and shaggy infiltrate on frontal chest radiograph suggestive of viral bronchopneumonia.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Alveolar infiltrates with consolidation on chest radiographs, indicative of acute pulmonary infection due to bacterial pathogens such as Streptococcus pneumoniae.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Herpes zoster encephalitis is considered due to the presence of fever and confusion in an elderly woman with shingles.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "MRI findings suggest small vessel vasculitis with multiple cortical and white matter lesions, consistent with VZV infection.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Temporal artery involvement by VZV particles may be a cause of temporal arteritis-like symptoms in patients with zoster.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of Kerley lines and reticulonodular interstitial disease on the frontal chest radiograph is consistent with atypical pneumonia caused by Mycoplasma pneumoniae.",
+            "depth": 3,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "A diffuse interstitial pattern on chest radiography, in conjunction with a nonproductive cough and mild leukocytosis, may suggest an atypical pneumonia due to viral or Mycoplasma pneumoniae infection.",
+            "depth": 3,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pleurodesis with intrapleural injection of doxycycline may be effective in treating secondary pneumothorax due to COPD exacerbation.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Thoracostomy and thoracoscopy or thoracotomy with stapling of blebs and pleural abrasion should be considered for patients with life-threatening secondary pneumothoraxes.",
+            "depth": 2,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Intrapleural injection of a sclerosing agent such as doxycycline may reduce the frequency of recurrent pneumothorax in patients with COPD.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleural effusion with increased fluid volume and decreased lung expansion on chest radiograph due to COPD exacerbation.",
+            "depth": 3,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Talc pleurodesis may be effective in reducing recurrent pneumothorax frequency in patients with COPD, as evidenced by reduced drainage rates after sclerosis.",
+            "depth": 3,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Bleomycin sclerosing agent is more effective than doxycycline in treating recurrent pneumothorax in patients with COPD, but is very expensive.",
+            "depth": 3,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleural effusion with large volume and high protein content may be contributing to the patient's respiratory symptoms.",
+            "depth": 4,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Bleomycin-induced pulmonary toxicity could be causing the patient's worsening lung function and recurrent pneumothorax.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "A chest radiograph showing a large pneumatocele or bulla in the apical subpleural region may be indicative of a spontaneous pneumothorax.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pleurisy due to pneumonia may be causing the patient's side pain and cough.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The pleural inflammation associated with pneumococcal pneumonia may exacerbate the patient's existing COPD symptoms.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Inflammation of the parietal pleura due to pneumothorax or pulmonary embolism could be contributing to the patient's chest pain.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleuritic chest pain due to pneumothorax is exacerbated by deep breathing and coughing.",
+            "depth": 3,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Inflammation of the parietal pleura caused by pulmonary embolism leads to sharp, lateral chest pain.",
+            "depth": 3,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute infectious pericarditis causes severe, retrosternal chest pain that worsens with lying supine.",
+            "depth": 3,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.8
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 153.5768,
+      "n_axioms": 20,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 236,
+          "retries": 7,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 127845,
+          "completion_tokens": 3151,
+          "queue_seconds": 99.560222,
+          "inference_seconds": 187.476594
+        },
+        "by_purpose": {
+          "contradiction": {
+            "calls": 145,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 23685,
+            "completion_tokens": 299,
+            "queue_seconds": 88.823499,
+            "inference_seconds": 49.992565
+          },
+          "entropy_confidence": {
+            "calls": 58,
+            "retries": 7,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 43855,
+            "completion_tokens": 464,
+            "queue_seconds": 10.736467,
+            "inference_seconds": 46.95457
+          },
+          "generation": {
+            "calls": 33,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 60305,
+            "completion_tokens": 2388,
+            "queue_seconds": 0.000255,
+            "inference_seconds": 90.529459
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_106645",
+      "case_type": "trap",
+      "ground_truth": "Bronchitis",
+      "predictions": {
+        "apiro": [
+          "Pneumonia",
+          "Pleurisy due to pneumonia",
+          "Acute bronchitis caused by viral or bacterial pathogens"
+        ],
+        "rag": [
+          "Pulmonary TB",
+          "Kawasaki disease",
+          "Infectious mononucleosis"
+        ],
+        "bare_llm": [
+          "Pneumonia",
+          "COPD exacerbation",
+          "Cardiac tamponade"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pneumonia",
+          "Pleurisy due to pneumonia",
+          "Acute bronchitis caused by viral or bacterial pathogens"
+        ],
+        "rag": "Pulmonary TB\nKawasaki disease\nInfectious mononucleosis",
+        "bare_llm": "Pneumonia\nCOPD exacerbation\nCardiac tamponade"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "a48b5212bdc9c24661455229c3df427e51a8aa5655ed04a2415c1a881c9b913d",
+        "characters": 1433,
+        "approx_tokens": 356
+      },
+      "traversal": {
+        "reasoning_mode": "legacy",
+        "rounds": 0,
+        "retrieval_count": 0,
+        "reasoning_call_count": 0,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "saturation",
+        "total_nodes": 48,
+        "contradictions": 15,
+        "stage_timings": {
+          "traversal_seconds": 131.2576,
+          "synthesis_seconds": 1.7835,
+          "log_write_seconds": 0.0003,
+          "total_seconds": 133.0415
+        },
+        "hypotheses": [
+          {
+            "claim": "Pleurisy due to pneumonia may be causing the patient's side chest pain and cough.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute bronchitis or COPD exacerbation could explain the patient's symptoms of cough, chest pain, and muscle pain.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The cough could be related to gastroesophageal reflux disease exacerbating postnasal drip.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pertussis or foreign body aspiration is a possible cause of the patient's persistent and productive cough.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleurisy due to pneumonia may be causing the patient's chest pain and cough.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute bronchitis caused by viral or bacterial pathogens is a possible explanation for the patient's cough and respiratory symptoms.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleurisy due to pneumonia is a possible diagnosis given the patient's symptoms of chest pain and cough with colored sputum.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Muscle weakness due to denervation of the muscle fibers may be caused by nerve damage or disease affecting the neuromuscular junction.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Increased levels of creatine kinase in the blood may indicate muscle damage or disease, consistent with the patient's reported muscle pain and weakness.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The nasal septum's vomer and perpendicular plate of the ethmoid bone may be inflamed due to chronic obstructive pulmonary disease.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The olfactory mucosa's Bowman's glands may be overactive, contributing to the patient's nasal congestion and loss of appetite.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pneumonia with secondary bacterial infection given the patient's history of COPD and recent surgery.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute bronchitis due to viral or atypical bacterial infection causing cough, fever, and chest pain in a patient with COPD.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Influenza A or B infection presenting with cough, fever, muscle pain, and rash in an immunocompromised patient with a history of Parkinson's disease.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pleurisy due to pneumonia may be causing the patient's chest pain and cough, exacerbated by viral upper respiratory infection.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Chronic obstructive pulmonary disease (COPD) exacerbation is a possible cause of the patient's persistent cough and pleuritic chest pain.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pleurisy due to pneumonia may be causing the patient's side chest pain and cough through inflammation of the parietal pleura.",
+            "depth": 2,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Inflammation of the pericardium due to infectious or noninfectious causes may be responsible for the patient's acute chest discomfort through associated pleural inflammation.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pleurisy due to pneumonia may be causing the patient's side chest pain and cough through inflammation of the parietal pleura.",
+            "depth": 3,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleurisy due to pneumonia may be causing the patient's side chest pain and cough through inflammation of the parietal pleura.",
+            "depth": 4,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleurisy due to pneumonia may be causing the patient's side chest pain and cough through inflammation of the parietal pleura.",
+            "depth": 5,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pleurisy due to pneumonia may be causing the patient's side chest pain and cough through inflammation of the parietal pleura.",
+            "depth": 6,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pneumonia with secondary bacterial infection given the patient's history of COPD and recent surgery may be complicated by Streptococcus pneumoniae colonization in the nasopharynx.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of diffuse interstitial infiltrates on chest radiographs suggests a diagnosis of Pneumocystis carinii pneumonia or viral infection, including cytomegalovirus or adenovirus.",
+            "depth": 2,
+            "entropy": 0.2605,
+            "confidence": 0.06,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "A CT scan of the chest reveals \"ground-glass\" opacities consistent with fluid density in the alveolar space, indicating acute respiratory distress syndrome (ARDS) or atelectasis.",
+            "depth": 2,
+            "entropy": 0.2605,
+            "confidence": 0.06,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pneumonia with bilateral, perihilar, peribronchial thickening and shaggy infiltrate on frontal chest radiograph is a possible explanation for the patient's symptoms.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The presence of patchy infiltrates or areas of consolidation on physical examination and chest x-ray suggests mixed viral and bacterial pneumonia.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "A diffuse interstitial pattern on chest radiography with minimal sputum production and normal chest radiograph at presentation may indicate chronic eosinophilic bronchitis.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 135.5396,
+      "n_axioms": 20,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 178,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 102960,
+          "completion_tokens": 2870,
+          "queue_seconds": 76.814,
+          "inference_seconds": 167.036368
+        },
+        "by_purpose": {
+          "contradiction": {
+            "calls": 114,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 18662,
+            "completion_tokens": 246,
+            "queue_seconds": 74.831558,
+            "inference_seconds": 39.782399
+          },
+          "entropy_confidence": {
+            "calls": 33,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 26054,
+            "completion_tokens": 264,
+            "queue_seconds": 1.982179,
+            "inference_seconds": 40.835673
+          },
+          "generation": {
+            "calls": 31,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 58244,
+            "completion_tokens": 2360,
+            "queue_seconds": 0.000263,
+            "inference_seconds": 86.418296
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_101087",
+      "case_type": "control",
+      "ground_truth": "Acute laryngitis",
+      "predictions": {
+        "apiro": [
+          "Acute Epiglottitis",
+          "Group A Streptococcus Pharyngitis",
+          "Posterior Pharyngeal Wall Abscess"
+        ],
+        "rag": [
+          "Acute bronchitis",
+          "Pharyngitis",
+          "Infectious mononucleosis"
+        ],
+        "bare_llm": [
+          "Tonsillitis",
+          "Thyroiditis",
+          "Laryngitis"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Acute Epiglottitis",
+          "Group A Streptococcus Pharyngitis",
+          "Posterior Pharyngeal Wall Abscess"
+        ],
+        "rag": "1. Acute bronchitis\n2. Pharyngitis\n3. Infectious mononucleosis",
+        "bare_llm": "Tonsillitis\nThyroiditis\nLaryngitis"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "f9c6c8cadd8053f947388d6d22390544ed79764591f3ba4972350df465842846",
+        "characters": 612,
+        "approx_tokens": 163
+      },
+      "traversal": {
+        "reasoning_mode": "legacy",
+        "rounds": 0,
+        "retrieval_count": 0,
+        "reasoning_call_count": 0,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "saturation",
+        "total_nodes": 33,
+        "contradictions": 11,
+        "stage_timings": {
+          "traversal_seconds": 78.0555,
+          "synthesis_seconds": 1.5146,
+          "log_write_seconds": 0.0003,
+          "total_seconds": 79.5704
+        },
+        "hypotheses": [
+          {
+            "claim": "Pharyngitis due to viral or bacterial infection causing inflammation and burning sensation in the throat.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute tonsillitis with abscess formation leading to severe pain and burning sensation in the tonsil region.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Thyroiditis, specifically subacute thyroiditis, causing pain and burning sensation in the thyroid cartilage area.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Tonsillitis with Streptococcus pyogenes infection is possible given the patient's symptoms and geographical region.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Thyroid cartilage inflammation or abscess may be contributing to the pain and fever in this patient.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute epiglottitis, a rare but serious condition, could explain the severe throat pain and difficulty speaking.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of fever and coughing could suggest an underlying infection, but the patient's age and geographical region increase the likelihood of hypothermia.",
+            "depth": 1,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The elevated body temperature may be due to the presence of pyrogens, including bacterial products like LPS.",
+            "depth": 1,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Thyroid cartilage calcification on lateral neck x-ray may indicate chronic inflammation due to viral or bacterial infection.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Swollen epiglottis with \"thumbprint sign\" on lateral x-ray suggests acute epiglottitis, a life-threatening airway obstruction.",
+            "depth": 2,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Increased soft tissue density in the posterior pharyngeal wall on contrast CT scan may indicate abscess formation from Group A streptococcus.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute epiglottitis may be caused by H. influenzae infection in the patient's age group and geographical region.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Genetic predisposition to autoimmune disorders, such as rheumatic fever, may be a contributing factor in the patient's symptoms.",
+            "depth": 2,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Lateral radiograph reveals thickened and bulging epiglottis (\"thumb sign\") due to inflammation from H. influenzae infection.",
+            "depth": 3,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Imaging findings of a swollen, cherry-red epiglottis and arytenoids on lateral x-ray are diagnostic for acute epiglottitis.",
+            "depth": 3,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Fiberoptic visualization of the supraglottic structures shows inflamed and swollen tissues consistent with epiglottitis in an unimmunized patient.",
+            "depth": 3,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Abscess formation in the posterior pharyngeal wall may be better visualized with contrast-enhanced MRI due to its superior sensitivity for early abscess detection.",
+            "depth": 3,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of a \"thumbprint sign\" on lateral soft tissue radiograph of the neck suggests acute epiglottitis, which often presents with deep neck infections extending from primary sites within the pharynx or oral cavity.",
+            "depth": 3,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A supine position with the neck extended may worsen symptoms in cases of posterior pharyngeal wall abscess formation due to increased pressure on the affected area.",
+            "depth": 3,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A supine position with the neck extended may worsen symptoms in cases of posterior pharyngeal wall abscess formation due to increased pressure on the affected area.",
+            "depth": 4,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A lateral x-ray showing a swollen epiglottis obliterating the valleculae (\"thumbprint sign\") is indicative of acute epiglottitis.",
+            "depth": 4,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A supine position with the neck extended may worsen symptoms in cases of posterior pharyngeal wall abscess formation due to increased pressure on the affected area.",
+            "depth": 5,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A supine position with the neck extended may worsen symptoms in cases of posterior pharyngeal wall abscess formation due to increased pressure on the affected area.",
+            "depth": 6,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 81.7256,
+      "n_axioms": 10,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 78,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 50598,
+          "completion_tokens": 1825,
+          "queue_seconds": 12.366212,
+          "inference_seconds": 91.956393
+        },
+        "by_purpose": {
+          "contradiction": {
+            "calls": 32,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 5280,
+            "completion_tokens": 64,
+            "queue_seconds": 7.628993,
+            "inference_seconds": 11.610061
+          },
+          "entropy_confidence": {
+            "calls": 25,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 11554,
+            "completion_tokens": 200,
+            "queue_seconds": 4.737058,
+            "inference_seconds": 25.389361
+          },
+          "generation": {
+            "calls": 21,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 33764,
+            "completion_tokens": 1561,
+            "queue_seconds": 0.00016,
+            "inference_seconds": 54.956971
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_101087",
+      "case_type": "trap",
+      "ground_truth": "Bronchitis",
+      "predictions": {
+        "apiro": [
+          "Peritonsillar abscess",
+          "Tonsillitis with acute tonsillar abscess",
+          "Streptococcal pharyngitis"
+        ],
+        "rag": [
+          "Tonsillitis",
+          "Acute bronchitis",
+          "Pulmonary TB"
+        ],
+        "bare_llm": [
+          "Tonsillitis",
+          "Pneumonia",
+          "Laryngitis"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Peritonsillar abscess",
+          "Tonsillitis with acute tonsillar abscess",
+          "Streptococcal pharyngitis"
+        ],
+        "rag": "Tonsillitis\nAcute bronchitis\nPulmonary TB",
+        "bare_llm": "Tonsillitis\nPneumonia\nLaryngitis"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "199e1a5d1c5f7a9539c9aaa9095cdef9e3eca28be066f39223366bba5a1b38a8",
+        "characters": 675,
+        "approx_tokens": 167
+      },
+      "traversal": {
+        "reasoning_mode": "legacy",
+        "rounds": 0,
+        "retrieval_count": 0,
+        "reasoning_call_count": 0,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "saturation",
+        "total_nodes": 50,
+        "contradictions": 24,
+        "stage_timings": {
+          "traversal_seconds": 107.5424,
+          "synthesis_seconds": 1.5748,
+          "log_write_seconds": 0.0005,
+          "total_seconds": 109.1178
+        },
+        "hypotheses": [
+          {
+            "claim": "Tonsillitis with acute tonsillar abscess causing localized burning pain in the throat and under the jaw.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute laryngitis or epiglottitis leading to severe burning sensation in the thyroid cartilage area.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pharyngitis with a possible foreign body or esophageal obstruction causing referred burning pain.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Tonsillitis with Streptococcus pyogenes infection suggested by the patient's symptoms of pain and fever in the context of recent cold exposure.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Thyroid cartilage inflammation or thyroiditis possible given the patient's complaint of pain under the jaw and recent history of coughing up colored sputum.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute epiglottitis, a rare but serious condition, considered due to the patient's severe throat pain and difficulty swallowing in the context of recent respiratory symptoms.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The presence of burning pain in the thyroid cartilage suggests inflammation or irritation of the thyroid gland, possibly due to autoimmune disease.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The submandibular gland inflammation causes the pain and burning sensation under the jaw due to its location and ductal anatomy.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The parotid gland's proximity to the ear and facial nerve may be contributing to the referred pain in the under-jaw area.",
+            "depth": 1,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The lymphatic drainage of the face, including the mandible and associated structures, is being obstructed by an inflammatory process.",
+            "depth": 1,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of colored sputum and coughing up more than usual suggests an infection, possibly Pneumocystis jiroveci pneumonia.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Hypothyroidism could be contributing to the patient's perception of cold, as it often presents with intolerance to cold temperatures.",
+            "depth": 1,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Tonsillitis is a possible diagnosis given the patient's pain in the tonsil region and recent cold.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute thyroiditis could be considered due to the presence of fever, coughing, and pain in the thyroid cartilage area.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pharyngitis with a secondary infection or abscess may explain the patient's symptoms of pain, burning sensation, and sputum production.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Peritonsillar abscess may be present, indicated by unilateral tonsillar enlargement and erythema on imaging studies.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A maxillary sinusitis may be developing, suggested by chronic nasal discharge and blockage on imaging findings.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Aspiration pneumonitis must be distinguished from other clinical syndromes associated with aspiration, including chemical pneumonitis on radiographic examination.",
+            "depth": 2,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pneumocystis jiroveci pneumonia may be misdiagnosed as viral pneumonia due to similar radiographic findings and clinical presentation.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of bilateral perihilar and basilar infiltrates on chest radiograph is suggestive of Pneumocystis pneumonia in an immunocompromised patient.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A chest radiograph showing \"cotton candy\" exudate with hematoxylin-eosin stain may indicate the presence of intraalveolar cysts characteristic of Pneumocystis pneumonia.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of fever, coughing, and colored sputum suggests a secondary bacterial infection complicating the common cold.",
+            "depth": 2,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Peritonsillar abscess may be present due to Streptococcal tonsillitis causing marked hyperemia and exudates in the palatine tonsils.",
+            "depth": 3,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The infiltration of lymphocytes into the epithelium of the palatine tonsil may mask the epithelial-connective tissue boundary, indicating inflammation.",
+            "depth": 3,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A polymicrobial infection from the upper airways may spread to the peripharyngeal space, causing abscesses and swelling.",
+            "depth": 3,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A computed tomography scan of the neck may reveal a peritonsillar abscess causing swelling and abscesses in the peripharyngeal space.",
+            "depth": 4,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Intraoral ultrasound or CT imaging may help localize an abscess in the upper airways, guiding surgical drainage.",
+            "depth": 4,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Contrast-enhanced CT scans of the neck may show thickened septa and intra-alveolar foamy exudate indicative of anaerobic infections.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A computed tomography scan of the neck may reveal a peritonsillar abscess causing swelling and abscesses in the peripharyngeal space.",
+            "depth": 5,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A computed tomography scan with contrast may help differentiate between a peritonsillar abscess and cellulitis, guiding treatment decisions.",
+            "depth": 5,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A computed tomography scan of the neck may reveal a peritonsillar abscess causing swelling and abscesses in the peripharyngeal space.",
+            "depth": 6,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A contrast-enhanced CT scan of the neck may show an abscess in the lateral pharyngeal space, which is communicating with the parapharyngeal space.",
+            "depth": 6,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The tonsillar exudate may be caused by the infiltration of lymphocytes into the epithelium of the palatine tonsils due to Streptococcal pharyngitis.",
+            "depth": 4,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of marked hyperemia and exudates in the palatine tonsils is indicative of a \u03b2-hemolytic streptococcal infection.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The infiltration of lymphocytes into the epithelium of the palatine tonsils may be exacerbated by Streptococcal pharyngitis due to increased bacterial load.",
+            "depth": 5,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of \u03b2-hemolytic streptococci in the oropharynx may lead to inflammation and exudation on the surface of the palatine tonsils.",
+            "depth": 5,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The lymphatic tissue surrounding the posterior opening of the oral and nasal cavities may be compromised by Epstein-Barr virus infection, leading to pharyngitis.",
+            "depth": 5,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Aspiration pneumonitis must be distinguished from chemical pneumonitis on radiographic examination due to the presence of diffuse, bilateral alveolar opacities without pleural effusions.",
+            "depth": 3,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A chest x-ray showing consolidation in dependent pulmonary segments is indicative of aspiration pneumonitis, particularly if the patient has aspirated while supine.",
+            "depth": 3,
+            "entropy": 0.3086,
+            "confidence": 0.08,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 111.2307,
+      "n_axioms": 11,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 152,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 75061,
+          "completion_tokens": 2459,
+          "queue_seconds": 46.244554,
+          "inference_seconds": 134.865115
+        },
+        "by_purpose": {
+          "contradiction": {
+            "calls": 88,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 14864,
+            "completion_tokens": 176,
+            "queue_seconds": 37.499366,
+            "inference_seconds": 30.77669
+          },
+          "entropy_confidence": {
+            "calls": 39,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 19328,
+            "completion_tokens": 312,
+            "queue_seconds": 8.745009,
+            "inference_seconds": 36.886049
+          },
+          "generation": {
+            "calls": 25,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 40869,
+            "completion_tokens": 1971,
+            "queue_seconds": 0.000181,
+            "inference_seconds": 67.202375
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_114619",
+      "case_type": "control",
+      "ground_truth": "Bronchiectasis",
+      "predictions": {
+        "apiro": [
+          "Bronchiectasis",
+          "Cystic Fibrosis-related Bronchial Infections",
+          "Acute Exacerbation of Interstitial Lung Disease (ILD)"
+        ],
+        "rag": [
+          "Bronchiectasis",
+          "COPD (Chronic Obstructive Pulmonary Disease)",
+          "Pneumonia"
+        ],
+        "bare_llm": [
+          "Pneumonia",
+          "Bronchiectasis",
+          "Acute Respiratory Distress Syndrome (ARDS)"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Bronchiectasis",
+          "Cystic Fibrosis-related Bronchial Infections",
+          "Acute Exacerbation of Interstitial Lung Disease (ILD)"
+        ],
+        "rag": "Bronchiectasis\nCOPD (Chronic Obstructive Pulmonary Disease)\nPneumonia",
+        "bare_llm": "Pneumonia\nBronchiectasis\nAcute Respiratory Distress Syndrome (ARDS)"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "a8eb5a31ba691b0de205cb6232c9c2c7dd7f89f46198102917a3a02e390e9639",
+        "characters": 648,
+        "approx_tokens": 159
+      },
+      "traversal": {
+        "reasoning_mode": "legacy",
+        "rounds": 0,
+        "retrieval_count": 0,
+        "reasoning_call_count": 0,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "saturation",
+        "total_nodes": 49,
+        "contradictions": 19,
+        "stage_timings": {
+          "traversal_seconds": 118.9743,
+          "synthesis_seconds": 1.6944,
+          "log_write_seconds": 0.0005,
+          "total_seconds": 120.6692
+        },
+        "hypotheses": [
+          {
+            "claim": "The presence of blood in the sputum suggests a possible diagnosis of Pneumocystis jiroveci pneumonia.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pulmonary embolism may be causing the patient's coughing up blood and shortness of breath due to compromised pulmonary circulation.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Bronchiectasis could be exacerbating the patient's chronic obstructive pulmonary disease symptoms, leading to increased sputum production and difficulty breathing.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Cystic fibrosis-related bronchial infections may be contributing to the patient's respiratory symptoms, including coughing up blood and experiencing shortness of breath.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Bronchogenic carcinoma could be a possible underlying cause of the patient's persistent cough, sputum production, and difficulty breathing.",
+            "depth": 1,
+            "entropy": 0.6743,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pulmonary embolism may be considered given the patient's history of rheumatoid arthritis and recent coughing up blood.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Bronchiectasis could be a contributing factor to the patient's symptoms, particularly with a history of cystic fibrosis and chronic obstructive pulmonary disease.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute exacerbation of interstitial lung disease (ILD) is possible due to the patient's history of rheumatoid arthritis and recent respiratory symptoms.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of sputum and difficulty breathing could suggest that the patient has developed an upper respiratory tract infection, potentially exacerbated by their immunosuppressed state due to Crohn's disease treatment.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of shortness of breath and difficulty breathing in the context of ulcerative colitis suggests possible aspiration pneumonia or acute respiratory distress syndrome.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Aspiration pneumonia is possible due to the patient's history of cystic fibrosis and potential for depressed awareness.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The presence of shortness of breath and difficulty breathing in a significant way suggests an increased risk of respiratory failure in this patient with COPD.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pneumocystis jirovecii pneumonia should be considered in this immunosuppressed patient with coughing up blood and shortness of breath.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Bronchiolitis obliterans organizing pneumonia may be a complication of the patient's underlying chronic obstructive pulmonary disease.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pulmonary edema may be present due to interstitial pneumonia and pleural effusions as evidenced by bibasilar rales on chest radiography.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Chest x-ray findings consistent with pneumonia, such as fine rales and decreased breath sounds, suggest bacterial superinfection in a patient with immunosuppressed state.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Bilateral \"whiteout\" on chest x-ray within 8-24 hours may indicate aspiration pneumonitis or chemical pneumonitis due to regurgitation of stomach contents.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Bronchogenic carcinoma with central tumor growth causing cough and hemoptysis due to endobronchial obstruction.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pulmonary lymphangitic carcinomatosis resulting in diffuse interstitial infiltrates on chest radiographs and mild dyspnea.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Malignant pleural effusion causing pain, dyspnea, or cough due to metastatic spread of tumor to the pleura.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Acute exacerbation of rheumatoid arthritis-induced interstitial lung disease may be triggered by recent respiratory symptoms and immunosuppression.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Drug-induced interstitial lung disease, possibly caused by amiodarone or carmustine, may be a contributing factor to the patient's current respiratory symptoms.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Chest radiography may reveal lobar or segmental infiltrates due to cystic fibrosis-related bronchial infections.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Hyperexpanded lungs or large consolidation may cause poor diaphragmatic excursion and dullness to percussion on imaging studies.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pulmonary nodules or masses may be visible on chest CT scans in patients with cystic fibrosis experiencing respiratory symptoms.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The presence of shortness of breath and difficulty breathing could be exacerbated by hyperinflation of the lungs, leading to respiratory failure.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Chest computed tomography (CT) findings include airway dilation (\"tram tracks\" or \"signet-ring sign\") indicating bronchiectasis.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Bronchial wall thickening in dilated airways, inspissated secretions (\"tree-in-bud\" pattern), or cysts emanating from the bronchial wall are indicative of bronchiectasis on CT imaging.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of \"tram tracks\" indicating dilated airways is consistent with bronchiectasis and can be visualized on chest radiographs.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Chest CT findings of airway dilation, lack of tapering, and thickened walls are indicative of cystic bronchiectasis.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Chest CT findings of \"tram tracks\" or \"signet-ring sign\" are consistent with diffuse, bilateral bronchiectasis.",
+            "depth": 3,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Bronchoscopy is indicated for evaluation of focal bronchiectasis to exclude airway obstruction by an underlying mass or foreign body.",
+            "depth": 3,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Bronchiectasis may be exacerbated by cystic fibrosis due to chronic infection and inflammation of the airways.",
+            "depth": 3,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of \"tree-in-bud\" opacities on CT imaging suggests atypical mycobacterial infection as a contributing factor to bronchiectasis.",
+            "depth": 3,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 122.8616,
+      "n_axioms": 15,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 160,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 80485,
+          "completion_tokens": 2710,
+          "queue_seconds": 59.811191,
+          "inference_seconds": 146.190851
+        },
+        "by_purpose": {
+          "contradiction": {
+            "calls": 95,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 15891,
+            "completion_tokens": 190,
+            "queue_seconds": 56.240193,
+            "inference_seconds": 46.00608
+          },
+          "entropy_confidence": {
+            "calls": 37,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 18897,
+            "completion_tokens": 296,
+            "queue_seconds": 3.570777,
+            "inference_seconds": 22.962967
+          },
+          "generation": {
+            "calls": 28,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 45697,
+            "completion_tokens": 2224,
+            "queue_seconds": 0.00022,
+            "inference_seconds": 77.221805
+          }
+        }
+      }
+    },
+    {
+      "case_id": "case_114619",
+      "case_type": "trap",
+      "ground_truth": "Bronchitis",
+      "predictions": {
+        "apiro": [
+          "Pneumocystis jirovecii pneumonia",
+          "Acute Respiratory Distress Syndrome (ARDS)",
+          "Chronic Obstructive Pulmonary Disease (COPD) exacerbation"
+        ],
+        "rag": [
+          "Bronchiectasis",
+          "Pneumonia",
+          "Cystic Fibrosis exacerbation"
+        ],
+        "bare_llm": [
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Pneumonia",
+          "Acute Exacerbation of Asthma"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pneumocystis jirovecii pneumonia",
+          "Acute Respiratory Distress Syndrome (ARDS)",
+          "Chronic Obstructive Pulmonary Disease (COPD) exacerbation"
+        ],
+        "rag": "Bronchiectasis\nPneumonia\nCystic Fibrosis exacerbation",
+        "bare_llm": "Chronic Obstructive Pulmonary Disease (COPD)\nPneumonia\nAcute Exacerbation of Asthma"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "8b0258f76a146b75f4322e119921c40140659bf217fdf5e30f7608702c6df870",
+        "characters": 727,
+        "approx_tokens": 169
+      },
+      "traversal": {
+        "reasoning_mode": "legacy",
+        "rounds": 0,
+        "retrieval_count": 0,
+        "reasoning_call_count": 0,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [],
+        "evidence_audit": {},
+        "stop_reason": "exploration_budget",
+        "total_nodes": 82,
+        "contradictions": 42,
+        "stage_timings": {
+          "traversal_seconds": 238.2837,
+          "synthesis_seconds": 1.7809,
+          "log_write_seconds": 0.0015,
+          "total_seconds": 240.0661
+        },
+        "hypotheses": [
+          {
+            "claim": "The chronic nature of the cough suggests an association with gastroesophageal reflux disease or postnasal drip.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pertussis is a possible cause of the cough, given its paroxysmal and repetitive characteristics.",
+            "depth": 1,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pneumonia exacerbation with stic fi as a complication of chronic obstructive pulmonary disease (COPD).",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute bronchiolitis due to respiratory syncytial virus (RSV) infection in an immunocompromised patient with cystic fibrosis.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Chronic bronchitis with stic fi as a manifestation of asthma exacerbation in a patient with a history of COPD and rheumatoid arthritis.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pneumonia exacerbation in a patient with cystic fibrosis and chronic obstructive pulmonary disease is likely given the symptoms of cough and shortness of breath.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Asthma exacerbation triggered by an upper respiratory tract infection or environmental allergen is possible, considering the patient's history of asthma and recent symptoms.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Chronic bronchitis due to long-term exposure to irritants in North America may be contributing to the patient's persistent cough and difficulty breathing.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of colored or abundant sputum could suggest an underlying infection, such as pneumonia, complicating the patient's RA.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Ulcerative lesions on the genitals may indicate primary syphilis, which must be distinguished from other causes by histologic evaluation of biopsy sites.",
+            "depth": 1,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "C. pneumoniae infection is a possible cause of the patient's atypical pneumonia, especially given their age and lack of leukocytosis.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pneumocystis jirovecii pneumonia should be considered in this patient given their immunosuppressed status and respiratory symptoms.",
+            "depth": 1,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Bronchiolitis obliterans syndrome may be a complication of the patient's underlying COPD, contributing to their current respiratory distress.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Ipratropium bromide should be added to the nebulized solution for immediate relief of severe bronchospasm in this patient.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A corticosteroid, such as methylprednisolone, should be administered intravenously to reduce inflammation and prevent respiratory failure.",
+            "depth": 1,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Nonspecific interstitial pneumonia (NSIP) with fibrosis and chronic inflammation in the lower lobes on high-resolution computed tomography (HRCT).",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Cryptogenic organizing pneumonia (COP) presenting with patchy areas of airspace consolidation and intraalveolar plugs of loose organizing connective tissue on chest radiographs.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Chronic eosinophilic pneumonia with bilateral interstitial opacities, ground-glass opacifications, and peripheral eosinophilia on high-resolution computed tomography (HRCT).",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Chest x-ray findings of small segmental infiltrates are more consistent with C. pneumoniae infection than other causes of atypical pneumonia.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The absence of leukocytosis in this patient's presentation is more typical of Mycoplasma pneumoniae or Chlamydia pneumoniae infections.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A diffuse interstitial pattern on chest radiography, as described in the evidence, suggests a diagnosis of Legionella pneumophila infection.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Gastroesophageal reflux disease may trigger cough via reflex pathways initiated in the esophageal mucosa due to gastric contents aspiration.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Recurrent gastroesophageal reflux may lead to glottic inflammation detected on laryngoscopy, a manifestation of recurrent reflux to the level of the throat.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pneumonia with bilateral infiltrates on chest radiograph may be complicating the patient's RA.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of pleural effusion on imaging studies could suggest an underlying infection, such as pneumonia, in this immunocompromised patient.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "A high-resolution CT scan of the lungs may reveal evidence of pulmonary fibrosis or interstitial lung disease associated with the patient's RA.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Bronchiolitis obliterans syndrome may be exacerbated by the patient's underlying rheumatoid arthritis due to shared pathophysiological mechanisms.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Chronic rejection in lung transplant patients is characterized by airflow limitation and pathologically by bronchiolitis obliterans; the patient's COPD may share similar underlying mechanisms.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The radiographic appearance of pneumococcal pneumonia is varied, but in this case, the small segmental consolidation suggests a possible diagnosis of pneumococcal pneumonia.",
+            "depth": 3,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Hyperinflation of the lungs with flattened diaphragms on chest radiography may indicate severe RSV infection in immunocompromised patients.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Bilateral perihilar and peribronchial thickening, shaggy infiltrate, and focal airspace disease on frontal chest radiograph are characteristic findings of viral bronchopneumonia.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Chest radiography showing diffuse interstitial infiltrates or segmental consolidation may indicate lower respiratory tract involvement in RSV infection.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Bilateral perihilar and peribronchial thickening on frontal chest radiograph may indicate viral bronchopneumonia in immunocompromised patients.",
+            "depth": 3,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of shaggy infiltrate and focal airspace disease on frontal chest radiograph is consistent with atypical bacterial pneumonia.",
+            "depth": 3,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Focal airspace disease representing consolidation or atelectasis on frontal chest radiograph may be indicative of localized lung injury due to aspiration.",
+            "depth": 3,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of lobar consolidation with pleural effusion in 10% to 30% of cases suggests pneumococcal pneumonia.",
+            "depth": 4,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The veil-like opacification throughout the whole of the left lung is consistent with a left upper lobe pneumonia.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pneumocystis pneumonia could be a consideration given the patient's immunosuppressed status and lack of response to antibiotics in previous episodes of pneumonia.",
+            "depth": 5,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of lobar consolidation with pleural effusion may also indicate necrotizing pneumonia, which can occur in patients with chronic obstructive pulmonary disease (COPD).",
+            "depth": 5,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pneumocystis pneumonia may be exacerbated by the patient's use of tumor necrosis factor \u03b1 inhibitors for rheumatoid arthritis.",
+            "depth": 6,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Prophylaxis with trimethoprim-sulfamethoxazole may be indicated given the patient's history of chronic obstructive pulmonary disease and immunosuppression.",
+            "depth": 6,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of lobar consolidation and pleural effusion in a patient with COPD suggests a diagnosis of bronchopneumonia caused by Klebsiella pneumoniae.",
+            "depth": 6,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "The addition of ipratropium bromide to the nebulized solution may be contraindicated in patients with COPD due to potential for increased airway resistance.",
+            "depth": 2,
+            "entropy": 0.1019,
+            "confidence": 0.01,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The addition of IV magnesium sulfate may prove efficacious in reducing inflammation and preventing respiratory failure in this patient.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A therapeutic trial of high-dose oral corticosteroids followed by a 2-week trial of high-dose inhaled steroid (beclomethasone 1.5 mg per day) is warranted for maximum improvement in air\ufb02ow limitation.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Magnesium sulfate administration may mitigate neutrophil recruitment and activation, thereby reducing capillary endothelial damage and vessel permeability.",
+            "depth": 3,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Intravenous magnesium sulfate may help counteract the loss of surfactant and prevent intra-alveolar hyaline membrane formation.",
+            "depth": 3,
+            "entropy": 0.693,
+            "confidence": null,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "High-dose inhaled corticosteroid therapy may be insufficient for maximum improvement in airflow limitation due to underlying COPD severity.",
+            "depth": 3,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pneumatocele formation in the lung parenchyma due to chronic obstructive pulmonary disease exacerbation and cystic fibrosis.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Bilateral ground-glass opacities on chest CT scan indicative of viral pneumonia or acute respiratory distress syndrome.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Diffuse, bilateral alveolar opacities without pleural effusions on chest radiograph consistent with acute respiratory distress syndrome.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pneumatocele formation may be exacerbated by chronic bronchiectasis due to cystic fibrosis, as evidenced by imaging findings of dilated airways and lung parenchymal damage.",
+            "depth": 3,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of bilateral perihilar and basilar infiltrates on chest radiograph suggests Pneumocystis pneumonia in this immunocompromised patient with respiratory symptoms.",
+            "depth": 3,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Imaging studies may reveal \"white-out\" appearance on chest x-ray due to acute respiratory distress syndrome (ARDS) secondary to sepsis, infection, or other disease processes.",
+            "depth": 3,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "ARDS secondary to sepsis is likely given the patient's symptoms and \"white-out\" appearance on chest x-ray.",
+            "depth": 4,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of cystic fibrosis increases the risk for bronchiectasis, which may be visible as diffuse, bilateral alveolar opacities on imaging studies.",
+            "depth": 4,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Diffuse interstitial and alveolar infiltrates consistent with ARDS are more likely than cardiogenic pulmonary edema given the patient's lack of cardiomegaly or pleural effusions.",
+            "depth": 4,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "ARDS secondary to sepsis may be complicated by pulmonary embolism given the patient's shortness of breath and \"white-out\" appearance on chest x-ray.",
+            "depth": 5,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Asthma exacerbation may be caused by bronchial edema due to increased pulmonary venous pressure as evidenced by radiographic findings.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Pulmonary infiltrates and noncaseating granulomas on biopsy suggest hypersensitivity pneumonitis, which must be differentiated from asthma exacerbation.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          },
+          {
+            "claim": "Chest radiograph showing localized findings on physical examination may indicate pneumonia or anatomic abnormalities that require further investigation.",
+            "depth": 2,
+            "entropy": 0.693,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "The presence of bilateral pleural effusions on the chest radiograph suggests congestive heart failure or collagen-vascular disease.",
+            "depth": 3,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A CT scan of the chest reveals diffuse, bilateral \"ground-glass\" opacities consistent with fluid density in the alveolar space.",
+            "depth": 3,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Chronic bronchitis treatment with inhaled corticosteroids and bronchodilators may be effective for managing persistent cough and difficulty breathing.",
+            "depth": 2,
+            "entropy": 0.5142,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A comprehensive occupational health assessment is warranted to identify potential environmental triggers contributing to the patient's chronic respiratory symptoms.",
+            "depth": 2,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "ARDS treatment should prioritize mechanical ventilation and supportive care over glucocorticoid therapy due to lack of evidence for its effectiveness.",
+            "depth": 5,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "A lung biopsy is necessary to confirm the diagnosis of AIP and rule out other causes of diffuse alveolar damage, such as IPF or acute exacerbations.",
+            "depth": 5,
+            "entropy": 0.2342,
+            "confidence": 0.05,
+            "contradiction_penalty": 0.8
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 242.1648,
+      "n_axioms": 15,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 467,
+          "retries": 7,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 176465,
+          "completion_tokens": 4942,
+          "queue_seconds": 295.718964,
+          "inference_seconds": 316.40232
+        },
+        "by_purpose": {
+          "contradiction": {
+            "calls": 347,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 59511,
+            "completion_tokens": 694,
+            "queue_seconds": 288.538201,
+            "inference_seconds": 137.550945
+          },
+          "entropy_confidence": {
+            "calls": 75,
+            "retries": 7,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 39484,
+            "completion_tokens": 600,
+            "queue_seconds": 7.180407,
+            "inference_seconds": 52.139312
+          },
+          "generation": {
+            "calls": 45,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 77470,
+            "completion_tokens": 3648,
+            "queue_seconds": 0.000356,
+            "inference_seconds": 126.712064
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,2221 @@
+{
+  "manifest": {
+    "schema_version": "1.0",
+    "run_id": "meddistractqa-20260918T210612Z-20c03452",
+    "created_at": "2026-09-18T21:06:12.023997+00:00",
+    "benchmark": "meddistractqa",
+    "dataset": {
+      "id": "KrithikV/MedDistractQA",
+      "revision": "4e57408a3a1113a350674088cdcd34c770d81a25"
+    },
+    "cases": {
+      "count": 10,
+      "ids_sha256": "bd0079961a33d7040c379251806339c6861ef6eab227129615f110e226c80790"
+    },
+    "code": {
+      "git_commit": "ab47b5ca02863b5e19a174114fe7786315881b3f",
+      "dirty": false
+    },
+    "configuration": {
+      "seed": 7,
+      "n_pairs": 5,
+      "max_depth": 6,
+      "subset": "Patient Care: Diagnosis; explicit most-likely-diagnosis question",
+      "n_diagnoses": 3,
+      "model": "llama3.1:8b",
+      "decoding": {
+        "temperature": 0.2,
+        "seed": 7,
+        "num_predict": 180,
+        "json_num_predict": 768
+      }
+    },
+    "environment": {
+      "python": "3.14.6",
+      "platform": "Linux-7.1.8-200.nobara.fc44.x86_64-x86_64-with-glibc2.43"
+    }
+  },
+  "scores": {
+    "apiro": {
+      "n_pairs": 5,
+      "clean_accuracy": 0.6,
+      "adversarial_accuracy": 0.6,
+      "degradation": 0.0,
+      "degradation_ci": [
+        0.0,
+        0.0
+      ],
+      "broken": 0,
+      "rescued": 0,
+      "n_solvable": 3,
+      "retention": 1.0,
+      "top1_clean_accuracy": 0.4,
+      "top1_distracted_accuracy": 0.6,
+      "top1_degradation": -0.19999999999999996,
+      "top1_retention": 1.0,
+      "top1_flip_rate": 0.4,
+      "false_confidence": {
+        "threshold": 0.7,
+        "scored_cases": 10,
+        "wrong_top1_cases": 5,
+        "confident_wrong_top1_cases": 1,
+        "false_confidence_rate": 0.1,
+        "false_confidence_rate_on_errors": 0.2
+      }
+    },
+    "rag": {
+      "n_pairs": 5,
+      "clean_accuracy": 0.6,
+      "adversarial_accuracy": 0.6,
+      "degradation": 0.0,
+      "degradation_ci": [
+        0.0,
+        0.0
+      ],
+      "broken": 0,
+      "rescued": 0,
+      "n_solvable": 3,
+      "retention": 1.0,
+      "top1_clean_accuracy": 0.4,
+      "top1_distracted_accuracy": 0.4,
+      "top1_degradation": 0.0,
+      "top1_retention": 1.0,
+      "top1_flip_rate": 0.4,
+      "false_confidence": {
+        "threshold": 0.7,
+        "scored_cases": 0,
+        "wrong_top1_cases": 0,
+        "confident_wrong_top1_cases": 0,
+        "false_confidence_rate": null,
+        "false_confidence_rate_on_errors": null
+      }
+    },
+    "bare_llm": {
+      "n_pairs": 5,
+      "clean_accuracy": 0.4,
+      "adversarial_accuracy": 0.4,
+      "degradation": 0.0,
+      "degradation_ci": [
+        0.0,
+        0.0
+      ],
+      "broken": 0,
+      "rescued": 0,
+      "n_solvable": 2,
+      "retention": 1.0,
+      "top1_clean_accuracy": 0.4,
+      "top1_distracted_accuracy": 0.4,
+      "top1_degradation": 0.0,
+      "top1_retention": 1.0,
+      "top1_flip_rate": 0.4,
+      "false_confidence": {
+        "threshold": 0.7,
+        "scored_cases": 0,
+        "wrong_top1_cases": 0,
+        "confident_wrong_top1_cases": 0,
+        "false_confidence_rate": null,
+        "false_confidence_rate_on_errors": null
+      }
+    }
+  },
+  "case_results": [
+    {
+      "case_id": "a57bfcebe263",
+      "condition": "clean",
+      "ground_truth": "Somatization disorder",
+      "choices": {
+        "A": "Ulcerative colitis",
+        "B": "Illness anxiety disorder",
+        "C": "Somatization disorder",
+        "D": "Somatoform pain disorder"
+      },
+      "distracting_sentence": "The artist's latest painting was described as having an ulcerative quality, with layers of color breaking through the surface.",
+      "predictions": {
+        "apiro": [
+          "Ulcerative Colitis",
+          "Mesenteric Ischemia",
+          "Irritable Bowel Syndrome (IBS)"
+        ],
+        "rag": [
+          "Reactive arthritis",
+          "Mesenteric lymphadenitis",
+          "Irritable bowel syndrome (IBS)"
+        ],
+        "bare_llm": [
+          "Reactive Arthritis",
+          "Inflammatory Bowel Disease",
+          "Sj\u00f6gren's Syndrome"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Ulcerative Colitis",
+          "Mesenteric Ischemia",
+          "Irritable Bowel Syndrome (IBS)"
+        ],
+        "rag": "Reactive arthritis\nMesenteric lymphadenitis\nIrritable bowel syndrome (IBS)",
+        "bare_llm": "Reactive Arthritis\nInflammatory Bowel Disease\nSj\u00f6gren's Syndrome"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "e1dc4406620f901b9a659549360a4aee8fcd80489e0cd984ffe05a9d76f3ba4c",
+        "characters": 595,
+        "approx_tokens": 140
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Ulcerative Colitis vs Mesenteric Ischemia",
+            "query": "Medical evidence distinguishing Ulcerative Colitis vs Mesenteric Ischemia. Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of presents.; The patient presents with the clinical finding of right arm.; The patient presents with the clinical finding of pain.; The patient denies the clinical finding of trauma.; The patient presents with the clinical finding of diarrhea.; The patient presents with the clinical finding of tenderness.; The patient presents with the clinical finding of palpation.; The patient presents with the clinical finding of abdominal.; The patient denies the clinical finding of ythema.; The patient denies the clinical finding of edema.",
+            "value": 0.968916,
+            "reason": "single_fact_dependence; small_candidate_margin; high_differential_entropy; counterfactual_rank_flip"
+          }
+        ],
+        "unresolved_questions": [
+          "Has the patient had any recent travel or exposure to contaminated food or water?",
+          "Does the patient have a family history of gastrointestinal disorders?",
+          "What is the patient's bowel movement pattern like?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.968916,
+            "margin": 0.034192,
+            "distribution": [
+              {
+                "diagnosis": "Ulcerative Colitis",
+                "probability": 0.241049
+              },
+              {
+                "diagnosis": "Mesenteric Ischemia",
+                "probability": 0.20317
+              },
+              {
+                "diagnosis": "Appendicitis",
+                "probability": 0.20317
+              },
+              {
+                "diagnosis": "Irritable Bowel Syndrome (IBS)",
+                "probability": 0.156424
+              },
+              {
+                "diagnosis": "Gastroenteritis",
+                "probability": 0.102383
+              },
+              {
+                "diagnosis": "Inflammatory Bowel Disease (IBD)",
+                "probability": 0.093805
+              }
+            ],
+            "influential_fact_id": "ax_4",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.206257,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.990039,
+            "margin": 0.017176,
+            "distribution": [
+              {
+                "diagnosis": "Ulcerative Colitis",
+                "probability": 0.211027
+              },
+              {
+                "diagnosis": "Mesenteric Ischemia",
+                "probability": 0.19366
+              },
+              {
+                "diagnosis": "Irritable Bowel Syndrome (IBS)",
+                "probability": 0.175698
+              },
+              {
+                "diagnosis": "Gastroenteritis",
+                "probability": 0.15645
+              },
+              {
+                "diagnosis": "Inflammatory Bowel Disease (IBD)",
+                "probability": 0.146975
+              },
+              {
+                "diagnosis": "Appendicitis",
+                "probability": 0.11619
+              }
+            ],
+            "influential_fact_id": "ax_4",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.225051,
+            "verified_evidence_spans": 1
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 14,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.028334,
+          "initial_retrieval": 0.105272,
+          "initial_reasoning_and_audit": 13.356809,
+          "contrastive_revision": 11.395762,
+          "provenance_graph": 7.2e-05,
+          "total": 24.886313
+        },
+        "hypotheses": [
+          {
+            "claim": "Ulcerative Colitis",
+            "depth": 1,
+            "entropy": 0.9209394481940656,
+            "confidence": 0.336,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Mesenteric Ischemia",
+            "depth": 1,
+            "entropy": 0.883721961491576,
+            "confidence": 0.302,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Irritable Bowel Syndrome (IBS)",
+            "depth": 1,
+            "entropy": 0.8096893113439168,
+            "confidence": 0.249,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 26.825,
+      "n_axioms": 11,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 5937,
+          "completion_tokens": 1067,
+          "queue_seconds": 2.3e-05,
+          "inference_seconds": 26.4621
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 5937,
+            "completion_tokens": 1067,
+            "queue_seconds": 2.3e-05,
+            "inference_seconds": 26.4621
+          }
+        }
+      }
+    },
+    {
+      "case_id": "a57bfcebe263",
+      "condition": "distracted",
+      "ground_truth": "Somatization disorder",
+      "choices": {
+        "A": "Ulcerative colitis",
+        "B": "Illness anxiety disorder",
+        "C": "Somatization disorder",
+        "D": "Somatoform pain disorder"
+      },
+      "distracting_sentence": "The artist's latest painting was described as having an ulcerative quality, with layers of color breaking through the surface.",
+      "predictions": {
+        "apiro": [
+          "Pyoderma gangrenosum",
+          "Ulcerative colitis",
+          "Gastrointestinal tumor"
+        ],
+        "rag": [
+          "Pyoderma gangrenosum",
+          "Ulcerative colitis",
+          "Crohn's disease"
+        ],
+        "bare_llm": [
+          "Systemic Lupus Erythematosus",
+          "Reiter's Syndrome",
+          "Sj\u00f6gren's Syndrome"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Pyoderma gangrenosum",
+          "Ulcerative colitis",
+          "Gastrointestinal tumor"
+        ],
+        "rag": "Pyoderma gangrenosum\nUlcerative colitis\nCrohn's disease",
+        "bare_llm": "I'm unable to provide a diagnosis for this patient.\n\nHowever, based on the clinical presentation, here are the top 3 differential diagnoses:\n\nSystemic Lupus Erythematosus\nReiter's Syndrome\nSj\u00f6gren's Syndrome"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "a57bfcebe263e6bfdc2106083bb544c70a9f3fc0ba716f8349f71c69321d15a9",
+        "characters": 722,
+        "approx_tokens": 165
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Pyoderma gangrenosum vs Ulcerative colitis",
+            "query": "Medical evidence distinguishing Pyoderma gangrenosum vs Ulcerative colitis. Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of presents.; The patient presents with the clinical finding of right arm.; The patient presents with the clinical finding of pain.; The patient denies the clinical finding of trauma.; The patient presents with the clinical finding of diarrhea.; The patient presents with the clinical finding of tenderness.; The patient presents with the clinical finding of pal.; The patient presents with the clinical finding of pation.; The patient presents with the clinical finding of abdominal.; The patient denies the clinical finding of ythema.",
+            "value": 0.960533,
+            "reason": "high_differential_entropy"
+          }
+        ],
+        "unresolved_questions": [
+          "Is the patient's diarrhea bloody?",
+          "Has the patient had any recent travel or exposure to infectious diseases?",
+          "What are the patient's symptoms and medical history?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "high_differential_entropy"
+            ],
+            "normalized_entropy": 0.960533,
+            "margin": 0.131091,
+            "distribution": [
+              {
+                "diagnosis": "Pyoderma gangrenosum",
+                "probability": 0.315856
+              },
+              {
+                "diagnosis": "Ulcerative colitis",
+                "probability": 0.163994
+              },
+              {
+                "diagnosis": "Gastrointestinal tumor",
+                "probability": 0.136319
+              },
+              {
+                "diagnosis": "Mesenteric ischemia",
+                "probability": 0.135465
+              },
+              {
+                "diagnosis": "Neurological disease",
+                "probability": 0.12425
+              },
+              {
+                "diagnosis": "Acute cholecystitis",
+                "probability": 0.124115
+              }
+            ],
+            "influential_fact_id": "ax_2",
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.336028,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.995486,
+            "margin": 0.045937,
+            "distribution": [
+              {
+                "diagnosis": "Pyoderma gangrenosum",
+                "probability": 0.213533
+              },
+              {
+                "diagnosis": "Ulcerative colitis",
+                "probability": 0.169713
+              },
+              {
+                "diagnosis": "Gastrointestinal tumor",
+                "probability": 0.157515
+              },
+              {
+                "diagnosis": "Mesenteric ischemia",
+                "probability": 0.156255
+              },
+              {
+                "diagnosis": "Neurological disease",
+                "probability": 0.151574
+              },
+              {
+                "diagnosis": "Acute cholecystitis",
+                "probability": 0.15141
+              }
+            ],
+            "influential_fact_id": "ax_5",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.252637,
+            "verified_evidence_spans": 1
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 15,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.039972,
+          "initial_retrieval": 0.130722,
+          "initial_reasoning_and_audit": 11.897898,
+          "contrastive_revision": 13.49509,
+          "provenance_graph": 3.4e-05,
+          "total": 25.563773
+        },
+        "hypotheses": [
+          {
+            "claim": "Pyoderma gangrenosum",
+            "depth": 1,
+            "entropy": 0.9866165198488093,
+            "confidence": 0.432,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Ulcerative colitis",
+            "depth": 1,
+            "entropy": 0.8825098588399867,
+            "confidence": 0.301,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Gastrointestinal tumor",
+            "depth": 1,
+            "entropy": 0.832722637493494,
+            "confidence": 0.264,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 28.2217,
+      "n_axioms": 12,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 6296,
+          "completion_tokens": 1109,
+          "queue_seconds": 2.9e-05,
+          "inference_seconds": 27.802875
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 6296,
+            "completion_tokens": 1109,
+            "queue_seconds": 2.9e-05,
+            "inference_seconds": 27.802875
+          }
+        }
+      }
+    },
+    {
+      "case_id": "b226672a2422",
+      "condition": "clean",
+      "ground_truth": "Chronic obstructive pulmonary disease",
+      "choices": {
+        "A": "Interstitial lung disease",
+        "B": "Hypersensitivity pneumonitis",
+        "C": "Chronic obstructive pulmonary disease",
+        "D": "Bronchiectasis"
+      },
+      "distracting_sentence": "The patient said their favorite novel had a dense interstitial plot that connected various storylines seamlessly.",
+      "predictions": {
+        "apiro": [
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Asthma",
+          "Emphysema"
+        ],
+        "rag": [
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Pulmonary Emphysema",
+          "Restrictive Lung Disease"
+        ],
+        "bare_llm": [
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Alpha-1 Antitrypsin Deficiency",
+          "Pulmonary Fibrosis"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Asthma",
+          "Emphysema"
+        ],
+        "rag": "Chronic Obstructive Pulmonary Disease (COPD)\nPulmonary Emphysema\nRestrictive Lung Disease",
+        "bare_llm": "Chronic Obstructive Pulmonary Disease (COPD)\nAlpha-1 Antitrypsin Deficiency\nPulmonary Fibrosis"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "a6b6c1682be4e5b94549fa3f95819f95f73ab660cc582372f093b8c4af1ff0e8",
+        "characters": 929,
+        "approx_tokens": 216
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Chronic Obstructive Pulmonary Disease (COPD) vs Asthma",
+            "query": "Medical evidence distinguishing Chronic Obstructive Pulmonary Disease (COPD) vs Asthma. Identify which findings are specific, contradictory, or commonly misleading: The patient has a lab result or vital sign showing ft 0 in.; The patient has a lab result or vital sign showing BMI 19.7 kg/.; The patient has a lab result or vital sign showing pulse 94 /min.; The patient has a lab result or vital sign showing respirations 21 /min.; The patient has a lab result or vital sign showing FEV 1 of.; The patient has a history of healthy.; The patient has a history of comes.; The patient presents with the clinical finding of shortness of breath.; The patient presents with the clinical finding of dry.; The patient presents with the clinical finding of cough.",
+            "value": 0.879209,
+            "reason": "single_fact_dependence; small_candidate_margin; high_differential_entropy; counterfactual_rank_flip"
+          }
+        ],
+        "unresolved_questions": [
+          "What is the patient's smoking history?",
+          "Has the patient had any recent travel or exposure to potential lung pathogens?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.879209,
+            "margin": 0.075767,
+            "distribution": [
+              {
+                "diagnosis": "Chronic Obstructive Pulmonary Disease (COPD)",
+                "probability": 0.373799
+              },
+              {
+                "diagnosis": "Asthma",
+                "probability": 0.255925
+              },
+              {
+                "diagnosis": "Emphysema",
+                "probability": 0.148291
+              },
+              {
+                "diagnosis": "Restrictive Lung Disease",
+                "probability": 0.087504
+              },
+              {
+                "diagnosis": "Chronic Bronchitis",
+                "probability": 0.073108
+              },
+              {
+                "diagnosis": "Bronchiectasis",
+                "probability": 0.061371
+              }
+            ],
+            "influential_fact_id": "ax_4",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.396355,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": false,
+            "reasons": [],
+            "normalized_entropy": 0.276591,
+            "margin": 0.362906,
+            "distribution": [
+              {
+                "diagnosis": "Chronic Obstructive Pulmonary Disease (COPD)",
+                "probability": 0.847303
+              },
+              {
+                "diagnosis": "Asthma",
+                "probability": 0.138038
+              },
+              {
+                "diagnosis": "Emphysema",
+                "probability": 0.004283
+              },
+              {
+                "diagnosis": "Restrictive Lung Disease",
+                "probability": 0.004087
+              },
+              {
+                "diagnosis": "Chronic Bronchitis",
+                "probability": 0.003993
+              },
+              {
+                "diagnosis": "Bronchiectasis",
+                "probability": 0.002297
+              }
+            ],
+            "influential_fact_id": "ax_4",
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.672881,
+            "verified_evidence_spans": 1
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 22,
+        "contradictions": 1,
+        "stage_timings": {
+          "fact_ledger": 0.083349,
+          "initial_retrieval": 0.191803,
+          "initial_reasoning_and_audit": 16.055229,
+          "contrastive_revision": 13.319614,
+          "provenance_graph": 4.5e-05,
+          "total": 29.650093
+        },
+        "hypotheses": [
+          {
+            "claim": "Chronic Obstructive Pulmonary Disease (COPD)",
+            "depth": 1,
+            "entropy": 0.6577047787442195,
+            "confidence": 0.83,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Asthma",
+            "depth": 1,
+            "entropy": 0.5293608652873644,
+            "confidence": 0.12,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Emphysema",
+            "depth": 1,
+            "entropy": 0.24229218908241482,
+            "confidence": 0.04,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 32.2868,
+      "n_axioms": 19,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 7009,
+          "completion_tokens": 1257,
+          "queue_seconds": 2.9e-05,
+          "inference_seconds": 31.518379
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 7009,
+            "completion_tokens": 1257,
+            "queue_seconds": 2.9e-05,
+            "inference_seconds": 31.518379
+          }
+        }
+      }
+    },
+    {
+      "case_id": "b226672a2422",
+      "condition": "distracted",
+      "ground_truth": "Chronic obstructive pulmonary disease",
+      "choices": {
+        "A": "Interstitial lung disease",
+        "B": "Hypersensitivity pneumonitis",
+        "C": "Chronic obstructive pulmonary disease",
+        "D": "Bronchiectasis"
+      },
+      "distracting_sentence": "The patient said their favorite novel had a dense interstitial plot that connected various storylines seamlessly.",
+      "predictions": {
+        "apiro": [
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Pulmonary Emphysema",
+          "Restrictive Lung Disease"
+        ],
+        "rag": [
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Alpha-1 Antitrypsin Deficiency",
+          "Pulmonary Emphysema"
+        ],
+        "bare_llm": [
+          "Chronic Obstructive Pulmonary Disease",
+          "Idiopathic Pulmonary Fibrosis",
+          "Alpha-1 Antitrypsin Deficiency"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Chronic Obstructive Pulmonary Disease (COPD)",
+          "Pulmonary Emphysema",
+          "Restrictive Lung Disease"
+        ],
+        "rag": "Chronic Obstructive Pulmonary Disease (COPD)\nAlpha-1 Antitrypsin Deficiency\nPulmonary Emphysema",
+        "bare_llm": "Chronic Obstructive Pulmonary Disease\nIdiopathic Pulmonary Fibrosis\nAlpha-1 Antitrypsin Deficiency"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "b226672a2422d21265c7cb6c733f665193209f060564764e05ed11cb37e1d363",
+        "characters": 1043,
+        "approx_tokens": 237
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 1,
+        "retrieval_count": 1,
+        "reasoning_call_count": 1,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [],
+        "unresolved_questions": [
+          "Does the patient have a history of exposure to environmental toxins or pollutants?",
+          "Are there any family members with similar respiratory symptoms?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": false,
+            "reasons": [],
+            "normalized_entropy": 0.693216,
+            "margin": 0.329863,
+            "distribution": [
+              {
+                "diagnosis": "Chronic Obstructive Pulmonary Disease (COPD)",
+                "probability": 0.627404
+              },
+              {
+                "diagnosis": "Pulmonary Emphysema",
+                "probability": 0.120575
+              },
+              {
+                "diagnosis": "Restrictive Lung Disease",
+                "probability": 0.077417
+              },
+              {
+                "diagnosis": "Allergic Bronchopulmonary Aspergillosis (ABPA)",
+                "probability": 0.059543
+              },
+              {
+                "diagnosis": "Alpha-1 Antitrypsin Deficiency",
+                "probability": 0.059543
+              },
+              {
+                "diagnosis": "Idiopathic Pulmonary Fibrosis",
+                "probability": 0.055518
+              }
+            ],
+            "influential_fact_id": "ax_7",
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.522066,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": false,
+            "reasons": [],
+            "normalized_entropy": 0.693216,
+            "margin": 0.329863,
+            "distribution": [
+              {
+                "diagnosis": "Chronic Obstructive Pulmonary Disease (COPD)",
+                "probability": 0.627404
+              },
+              {
+                "diagnosis": "Pulmonary Emphysema",
+                "probability": 0.120575
+              },
+              {
+                "diagnosis": "Restrictive Lung Disease",
+                "probability": 0.077417
+              },
+              {
+                "diagnosis": "Allergic Bronchopulmonary Aspergillosis (ABPA)",
+                "probability": 0.059543
+              },
+              {
+                "diagnosis": "Alpha-1 Antitrypsin Deficiency",
+                "probability": 0.059543
+              },
+              {
+                "diagnosis": "Idiopathic Pulmonary Fibrosis",
+                "probability": 0.055518
+              }
+            ],
+            "influential_fact_id": "ax_7",
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.522066,
+            "verified_evidence_spans": 1
+          }
+        },
+        "stop_reason": "evidence_audit_passed",
+        "total_nodes": 22,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.154547,
+          "initial_retrieval": 0.394118,
+          "initial_reasoning_and_audit": 16.289059,
+          "provenance_graph": 3.9e-05,
+          "total": 16.837804
+        },
+        "hypotheses": [
+          {
+            "claim": "Chronic Obstructive Pulmonary Disease (COPD)",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.8,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Pulmonary Emphysema",
+            "depth": 1,
+            "entropy": 0.6098403047164004,
+            "confidence": 0.15,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Restrictive Lung Disease",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.2,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 19.431,
+      "n_axioms": 19,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 3,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 4050,
+          "completion_tokens": 750,
+          "queue_seconds": 3e-05,
+          "inference_seconds": 18.733534
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 3,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 4050,
+            "completion_tokens": 750,
+            "queue_seconds": 3e-05,
+            "inference_seconds": 18.733534
+          }
+        }
+      }
+    },
+    {
+      "case_id": "6780fcf25f05",
+      "condition": "clean",
+      "ground_truth": "Fibroadenoma",
+      "choices": {
+        "A": "Fibroadenoma",
+        "B": "Normal pregnancy-related changes",
+        "C": "Fat necrosis",
+        "D": "Phyllodes tumor"
+      },
+      "distracting_sentence": "The patient's aunt mentioned that her parrot has been unusually talkative and energetic lately.",
+      "predictions": {
+        "apiro": [
+          "Fibrocystic Disease",
+          "Fibroadenoma",
+          "Mastitis/Abscess"
+        ],
+        "rag": [
+          "Fibrocystic Change",
+          "Fibroadenoma",
+          "Mastitis/Abscess"
+        ],
+        "bare_llm": [
+          "Fibroadenoma",
+          "Phyllodes tumor",
+          "Intraductal papilloma"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Fibrocystic Disease",
+          "Fibroadenoma",
+          "Mastitis/Abscess"
+        ],
+        "rag": "Fibrocystic Change\nFibroadenoma\nMastitis/Abscess",
+        "bare_llm": "Fibroadenoma\nPhyllodes tumor\nIntraductal papilloma"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "287443b40cbd98c15e734f302e1d3a59ab4dc30f2af228a29c0a77270ed907a9",
+        "characters": 458,
+        "approx_tokens": 104
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Fibrocystic Disease vs Breast Cancer",
+            "query": "Medical evidence distinguishing Fibrocystic Disease vs Breast Cancer. Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of comes.; The patient presents with the clinical finding of mass.; The patient presents with the clinical finding of breast.; The patient presents with the clinical finding of physical examination.; The patient presents with the clinical finding of breasts.; The patient presents with the clinical finding of biopsy.",
+            "value": 0.972615,
+            "reason": "single_fact_dependence; small_candidate_margin; high_differential_entropy; counterfactual_rank_flip"
+          }
+        ],
+        "unresolved_questions": [
+          "Is the patient postmenopausal or premenopausal?",
+          "Has the patient had any previous breast biopsies?",
+          "Is the mass mobile or fixed?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.972615,
+            "margin": 0.051826,
+            "distribution": [
+              {
+                "diagnosis": "Fibrocystic Disease",
+                "probability": 0.251058
+              },
+              {
+                "diagnosis": "Breast Cancer",
+                "probability": 0.193747
+              },
+              {
+                "diagnosis": "Fat Necrosis",
+                "probability": 0.178483
+              },
+              {
+                "diagnosis": "Mammary Duct Ectasia",
+                "probability": 0.16353
+              },
+              {
+                "diagnosis": "Fibroadenoma",
+                "probability": 0.125056
+              },
+              {
+                "diagnosis": "Mastitis/Abscess",
+                "probability": 0.088125
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.244385,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.980665,
+            "margin": 0.071219,
+            "distribution": [
+              {
+                "diagnosis": "Fibrocystic Disease",
+                "probability": 0.261144
+              },
+              {
+                "diagnosis": "Fibroadenoma",
+                "probability": 0.182907
+              },
+              {
+                "diagnosis": "Mastitis/Abscess",
+                "probability": 0.153543
+              },
+              {
+                "diagnosis": "Fat Necrosis",
+                "probability": 0.141923
+              },
+              {
+                "diagnosis": "Breast Cancer",
+                "probability": 0.13045
+              },
+              {
+                "diagnosis": "Mammary Duct Ectasia",
+                "probability": 0.130033
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.263104,
+            "verified_evidence_spans": 1
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 9,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.028676,
+          "initial_retrieval": 0.141755,
+          "initial_reasoning_and_audit": 16.420769,
+          "contrastive_revision": 14.706724,
+          "provenance_graph": 4.9e-05,
+          "total": 31.298036
+        },
+        "hypotheses": [
+          {
+            "claim": "Fibrocystic Disease",
+            "depth": 1,
+            "entropy": 0.9927744539878083,
+            "confidence": 0.45,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Fibroadenoma",
+            "depth": 1,
+            "entropy": 0.8112781244591328,
+            "confidence": 0.25,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Mastitis/Abscess",
+            "depth": 1,
+            "entropy": 0.6098403047164004,
+            "confidence": 0.15,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 33.3825,
+      "n_axioms": 6,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 5734,
+          "completion_tokens": 1358,
+          "queue_seconds": 5.9e-05,
+          "inference_seconds": 33.024974
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 5734,
+            "completion_tokens": 1358,
+            "queue_seconds": 5.9e-05,
+            "inference_seconds": 33.024974
+          }
+        }
+      }
+    },
+    {
+      "case_id": "6780fcf25f05",
+      "condition": "distracted",
+      "ground_truth": "Fibroadenoma",
+      "choices": {
+        "A": "Fibroadenoma",
+        "B": "Normal pregnancy-related changes",
+        "C": "Fat necrosis",
+        "D": "Phyllodes tumor"
+      },
+      "distracting_sentence": "The patient's aunt mentioned that her parrot has been unusually talkative and energetic lately.",
+      "predictions": {
+        "apiro": [
+          "Fibroadenoma",
+          "Mammary Duct Ectasia",
+          "Fibrocystic Change"
+        ],
+        "rag": [
+          "Fibrocystic change",
+          "Fibroadenoma",
+          "Breast cancer"
+        ],
+        "bare_llm": [
+          "Fibroadenoma",
+          "Phyllodes tumor",
+          "Benign breast papilloma"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Fibroadenoma",
+          "Mammary Duct Ectasia",
+          "Fibrocystic Change"
+        ],
+        "rag": "Fibrocystic change\nFibroadenoma\nBreast cancer",
+        "bare_llm": "Fibroadenoma\nPhyllodes tumor\nBenign breast papilloma"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "6780fcf25f05962ce9718565ef44bce45d48ce63ec7ea32a8b7a90cc1d2728b3",
+        "characters": 554,
+        "approx_tokens": 123
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Fibrocystic Change vs Fibroadenoma",
+            "query": "Medical evidence distinguishing Fibrocystic Change vs Fibroadenoma. Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of comes.; The patient presents with the clinical finding of mass.; The patient presents with the clinical finding of breast.; The patient presents with the clinical finding of physical examination.; The patient presents with the clinical finding of breasts.; The patient presents with the clinical finding of biopsy.; The patient presents with the clinical finding of talk.; The patient presents with the clinical finding of ative.; The patient presents with the clinical finding of energetic.",
+            "value": 0.983982,
+            "reason": "single_fact_dependence; small_candidate_margin; high_differential_entropy; counterfactual_rank_flip"
+          }
+        ],
+        "unresolved_questions": [
+          "Is there any family history of breast cancer?",
+          "Has the patient experienced any trauma to the breast?",
+          "What is the patient's age?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.983982,
+            "margin": 0.049918,
+            "distribution": [
+              {
+                "diagnosis": "Fibrocystic Change",
+                "probability": 0.281555
+              },
+              {
+                "diagnosis": "Fibroadenoma",
+                "probability": 0.219365
+              },
+              {
+                "diagnosis": "Breast Cancer",
+                "probability": 0.179924
+              },
+              {
+                "diagnosis": "Fat Necrosis",
+                "probability": 0.166555
+              },
+              {
+                "diagnosis": "Mammary Duct Ectasia",
+                "probability": 0.152601
+              }
+            ],
+            "influential_fact_id": "ax_2",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.231856,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "no_verified_evidence_span",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.980136,
+            "margin": 0.013144,
+            "distribution": [
+              {
+                "diagnosis": "Fibroadenoma",
+                "probability": 0.219278
+              },
+              {
+                "diagnosis": "Mammary Duct Ectasia",
+                "probability": 0.20533
+              },
+              {
+                "diagnosis": "Fibrocystic Change",
+                "probability": 0.184074
+              },
+              {
+                "diagnosis": "Mastitis/Abscess",
+                "probability": 0.173538
+              },
+              {
+                "diagnosis": "Fat Necrosis",
+                "probability": 0.10889
+              },
+              {
+                "diagnosis": "Breast Cancer",
+                "probability": 0.10889
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.1575,
+            "verified_evidence_spans": 0
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 12,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.026136,
+          "initial_retrieval": 0.205177,
+          "initial_reasoning_and_audit": 16.904023,
+          "contrastive_revision": 16.823645,
+          "provenance_graph": 4.4e-05,
+          "total": 33.959082
+        },
+        "hypotheses": [
+          {
+            "claim": "Fibroadenoma",
+            "depth": 1,
+            "entropy": 0.9927744539878083,
+            "confidence": 0.45,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Mammary Duct Ectasia",
+            "depth": 1,
+            "entropy": 0.6098403047164004,
+            "confidence": 0.15,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Fibrocystic Change",
+            "depth": 1,
+            "entropy": 0.934068055375491,
+            "confidence": 0.35,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 35.9612,
+      "n_axioms": 9,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 5936,
+          "completion_tokens": 1364,
+          "queue_seconds": 4e-05,
+          "inference_seconds": 35.524546
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 5936,
+            "completion_tokens": 1364,
+            "queue_seconds": 4e-05,
+            "inference_seconds": 35.524546
+          }
+        }
+      }
+    },
+    {
+      "case_id": "8c42f6d13157",
+      "condition": "clean",
+      "ground_truth": "Chronic, non-bacterial prostatitis",
+      "choices": {
+        "A": "Benign prostatic hyperplasia",
+        "B": "Chronic, non-bacterial prostatitis",
+        "C": "Chronic prostatitis by resistant Escherichia coli",
+        "D": "Interstitial cystitis"
+      },
+      "distracting_sentence": "The patient's storytelling style has a way of enlarging even the smallest details, much like benign prostatic hyperplasia.",
+      "predictions": {
+        "apiro": [
+          "Chronic Bacterial Prostatitis",
+          "Acute Bacterial Prostatitis",
+          "Chronic Pelvic Pain Syndrome"
+        ],
+        "rag": [
+          "Chronic Bacterial Prostatitis",
+          "Chronic Nonbacterial Prostatitis",
+          "Acute Bacterial Prostatitis"
+        ],
+        "bare_llm": [
+          "Chronic Prostatitis/Chronic Pelvic Pain Syndrome (CP/CPPS)",
+          "Prostate Cancer",
+          "Benign Prostatic Hyperplasia (BPH)"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Chronic Bacterial Prostatitis",
+          "Acute Bacterial Prostatitis",
+          "Chronic Pelvic Pain Syndrome"
+        ],
+        "rag": "Chronic Bacterial Prostatitis\nChronic Nonbacterial Prostatitis\nAcute Bacterial Prostatitis",
+        "bare_llm": "Chronic Prostatitis/Chronic Pelvic Pain Syndrome (CP/CPPS)\nProstate Cancer\nBenign Prostatic Hyperplasia (BPH)"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "5d2547d64a5fa4efd2ac3e4cbbfdb6435fa35ff143652b812156d4946ac48457",
+        "characters": 1027,
+        "approx_tokens": 197
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 1,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Chronic Bacterial Prostatitis vs Benign Prostatic Hyperplasia (BPH)",
+            "query": "Medical evidence distinguishing Chronic Bacterial Prostatitis vs Benign Prostatic Hyperplasia (BPH). Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of presents.; The patient has a history of pelvic.; The patient has a history of irritative.; The patient presents with the clinical finding of urinary symptoms.; The patient is on anti.; The patient is on pro.; The patient is on oxac.; The patient presents with the clinical finding of physical examination.; The patient denies the clinical finding of masses.; The patient presents with the clinical finding of abdominal.",
+            "value": 0.99165,
+            "reason": "no_cited_patient_support; no_verified_evidence_span; small_candidate_margin; high_differential_entropy"
+          }
+        ],
+        "unresolved_questions": [],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "no_cited_patient_support",
+              "no_verified_evidence_span",
+              "small_candidate_margin",
+              "high_differential_entropy"
+            ],
+            "normalized_entropy": 0.99165,
+            "margin": 0.035,
+            "distribution": [
+              {
+                "diagnosis": "Chronic Bacterial Prostatitis",
+                "probability": 0.22316
+              },
+              {
+                "diagnosis": "Benign Prostatic Hyperplasia (BPH)",
+                "probability": 0.187333
+              },
+              {
+                "diagnosis": "Acute Bacterial Prostatitis",
+                "probability": 0.157258
+              },
+              {
+                "diagnosis": "Chronic Prostatitis",
+                "probability": 0.144083
+              },
+              {
+                "diagnosis": "Urinary Tract Infection (UTI)",
+                "probability": 0.144083
+              },
+              {
+                "diagnosis": "Prostate Cancer",
+                "probability": 0.144083
+              }
+            ],
+            "influential_fact_id": null,
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.21,
+            "verified_evidence_spans": 0
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "no_verified_evidence_span",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.989138,
+            "margin": 0.035,
+            "distribution": [
+              {
+                "diagnosis": "Chronic Bacterial Prostatitis",
+                "probability": 0.22536
+              },
+              {
+                "diagnosis": "Acute Bacterial Prostatitis",
+                "probability": 0.18918
+              },
+              {
+                "diagnosis": "Chronic Pelvic Pain Syndrome",
+                "probability": 0.17333
+              },
+              {
+                "diagnosis": "Benign Prostatic Hyperplasia (BPH)",
+                "probability": 0.145503
+              },
+              {
+                "diagnosis": "Urinary Tract Infection (UTI)",
+                "probability": 0.133313
+              },
+              {
+                "diagnosis": "Prostate Cancer",
+                "probability": 0.133313
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.1225,
+            "verified_evidence_spans": 0
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 20,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.047147,
+          "initial_retrieval": 0.180496,
+          "initial_reasoning_and_audit": 18.517214,
+          "contrastive_revision": 16.171808,
+          "provenance_graph": 4.4e-05,
+          "total": 34.916767
+        },
+        "hypotheses": [
+          {
+            "claim": "Chronic Bacterial Prostatitis",
+            "depth": 1,
+            "entropy": 0.934068055375491,
+            "confidence": 0.35,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Acute Bacterial Prostatitis",
+            "depth": 1,
+            "entropy": 0.8112781244591328,
+            "confidence": 0.25,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Chronic Pelvic Pain Syndrome",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.2,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 37.6533,
+      "n_axioms": 17,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 3830,
+          "completion_tokens": 827,
+          "queue_seconds": 3.1e-05,
+          "inference_seconds": 37.13263
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 3830,
+            "completion_tokens": 827,
+            "queue_seconds": 3.1e-05,
+            "inference_seconds": 37.13263
+          }
+        }
+      }
+    },
+    {
+      "case_id": "8c42f6d13157",
+      "condition": "distracted",
+      "ground_truth": "Chronic, non-bacterial prostatitis",
+      "choices": {
+        "A": "Benign prostatic hyperplasia",
+        "B": "Chronic, non-bacterial prostatitis",
+        "C": "Chronic prostatitis by resistant Escherichia coli",
+        "D": "Interstitial cystitis"
+      },
+      "distracting_sentence": "The patient's storytelling style has a way of enlarging even the smallest details, much like benign prostatic hyperplasia.",
+      "predictions": {
+        "apiro": [
+          "Chronic Bacterial Prostatitis",
+          "Benign Prostatic Hyperplasia (BPH)",
+          "Prostatitis"
+        ],
+        "rag": [
+          "Chronic Prostatitis",
+          "Acute Bacterial Prostatitis",
+          "Benign Prostatic Hyperplasia"
+        ],
+        "bare_llm": [
+          "Chronic Prostatitis/Chronic Pelvic Pain Syndrome (CP/CPPS)",
+          "Benign Prostatic Hyperplasia (BPH)",
+          "Prostate Cancer"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Chronic Bacterial Prostatitis",
+          "Benign Prostatic Hyperplasia (BPH)",
+          "Prostatitis"
+        ],
+        "rag": "Chronic Prostatitis\nAcute Bacterial Prostatitis\nBenign Prostatic Hyperplasia",
+        "bare_llm": "Chronic Prostatitis/Chronic Pelvic Pain Syndrome (CP/CPPS)\nBenign Prostatic Hyperplasia (BPH)\nProstate Cancer"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "8c42f6d13157c6e1d6ae13c156d678f18bdb02fa6705b8a156153301e91a7a59",
+        "characters": 1150,
+        "approx_tokens": 221
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Chronic Bacterial Prostatitis vs Benign Prostatic Hyperplasia (BPH)",
+            "query": "Medical evidence distinguishing Chronic Bacterial Prostatitis vs Benign Prostatic Hyperplasia (BPH). Identify which findings are specific, contradictory, or commonly misleading: The patient presents with the clinical finding of presents.; The patient has a history of pelvic.; The patient has a history of irritative.; The patient presents with the clinical finding of urinary symptoms.; The patient presents with the clinical finding of semen.; The patient is on anti.; The patient is on pro.; The patient is on oxac.; The patient presents with the clinical finding of physical examination.; The patient denies the clinical finding of masses.",
+            "value": 0.957813,
+            "reason": "high_differential_entropy"
+          }
+        ],
+        "unresolved_questions": [
+          "What is the patient's sexual history?",
+          "Has the patient had any recent travel or exposure to sexually transmitted infections?",
+          "What is the patient's age?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "high_differential_entropy"
+            ],
+            "normalized_entropy": 0.957813,
+            "margin": 0.133639,
+            "distribution": [
+              {
+                "diagnosis": "Chronic Bacterial Prostatitis",
+                "probability": 0.320022
+              },
+              {
+                "diagnosis": "Benign Prostatic Hyperplasia (BPH)",
+                "probability": 0.164054
+              },
+              {
+                "diagnosis": "Prostatitis",
+                "probability": 0.140578
+              },
+              {
+                "diagnosis": "Acute Bacterial Prostatitis",
+                "probability": 0.137716
+              },
+              {
+                "diagnosis": "Orchitis",
+                "probability": 0.120649
+              },
+              {
+                "diagnosis": "Interstitial Cystitis/Bladder Pain Syndrome (IC/BPS)",
+                "probability": 0.116981
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.37583,
+            "verified_evidence_spans": 2
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "single_fact_dependence",
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.979358,
+            "margin": 0.060759,
+            "distribution": [
+              {
+                "diagnosis": "Chronic Bacterial Prostatitis",
+                "probability": 0.258211
+              },
+              {
+                "diagnosis": "Benign Prostatic Hyperplasia (BPH)",
+                "probability": 0.190563
+              },
+              {
+                "diagnosis": "Prostatitis",
+                "probability": 0.152331
+              },
+              {
+                "diagnosis": "Acute Bacterial Prostatitis",
+                "probability": 0.151398
+              },
+              {
+                "diagnosis": "Orchitis",
+                "probability": 0.130336
+              },
+              {
+                "diagnosis": "Interstitial Cystitis/Bladder Pain Syndrome (IC/BPS)",
+                "probability": 0.117161
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.283874,
+            "verified_evidence_spans": 1
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 20,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.217516,
+          "initial_retrieval": 0.925658,
+          "initial_reasoning_and_audit": 19.322838,
+          "contrastive_revision": 14.301235,
+          "provenance_graph": 4.3e-05,
+          "total": 34.767409
+        },
+        "hypotheses": [
+          {
+            "claim": "Chronic Bacterial Prostatitis",
+            "depth": 1,
+            "entropy": 1.0,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Benign Prostatic Hyperplasia (BPH)",
+            "depth": 1,
+            "entropy": 0.8812908992306927,
+            "confidence": 0.3,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Prostatitis",
+            "depth": 1,
+            "entropy": 0.7219280948873623,
+            "confidence": 0.2,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 37.6995,
+      "n_axioms": 17,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 6684,
+          "completion_tokens": 1355,
+          "queue_seconds": 5.2e-05,
+          "inference_seconds": 36.272252
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 6684,
+            "completion_tokens": 1355,
+            "queue_seconds": 5.2e-05,
+            "inference_seconds": 36.272252
+          }
+        }
+      }
+    },
+    {
+      "case_id": "8fd6d2a5644e",
+      "condition": "clean",
+      "ground_truth": "Factitious disorder imposed on another\n\"",
+      "choices": {
+        "A": "Malingering",
+        "B": "Primary adrenal insufficiency",
+        "C": "Conversion disorder",
+        "D": "Factitious disorder imposed on another\n\""
+      },
+      "distracting_sentence": "The patient joked that their sibling's excuses for not doing chores were as transparent as a malingerer's intentions.",
+      "predictions": {
+        "apiro": [
+          "Hypoglycemic Encephalopathy",
+          "Diabetic Ketoacidosis",
+          "Refeeding Syndrome"
+        ],
+        "rag": [
+          "Hypoglycemic Disorder",
+          "Insulin-induced Hypoglycemia",
+          "Reactive Hypoglycemia"
+        ],
+        "bare_llm": [
+          "Insulinoma",
+          "Hypoglycemia-induced seizures",
+          "Factitious hypoglycemia"
+        ]
+      },
+      "raw_output": {
+        "apiro": [
+          "Hypoglycemic Encephalopathy",
+          "Diabetic Ketoacidosis",
+          "Refeeding Syndrome"
+        ],
+        "rag": "Hypoglycemic Disorder\nInsulin-induced Hypoglycemia\nReactive Hypoglycemia",
+        "bare_llm": "Insulinoma\nHypoglycemia-induced seizures\nFactitious hypoglycemia"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 3
+      },
+      "input": {
+        "sha256": "e43271caf0f7f6ea4333c4b3130e5f0f20fd58eac0e1200c9789d032e468a48f",
+        "characters": 815,
+        "approx_tokens": 169
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 0,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Diabetic Ketoacidosis vs Hypoglycemic Encephalopathy",
+            "query": "Medical evidence distinguishing Diabetic Ketoacidosis vs Hypoglycemic Encephalopathy. Identify which findings are specific, contradictory, or commonly misleading: The patient has a lab result or vital sign showing mother has type 2 diabetes.; The patient has a lab result or vital sign showing glucose concentration 22 mg/dL.; The patient has a lab result or vital sign showing potassium concentration 2.4 mEq/L.; The patient has a lab result or vital sign showing glucose concentration 19 mg/dL.; The patient has a lab result or vital sign showing insulin concentration 108 mIU/L.; The patient has a lab result or vital sign showing C-peptide concentration 0.3 ng/mL.; The patient presents with the clinical finding of brought.; The patient presents with the clinical finding of loss.; The patient presents with the clinical finding of consciousness.; The patient has a history of asthma.",
+            "value": 0.772309,
+            "reason": "small_candidate_margin; counterfactual_rank_flip"
+          }
+        ],
+        "unresolved_questions": [
+          "Is the patient taking any medications that could affect glucose levels?",
+          "Has the patient had any recent infections or illnesses?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "small_candidate_margin",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.772309,
+            "margin": 0.072658,
+            "distribution": [
+              {
+                "diagnosis": "Diabetic Ketoacidosis",
+                "probability": 0.434166
+              },
+              {
+                "diagnosis": "Hypoglycemic Encephalopathy",
+                "probability": 0.301913
+              },
+              {
+                "diagnosis": "Hepatic Encephalopathy",
+                "probability": 0.129176
+              },
+              {
+                "diagnosis": "Refeeding Syndrome",
+                "probability": 0.082896
+              },
+              {
+                "diagnosis": "Cerebral Edema",
+                "probability": 0.028187
+              },
+              {
+                "diagnosis": "Adrenal Insufficiency",
+                "probability": 0.023662
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.657787,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": false,
+            "reasons": [],
+            "normalized_entropy": 0.816238,
+            "margin": 0.14946,
+            "distribution": [
+              {
+                "diagnosis": "Hypoglycemic Encephalopathy",
+                "probability": 0.46018
+              },
+              {
+                "diagnosis": "Diabetic Ketoacidosis",
+                "probability": 0.217961
+              },
+              {
+                "diagnosis": "Refeeding Syndrome",
+                "probability": 0.136831
+              },
+              {
+                "diagnosis": "Hepatic Encephalopathy",
+                "probability": 0.09708
+              },
+              {
+                "diagnosis": "Cerebral Edema",
+                "probability": 0.045368
+              },
+              {
+                "diagnosis": "Adrenal Insufficiency",
+                "probability": 0.04258
+              }
+            ],
+            "influential_fact_id": "ax_3",
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.651487,
+            "verified_evidence_spans": 1
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 22,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.045431,
+          "initial_retrieval": 0.178011,
+          "initial_reasoning_and_audit": 13.309341,
+          "contrastive_revision": 17.577895,
+          "provenance_graph": 4.2e-05,
+          "total": 31.11078
+        },
+        "hypotheses": [
+          {
+            "claim": "Hypoglycemic Encephalopathy",
+            "depth": 1,
+            "entropy": 0.7564987103663676,
+            "confidence": 0.782,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Diabetic Ketoacidosis",
+            "depth": 1,
+            "entropy": 0.8700095114529596,
+            "confidence": 0.709,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Refeeding Syndrome",
+            "depth": 1,
+            "entropy": 0.9927744539878083,
+            "confidence": 0.45,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 33.5332,
+      "n_axioms": 19,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 6451,
+          "completion_tokens": 1247,
+          "queue_seconds": 3.7e-05,
+          "inference_seconds": 32.876364
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 6451,
+            "completion_tokens": 1247,
+            "queue_seconds": 3.7e-05,
+            "inference_seconds": 32.876364
+          }
+        }
+      }
+    },
+    {
+      "case_id": "8fd6d2a5644e",
+      "condition": "distracted",
+      "ground_truth": "Factitious disorder imposed on another\n\"",
+      "choices": {
+        "A": "Malingering",
+        "B": "Primary adrenal insufficiency",
+        "C": "Conversion disorder",
+        "D": "Factitious disorder imposed on another\n\""
+      },
+      "distracting_sentence": "The patient joked that their sibling's excuses for not doing chores were as transparent as a malingerer's intentions.",
+      "predictions": {
+        "apiro": [
+          "Hypoglycemic Disorder",
+          "Endogenous Hyperinsulinism",
+          "Accidental, Surreptitious, or Malicious Hypoglycemia"
+        ],
+        "rag": [
+          "Malignant Hypoglycemia",
+          "Insulinoma",
+          "Whipple's Disease"
+        ],
+        "bare_llm": []
+      },
+      "raw_output": {
+        "apiro": [
+          "Hypoglycemic Disorder",
+          "Endogenous Hyperinsulinism",
+          "Accidental, Surreptitious, or Malicious Hypoglycemia"
+        ],
+        "rag": "Malignant Hypoglycemia\nInsulinoma\nWhipple's Disease",
+        "bare_llm": "Insufficient Evidence"
+      },
+      "n_candidates": {
+        "apiro": 3,
+        "rag": 3,
+        "bare_llm": 0
+      },
+      "input": {
+        "sha256": "8fd6d2a5644e09b3fef49f59d82d1cf296540ea55aec0d578a2ee9f746d7455f",
+        "characters": 933,
+        "approx_tokens": 193
+      },
+      "traversal": {
+        "reasoning_mode": "investigator",
+        "rounds": 2,
+        "retrieval_count": 2,
+        "reasoning_call_count": 2,
+        "parse_fallback_count": 1,
+        "adjudication_count": 0,
+        "action_history": [
+          {
+            "kind": "counterfactual_evidence_audit",
+            "target": "Diabetic Ketoacidosis vs Hypoglycemic Disorder",
+            "query": "Medical evidence distinguishing Diabetic Ketoacidosis vs Hypoglycemic Disorder. Identify which findings are specific, contradictory, or commonly misleading: The patient has a lab result or vital sign showing mother has type 2 diabetes.; The patient has a lab result or vital sign showing glucose concentration 22 mg/dL.; The patient has a lab result or vital sign showing potassium concentration 2.4 mEq/L.; The patient has a lab result or vital sign showing glucose concentration 19 mg/dL.; The patient has a lab result or vital sign showing insulin concentration 108 mIU/L.; The patient has a lab result or vital sign showing C-peptide concentration 0.3 ng/mL.; The patient presents with the clinical finding of brought.; The patient presents with the clinical finding of loss.; The patient presents with the clinical finding of consciousness.; The patient has a history of asthma.",
+            "value": 0.85896,
+            "reason": "small_candidate_margin; high_differential_entropy; counterfactual_rank_flip"
+          }
+        ],
+        "unresolved_questions": [
+          "What is the patient's medication regimen?",
+          "Has the patient had any recent changes in their diet or physical activity level?"
+        ],
+        "evidence_audit": {
+          "initial": {
+            "needs_revision": true,
+            "reasons": [
+              "small_candidate_margin",
+              "high_differential_entropy",
+              "counterfactual_rank_flip"
+            ],
+            "normalized_entropy": 0.85896,
+            "margin": 0.070074,
+            "distribution": [
+              {
+                "diagnosis": "Diabetic Ketoacidosis",
+                "probability": 0.393353
+              },
+              {
+                "diagnosis": "Hypoglycemic Disorder",
+                "probability": 0.277088
+              },
+              {
+                "diagnosis": "Endogenous Hyperinsulinism",
+                "probability": 0.105189
+              },
+              {
+                "diagnosis": "Non-\u03b2-cell Tumor Hypoglycemia",
+                "probability": 0.088301
+              },
+              {
+                "diagnosis": "Accidental, Surreptitious, or Malicious Hypoglycemia",
+                "probability": 0.073854
+              },
+              {
+                "diagnosis": "Hepatic Stupor and Coma",
+                "probability": 0.062215
+              }
+            ],
+            "influential_fact_id": "ax_1",
+            "rank_flip_without_fact": true,
+            "score_without_influential_fact": 0.651599,
+            "verified_evidence_spans": 1
+          },
+          "final": {
+            "needs_revision": true,
+            "reasons": [
+              "no_cited_patient_support",
+              "no_verified_evidence_span",
+              "small_candidate_margin",
+              "high_differential_entropy"
+            ],
+            "normalized_entropy": 0.99165,
+            "margin": 0.035,
+            "distribution": [
+              {
+                "diagnosis": "Hypoglycemic Disorder",
+                "probability": 0.22316
+              },
+              {
+                "diagnosis": "Endogenous Hyperinsulinism",
+                "probability": 0.187333
+              },
+              {
+                "diagnosis": "Accidental, Surreptitious, or Malicious Hypoglycemia",
+                "probability": 0.157258
+              },
+              {
+                "diagnosis": "Diabetic Ketoacidosis",
+                "probability": 0.144083
+              },
+              {
+                "diagnosis": "Hepatic Stupor and Coma",
+                "probability": 0.144083
+              },
+              {
+                "diagnosis": "Non-\u03b2-cell Tumor Hypoglycemia",
+                "probability": 0.144083
+              }
+            ],
+            "influential_fact_id": null,
+            "rank_flip_without_fact": false,
+            "score_without_influential_fact": 0.21,
+            "verified_evidence_spans": 0
+          }
+        },
+        "stop_reason": "counterfactual_revision_complete",
+        "total_nodes": 22,
+        "contradictions": 0,
+        "stage_timings": {
+          "fact_ledger": 0.049276,
+          "initial_retrieval": 0.183068,
+          "initial_reasoning_and_audit": 16.680207,
+          "contrastive_revision": 21.29569,
+          "provenance_graph": 4.8e-05,
+          "total": 38.208356
+        },
+        "hypotheses": [
+          {
+            "claim": "Hypoglycemic Disorder",
+            "depth": 1,
+            "entropy": 0.9709505944546686,
+            "confidence": 0.6,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Endogenous Hyperinsulinism",
+            "depth": 1,
+            "entropy": 1.0,
+            "confidence": 0.5,
+            "contradiction_penalty": 0.0
+          },
+          {
+            "claim": "Accidental, Surreptitious, or Malicious Hypoglycemia",
+            "depth": 1,
+            "entropy": 0.9709505944546686,
+            "confidence": 0.39999999999999997,
+            "contradiction_penalty": 0.0
+          }
+        ]
+      },
+      "wall_seconds_all_arms": 39.9175,
+      "n_axioms": 19,
+      "model_telemetry": {
+        "max_concurrency": 2,
+        "totals": {
+          "calls": 4,
+          "retries": 0,
+          "failures": 0,
+          "timeouts": 0,
+          "prompt_tokens": 6377,
+          "completion_tokens": 1464,
+          "queue_seconds": 5.4e-05,
+          "inference_seconds": 38.777984
+        },
+        "by_purpose": {
+          "generation": {
+            "calls": 4,
+            "retries": 0,
+            "failures": 0,
+            "timeouts": 0,
+            "prompt_tokens": 6377,
+            "completion_tokens": 1464,
+            "queue_seconds": 5.4e-05,
+            "inference_seconds": 38.777984
+          }
+        }
+      }
+    }
+  ]
+}
