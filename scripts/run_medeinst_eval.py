@@ -122,6 +122,7 @@ def main(argv=None) -> int:
                     "temperature": components.resources.llm_client.temperature,
                     "seed": components.resources.llm_client.seed,
                     "num_predict": components.resources.llm_client.num_predict,
+                    "json_num_predict": components.resources.llm_client.json_num_predict,
                 }},
     )
     run_dir = create_run_directory(manifest, args.runs_dir)

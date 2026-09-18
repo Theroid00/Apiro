@@ -102,6 +102,7 @@ def build_runtime_resources(
     from apiro.application.model_scheduler import ModelCallScheduler
     from apiro.config import (
         MAX_MODEL_CONCURRENCY,
+        MODEL_JSON_NUM_PREDICT,
         MODEL_SEED,
         MODEL_TEMPERATURE,
         OLLAMA_BASE_URL,
@@ -134,6 +135,7 @@ def build_runtime_resources(
             PRIMARY_MODEL,
             temperature=MODEL_TEMPERATURE,
             seed=MODEL_SEED,
+            json_num_predict=MODEL_JSON_NUM_PREDICT,
             timeout=llm_timeout,
             scheduler=scheduler,
         ),
