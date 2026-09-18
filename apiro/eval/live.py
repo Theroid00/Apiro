@@ -83,6 +83,7 @@ def evaluate_narrative_case(
             "rounds": result.rounds,
             "retrieval_count": result.retrieval_count,
             "reasoning_call_count": result.reasoning_call_count,
+            "parse_fallback_count": result.parse_fallback_count,
             "adjudication_count": result.adjudication_count,
             "action_history": result.action_history,
             "unresolved_questions": result.unresolved_questions,

@@ -131,6 +131,7 @@ class InvestigatorReasoner(SimpleReasoner):
         on_event: Callable[[dict], None] | None = None,
     ) -> InvestigationResult:
         started = time.monotonic()
+        self.parse_fallback_count = 0
         timings: dict[str, float] = {}
 
         stage = time.monotonic()
@@ -283,6 +284,7 @@ class InvestigatorReasoner(SimpleReasoner):
             unresolved_questions=list(state.unresolved_questions),
             candidate_history=state.candidate_history,
             evidence_audit={"initial": initial_audit, "final": final_audit},
+            parse_fallback_count=self.parse_fallback_count,
         )
         self._emit(on_event, {
             "event": "traversal_complete",
@@ -296,6 +298,7 @@ class InvestigatorReasoner(SimpleReasoner):
             "rounds": result.rounds,
             "retrieval_count": result.retrieval_count,
             "reasoning_call_count": result.reasoning_call_count,
+            "parse_fallback_count": result.parse_fallback_count,
             "duration_seconds": round(duration, 4),
         })
         return result

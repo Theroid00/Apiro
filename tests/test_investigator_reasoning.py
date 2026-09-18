@@ -191,6 +191,17 @@ def test_only_exact_retrieved_spans_count_as_medical_evidence():
     assert "no_verified_evidence_span" in result.evidence_audit["initial"]["reasons"]
 
 
+def test_text_fallback_is_counted_in_result_telemetry():
+    reasoner, _embedder, _llm = _reasoner(
+        ["1. Pulmonary embolism\n2. Pneumonia"], max_model_calls=1
+    )
+
+    result = reasoner.run("Pleuritic chest pain without fever")
+
+    assert result.synthesis == ["Pulmonary embolism", "Pneumonia"]
+    assert result.parse_fallback_count == 1
+
+
 def test_missing_patient_fact_remains_an_unresolved_question():
     response = _response(
         _candidate("Pulmonary embolism", 0.85, facts=("ax_0", "ax_1")),

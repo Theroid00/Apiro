@@ -56,11 +56,12 @@ comparison.
 Investigator used eight reasoning calls across four MedEinst variants. All four
 cases reached the one-revision limit and none passed the final audit. It used
 seven reasoning calls across four MedDistractQA variants: three revised, one
-stopped after the initial audit, and two passed the final audit.
+stopped after the initial audit, and one passed the final audit.
 
-Two structured responses in the MedEinst run were malformed and recovered by
-the parser fallback. That is a measured limitation of the current local model
-and prompt, not evidence of architectural success.
+Structured-output fallbacks occurred despite fixed decoding. Their per-case
+count is now stored as `traversal.parse_fallback_count`; this is a measured
+limitation of the current local model and prompt, not evidence of
+architectural success.
 
 ## Remaining Work
 

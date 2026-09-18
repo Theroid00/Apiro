@@ -90,6 +90,7 @@ class SimpleReasoner:
         self.max_context_characters = max(1000, int(max_context_characters))
         self.allow_abstention = allow_abstention
         self.corrective_pass = bool(corrective_pass)
+        self.parse_fallback_count = 0
 
     def run(
         self,
@@ -98,6 +99,7 @@ class SimpleReasoner:
         on_event: Callable[[dict], None] | None = None,
     ) -> InvestigationResult:
         started = time.monotonic()
+        self.parse_fallback_count = 0
         timings: dict[str, float] = {}
 
         stage = time.monotonic()
@@ -195,6 +197,7 @@ class SimpleReasoner:
             retrieval_count=retrieval_count,
             reasoning_call_count=reasoning_calls,
             rounds=2 if corrected else 1,
+            parse_fallback_count=self.parse_fallback_count,
         )
         self._emit(on_event, {
             "event": "traversal_complete",
@@ -402,6 +405,7 @@ class SimpleReasoner:
             "\n".join(diagnosis_values) if diagnosis_values else raw or "",
             limit=self.n_diagnoses,
         )
+        self.parse_fallback_count += 1
         return [
             {
                 "diagnosis": diagnosis,

@@ -30,11 +30,11 @@ The documented two-pair smoke produced:
 
 This is an integration result, not evidence that any arm is better. MedEinst
 had only one control-correct Apiro pair and no eligible bias traps. On
-MedDistractQA only one pair was solvable by each arm. Two MedEinst structured
-responses required parser fallback.
+MedDistractQA only one pair was solvable by each arm. Structured-output
+fallbacks are stored per case in the final run.
 
 The audit mechanism itself was observable: seven of eight case variants used
-one revision, one stopped early, and two of eight passed the final audit. The
+one revision, one stopped early, and one of eight passed the final audit. The
 remaining cases returned a diagnosis after the hard limit while still exposing
 their fragility in `traversal.evidence_audit.final`.
 
@@ -86,7 +86,8 @@ APIRO_REASONING_MODE=investigator APIRO_MODEL_SEED=7 \
 ```
 
 Each run directory contains `manifest.json`, `results.json`, and logs. The
-evidence audit is saved per case under `traversal.evidence_audit`.
+evidence audit is saved per case under `traversal.evidence_audit`; parser
+fallbacks are counted in `traversal.parse_fallback_count`.
 
 ## Final Benchmark Still Missing
 
