@@ -57,6 +57,29 @@ the canonical service.
 
 ## Next Experiment
 
+### Five-pair pipeline validation — 2026-09-19
+
+The canonical public pipeline was tested from clean commit `ab47b5c` on the
+same five pairs per mode.
+
+| Benchmark and mode | Clean/control@1 | Distracted/trap@1 | Pair measure | Mean time/case | Calls | Fallbacks |
+|---|---:|---:|---:|---:|---:|---:|
+| MedEinst Investigator | 40% | 0% | 0% pair resilience | 29.6 s | 20 | 4 |
+| MedEinst Simple | 20% | 0% | 0% pair resilience | 6.7 s | 13 | 0 |
+| MedDistractQA Investigator | 40% | 60% | 100% retention | 30.1 s | 19 | 2 |
+| MedDistractQA Simple | 40% | 40% | 100% retention | 6.7 s | 13 | 0 |
+
+Investigator gained one top-1 case on each tiny sample but did not improve the
+paired robustness measures. It was about 4.5 times slower and produced all six
+new-engine structured-output fallbacks. This does not establish that its extra
+audit pass is worth the cost.
+
+The completed artifacts are under `data/runs/pipeline-validation/`. A Legacy
+MedEinst comparison completed at 131 seconds per case on average; the matching
+Legacy MedDistractQA run was stopped before completion and is excluded.
+
+### Larger pilot
+
 Freeze a larger pilot before running it. Use the same case IDs, corpus hash,
 model digest, decoding settings, answer budget, and scorer on both branches.
 Report accuracy and compute together.

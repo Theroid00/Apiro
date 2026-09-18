@@ -49,42 +49,37 @@ shared dependency wiring is centralized while each reasoner owns its policy.
   entropy, counterfactual rank flips, one-revision stopping, and unresolved
   patient questions.
 
-## Latest Smoke Result
+## Five-Pair Pipeline Validation
 
-A two-pair integration run was completed with `llama3.1:8b`, seed 7, fixed
-decoding, and the validated corpus. This sample is too small for architecture
-comparison.
+The public `RuntimeResources -> InvestigationService -> reasoner` pipeline was
+run from clean commit `ab47b5c` with `llama3.1:8b`, seed 7, fixed decoding, and
+the validated corpus. The sample is still too small for a superiority claim.
 
-| Benchmark | Apiro result | RAG result | Bare LLM result |
-|---|---|---|---|
-| MedEinst | control@1 50%, trap@1 0%, pair@1 0% | 0%, 50%, 0% | 50%, 0%, 0% |
-| MedDistractQA | clean@1 50%, distracted@1 50%, retention 100% | same | same |
+| Benchmark and mode | First condition@1 | Distracted/trap@1 | Pair measure | Mean Apiro time | Calls | Fallbacks |
+|---|---:|---:|---:|---:|---:|---:|
+| MedEinst Investigator | 40% | 0% | 0% pair resilience | 29.6 s | 20 | 4 |
+| MedEinst Simple | 20% | 0% | 0% pair resilience | 6.7 s | 13 | 0 |
+| MedDistractQA Investigator | 40% | 60% | 100% retention | 30.1 s | 19 | 2 |
+| MedDistractQA Simple | 40% | 40% | 100% retention | 6.7 s | 13 | 0 |
 
-Investigator used eight reasoning calls across four MedEinst variants. All four
-cases reached the one-revision limit and none passed the final audit. It used
-seven reasoning calls across four MedDistractQA variants: three revised, one
-stopped after the initial audit, and one passed the final audit.
+Investigator gained one top-1 result on each five-pair sample, but did not
+improve either paired robustness measure. It cost about 4.5 times as much per
+case and was the only new engine to require structured-output fallbacks.
 
-Structured-output fallbacks occurred despite fixed decoding. Their per-case
-count is now stored as `traversal.parse_fallback_count`; this is a measured
-limitation of the current local model and prompt, not evidence of
-architectural success.
+A completed Legacy MedEinst run reached 40% control, 20% trap, and 20% pair
+resilience at a mean 131 seconds per Apiro case while expanding 33--82 nodes.
+The five-pair Legacy MedDistractQA run was stopped before completion because of
+its runtime and has no valid result.
 
-Final clean artifacts were produced from commit `3739119`:
-
-- `data/runs/medeinst-20260918T195739Z-7bfd0eec/results.json`
-  (92.9 seconds across all arms, eight Apiro reasoning calls, one fallback);
-- `data/runs/meddistractqa-20260918T195926Z-15d65de4/results.json`
-  (105.4 seconds across all arms, seven Apiro reasoning calls, one fallback).
-
-Both manifests record `dirty: false`.
+The five completed artifacts are under `data/runs/pipeline-validation/`.
+Their manifests record commit `ab47b5c` with `dirty: false`.
 
 ## Remaining Work
 
 1. Predeclare a larger pilot size and freeze prompts, model digest, corpus,
    seed, thresholds, and case IDs.
-2. Run identical MedEinst and MedDistractQA subsets on `simple` and
-   `investigator` and compare paired outcomes plus compute.
+2. Inspect the five-pair disagreements and structured-output fallbacks before
+   spending compute on the larger pilot.
 3. Inspect failures where the final audit still reports fragility; decide
    whether to abstain rather than return an unsupported leader.
 4. Add clean diagnostic guardrails through the canonical service before using
