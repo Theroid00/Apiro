@@ -100,7 +100,7 @@ class InvestigationService:
             contradiction_detector=contradiction,
             n_diagnoses=n_diagnoses,
             allow_abstention=allow_abstention,
-        ).run(narrative, on_event=on_event)
+        )
 
     def _run_legacy(
         self,
