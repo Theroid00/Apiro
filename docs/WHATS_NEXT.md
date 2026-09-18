@@ -94,6 +94,25 @@ The final clean smoke artifacts are
 `meddistractqa-20260918T195926Z-15d65de4`, both produced from commit
 `3739119` with clean manifests.
 
+## Matched Legacy Comparison — 2026-09-19
+
+Legacy was run on the same two MedDistractQA pairs, dataset revision, model,
+seed, and corpus. Its result is saved at
+`data/runs/meddistractqa-20260918T202440Z-011d6423/results.json`.
+
+| Metric | Investigator | Legacy |
+|---|---:|---:|
+| Clean top-1 accuracy | 50% | 0% |
+| Distracted top-1 accuracy | 50% | 50% |
+| Paired retention | 100% | undefined (no clean top-1 success) |
+| Apiro resolution time | 15–33 s | 90–179 s |
+| Runtime graph nodes | bounded provenance graph | 45–66 expanded nodes |
+| Contradiction flags | deterministic candidate checks | 23–45 per case |
+
+This is evidence about cost and runtime behavior, not a powered accuracy
+comparison. Recursive graph traversal added roughly a five-fold case-time cost
+here without improving the measured top-1 result.
+
 ## Final Benchmark Still Missing
 
 The proposed primary benchmark remains a design rather than a finished final
