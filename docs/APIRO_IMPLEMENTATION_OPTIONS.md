@@ -1,6 +1,6 @@
 # Apiro Implementation Options
 
-This document defines two possible future directions for Apiro:
+This document defines the two implemented Apiro architectures:
 
 1. **Efficient Apiro**: a small, predictable, production-oriented system.
 2. **Complete Apiro**: a more capable investigative system that combines the
@@ -13,8 +13,7 @@ meaningful diagnostic gains.
 
 ## Current Position
 
-The `codex/simplified-apiro` branch currently implements the first half of the
-efficient design:
+The `codex/simplified-apiro` branch implements the efficient design:
 
 ```text
 Clinical narrative
@@ -25,7 +24,8 @@ Clinical narrative
     -> shallow provenance graph
 ```
 
-The legacy branch still contains an entropy-first traversal that repeatedly
+The `codex/complete-apiro` branch adds the bounded `investigator` mode. The
+repository also retains an entropy-first `legacy` traversal that repeatedly
 expands graph nodes, retrieves evidence, calls the model, checks
 contradictions, detects rabbit holes, and applies saturation logic.
 

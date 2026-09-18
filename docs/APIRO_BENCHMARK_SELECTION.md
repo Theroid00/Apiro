@@ -117,7 +117,7 @@ Robustness is meaningless if Apiro gets worse on normal cases.
 
 | # | Benchmark | Question it answers |
 |---|---|---|
-| 1 | **MedEinst** | Does Apiro resist distractors? (primary result) |
+| 1 | **Paired clean/distracted reports** | Does Apiro preserve the correct diagnosis under plausible noise? |
 | 2 | **Post-cutoff PMC cases with injected traps** | Is it real, not memorized? |
 | 3 | **MedCaseReasoning (clean)** | Does it cost clean accuracy? |
 

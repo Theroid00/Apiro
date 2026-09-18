@@ -21,20 +21,21 @@ adversarial and general benchmarks, calibration. Stages run in dependency order,
 
 ## Current benchmark order
 
-1. **MedEinst** is the primary external mechanism benchmark. Its paired control
-   and trap cases measure rank-1 retention of the control diagnosis after
-   discriminative evidence flips the correct answer. Top-3 differential
-   accuracy is secondary. Run
-   `python scripts/run_medeinst_eval.py --n-pairs 60`. Existing case outputs
-   can be rescored without new model calls using
-   `python scripts/run_medeinst_eval.py --rescore-results <results.json>`.
-2. **MedDistractQA** measures invariance to irrelevant clinical-looking text.
-   Apiro evaluates only `Patient Care: Diagnosis` rows and reports matched-pair
-   retention. Run `python scripts/run_meddistractqa_eval.py --n 100`.
+1. **Paired clean/distracted reports** are the primary benchmark because they
+   directly test Apiro's central claim. Start with diagnosis-only
+   **MedDistractQA**, then confirm the result on post-cutoff PMC reports with
+   controlled distractor injection. The headline endpoint is top-1 retention,
+   not aggregate top-3 accuracy. Run the released set once per mode:
+   `APIRO_REASONING_MODE=<simple|investigator|legacy> python
+   scripts/run_meddistractqa_eval.py --n 100`.
+2. **MedEinst** is a focused secondary anchoring-bias benchmark. Run
+   `python scripts/run_medeinst_eval.py --n-pairs 60`; existing outputs can be
+   rescored with `--rescore-results <results.json>`.
 3. **C-NIAH** remains an internal mechanism-development benchmark. Generate it
    with `--counterfactual`; the currently committed 120-case file is not
    counterfactual and does not exercise Bias Trap Rate.
-4. **DDXPlus and CUPCase** provide exploratory external accuracy. CUPCase's
+4. **DDXPlus, CUPCase, and clean clinical cases** are accuracy guardrails.
+   CUPCase's
    distractors are frequently near-equivalent to the answer and must not be
    described as adversarial trap evidence.
 5. **MINT-style evaluation** is optional because the paper currently links no

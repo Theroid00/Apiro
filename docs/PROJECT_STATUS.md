@@ -1,15 +1,17 @@
 # Apiro Project Status
 
-Last reviewed: 2026-09-06
+Last reviewed: 2026-09-18
 
-Active branch: `feature/adversarial-benchmark-suite`
+Active branch: `codex/complete-apiro`
 
 ## Status
 
-Apiro is an evaluation-ready research prototype. The implementation work for
-the adversarial benchmark phase is substantially complete, but the research
-claim is not validated. There is no powered, held-out result showing that
-Apiro outperforms Standard RAG or a bare LLM.
+Apiro is an evaluation-ready research prototype with three reasoning modes:
+efficient `simple`, bounded complete `investigator`, and the original
+entropy-first `legacy` traversal. The architecture and adversarial benchmark
+framework are implemented, but the research claim is not validated. There is
+no powered, held-out result showing that either Apiro mode outperforms Standard
+RAG or a bare LLM.
 
 ## Completed
 
@@ -28,6 +30,12 @@ Apiro outperforms Standard RAG or a bare LLM.
   ChromaDB state.
 - Corrected MedEinst Bias Trap Rate to the benchmark's rank-1 definition and
   added a rescore path for existing result files.
+- Added the efficient structured-RAG mode with a hard one/two-pass budget.
+- Added the bounded investigator mode with associative retrieval, sparse
+  concept-graph propagation, candidate backtracking, and auditable action
+  budgets.
+- Added paired top-1 clean/distracted retention metrics, which are the primary
+  endpoint for Apiro's central distractor-resistance claim.
 
 ## Latest live result
 
@@ -57,30 +65,28 @@ Do not publish its original summary table.
 
 ## Remaining blockers
 
-1. **Runtime cost:** contradiction comparisons dominate model calls. Candidate
-   pairing must be reduced and deduplicated before a powered run.
-2. **Missing operational counters:** retrieval and graph-event counts are not
-   yet complete, so compute-normalized mechanism analysis is incomplete.
-3. **Rank-1 quality:** correct diagnoses frequently appear below rank one.
-   Synthesis and ranking need a train-split improvement pass.
-4. **Corpus validation:** the target local corpus must pass
+1. **Corpus validation:** the target corpus on the benchmark machine must pass
    `scripts/validate_corpus.py`, or its schema must be repaired and versioned.
-5. **No frozen evaluation configuration:** prompts, model digests, stopping
+2. **No frozen evaluation configuration:** prompts, model digests, stopping
    rules, and sample-size plan must be frozen before the unseen run.
-6. **No powered result:** MedEinst, MedDistractQA, and MINT-style evaluations
-   have not yet been run at a sample size capable of supporting comparative
-   conclusions.
-7. **No fitted calibration:** abstention thresholds remain experimental until
+3. **No powered result:** the paired distractor benchmark has not been run at a
+   sample size capable of comparing `simple`, `investigator`, Standard RAG, and
+   bare LLM.
+4. **No contamination-resistant result:** the post-cutoff PMC paired set has
+   not been assembled and run.
+5. **No ablation evidence:** the complete mode's graph, memory, backtracking,
+   and adjudication components have not individually demonstrated benefit.
+6. **No fitted calibration:** abstention thresholds remain experimental until
    fitted and evaluated on separate splits.
 
 ## Next execution sequence
 
-1. Optimize contradiction pairing and add retrieval/graph telemetry.
-2. Improve rank-1 synthesis on training cases only.
-3. Validate and freeze the corpus, prompts, models, seeds, and power plan.
-4. Run small train-split pilots to catch operational failures.
-5. Execute the powered unseen MedEinst run once.
-6. Run the compatible MedDistractQA and MINT-style stages.
+1. Move this branch to the corpus machine and validate the corpus.
+2. Freeze prompts, models, seeds, distractor families, and the power plan.
+3. Run small paired clean/distracted pilots in `simple` and `investigator` mode.
+4. Execute the powered paired distractor run once for every comparison arm.
+5. Run MedEinst as a focused anchoring-bias secondary analysis.
+6. Run component ablations and clean-accuracy guardrails.
 7. Fit and evaluate calibration on separate data.
 8. Publish confidence intervals, paired tests, failure analysis, compute cost,
    and immutable manifests; then merge and tag the evaluation release.

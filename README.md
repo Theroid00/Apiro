@@ -137,7 +137,10 @@ improve robustness.
 
 ## Empirical Benchmark Results
 
-> **Historical results only.** No adequately powered evaluation has been run after the posterior-signal, abstention, parsing, context-preservation, and metric fixes. The tables below document earlier artifacts and must not be read as the current system's performance. The primary next evaluation is MedEinst Bias Trap Rate, followed by diagnosis-only MedDistractQA retention.
+> **Historical results only.** No adequately powered evaluation has been run
+> after the architecture and metric fixes. The tables below must not be read as
+> current performance. The primary next evaluation is paired clean/distracted
+> top-1 retention; MedEinst is a focused secondary anchoring-bias analysis.
 
 > **The results below predate a measurement fix and will change.** Two defects
 > were suppressing the Apiro arm specifically: 57% of its answer slots held
@@ -324,7 +327,7 @@ time, and inference time, split by generation, entropy, and contradiction use.
 
 The `--real` flag runs the full pipeline against live model/retrieval backends. New adversarial benchmark runs are written beneath `data/runs/<run-id>/` with immutable manifests; an existing run is never overwritten.
 
-**MedEinst — primary external mechanism benchmark**
+**MedEinst — focused anchoring-bias benchmark**
 
 ```bash
 python scripts/fetch_datasets.py --only medeinst
@@ -340,11 +343,13 @@ control diagnosis after discriminative evidence changes the correct answer?
 Apiro's top-3 control/trap accuracy, pair resilience, and rank transitions are
 stored separately as differential-quality diagnostics.
 
-**MedDistractQA — irrelevant-information robustness**
+**MedDistractQA — primary paired distractor benchmark**
 
 ```bash
 python scripts/fetch_datasets.py --only meddistract
-python scripts/run_meddistractqa_eval.py --n 100
+APIRO_REASONING_MODE=simple python scripts/run_meddistractqa_eval.py --n 100
+APIRO_REASONING_MODE=investigator python scripts/run_meddistractqa_eval.py --n 100
+APIRO_REASONING_MODE=legacy python scripts/run_meddistractqa_eval.py --n 100
 ```
 
 The runner deliberately selects only `Patient Care: Diagnosis` rows because Apiro produces diagnoses while the full MedQA-derived set also asks management, ethics, and mechanism questions. It reconstructs a clean case by removing the released `distracting_sentence`, evaluates the matched distracted case, and reports accuracy degradation, retention, and top-1 flips.
