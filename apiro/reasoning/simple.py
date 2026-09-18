@@ -330,10 +330,19 @@ class SimpleReasoner:
         payload = None
         match = _JSON_OBJECT.search(raw or "")
         if match:
+            encoded = match.group(0)
             try:
-                payload = json.loads(match.group(0))
+                payload = json.loads(encoded)
             except (TypeError, ValueError):
-                logger.warning("Simple reasoner received malformed JSON; using text fallback")
+                if encoded.startswith('{"hypotheses":['):
+                    try:
+                        payload = json.loads(encoded + "]}")
+                    except (TypeError, ValueError):
+                        pass
+                if payload is None:
+                    logger.warning(
+                        "Simple reasoner received malformed JSON; using text fallback"
+                    )
 
         rows = payload.get("hypotheses", []) if isinstance(payload, dict) else []
         if not isinstance(rows, list):
