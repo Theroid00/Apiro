@@ -29,8 +29,9 @@ adversarial and general benchmarks, calibration. Stages run in dependency order,
    `APIRO_REASONING_MODE=<simple|investigator|legacy> python
    scripts/run_meddistractqa_eval.py --n 100`.
 2. **MedEinst** is a focused secondary anchoring-bias benchmark. Run
-   `python scripts/run_medeinst_eval.py --n-pairs 60`; existing outputs can be
-   rescored with `--rescore-results <results.json>`.
+   `APIRO_REASONING_MODE=<simple|investigator> python
+   scripts/run_medeinst_eval.py --n-pairs 60`; existing outputs can be rescored
+   with `--rescore-results <results.json>`.
 3. **C-NIAH** remains an internal mechanism-development benchmark. Generate it
    with `--counterfactual`; the currently committed 120-case file is not
    counterfactual and does not exercise Bias Trap Rate.
@@ -120,10 +121,10 @@ it records one defect that was silently depressing every arm (now fixed) and
 two limitations that are not fixable by editing the generator.
 
 Budget from a measured pilot on the target host rather than a generic latency
-estimate. The five-pair MedEinst smoke run averaged 116.08 seconds per case
-variant across all three arms and took about 19.35 minutes for ten variants.
-Its 1,192 contradiction calls dominated the 1,814-call total, so a powered run
-remains a multi-hour job until pair selection is optimized.
+estimate. The 2026-09-19 Investigator smoke processed four MedEinst variants in
+108.4 seconds total across all three arms. Investigator made exactly two
+reasoning calls per variant; unlike Legacy, it cannot trigger an unbounded
+number of contradiction calls.
 
 ---
 
@@ -134,7 +135,8 @@ remains a multi-hour job until pair selection is optimized.
 ```bash
 python scripts/fetch_datasets.py --only medeinst
 python scripts/validate_corpus.py
-python scripts/run_medeinst_eval.py --n-pairs 60 --seed 7
+APIRO_REASONING_MODE=investigator \
+  python scripts/run_medeinst_eval.py --n-pairs 60 --seed 7
 ```
 
 Use a sample size justified by a predeclared power analysis; `60` is the

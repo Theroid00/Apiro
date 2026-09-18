@@ -1,100 +1,84 @@
 # Apiro Project Status
 
-Last reviewed: 2026-09-18
+Last reviewed: 2026-09-19
 
-Active branch: `codex/complete-apiro`
+Active branch: `new/complete-apiro`
 
 ## Status
 
-Apiro is an evaluation-ready research prototype with three reasoning modes:
-efficient `simple`, bounded complete `investigator`, and the original
-entropy-first `legacy` traversal. The architecture and adversarial benchmark
-framework are implemented, but the research claim is not validated. There is
-no powered, held-out result showing that either Apiro mode outperforms Standard
-RAG or a bare LLM.
+Apiro is an evaluation-ready research prototype with three modes:
 
-## Completed
+- `simple`: structured-RAG baseline with one optional correction;
+- `investigator`: bounded patient-fact and evidence audit with one optional
+  counterfactual revision;
+- `legacy`: original entropy-guided runtime graph traversal.
 
-- Isolated mutable traversal state for each web request and benchmark case.
-- Preserved complete clinical narratives and added evidence-aware context
-  selection for long cases.
-- Made answer parsing and output budgets consistent across all comparison arms.
-- Added immutable run manifests with dataset revision fields, content hashes,
-  and Git provenance; the MedEinst runner uses revision `354f4b5`.
-- Added bounded model concurrency plus per-purpose call, token, queue, and
-  inference telemetry.
-- Corrected AURC tie handling and arbitrary calibration thresholds.
-- Added MedEinst, diagnosis-compatible MedDistractQA, and MINT-style
-  incremental evaluation runners.
-- Added live corpus validation and kept offline tests independent of the local
-  ChromaDB state.
-- Corrected MedEinst Bias Trap Rate to the benchmark's rank-1 definition and
-  added a rescore path for existing result files.
-- Added the efficient structured-RAG mode with a hard one/two-pass budget.
-- Added the bounded investigator mode with associative retrieval, sparse
-  concept-graph propagation, candidate backtracking, and auditable action
-  budgets.
-- Added paired top-1 clean/distracted retention metrics, which are the primary
-  endpoint for Apiro's central distractor-resistance claim.
+The new Complete architecture is implemented and tested. The research claim is
+not validated: no powered held-out result shows that Investigator outperforms
+Standard RAG, Bare LLM, or Simple Apiro.
 
-## Latest live result
+## Complete Investigator Contract
 
-The first MedEinst smoke run used five control/trap pairs. Correct rank-1
-scoring produced the following result:
+Investigator now:
 
-| Arm | Control@1 | Trap@1 | BTR | Eligible pairs |
-|---|---:|---:|---:|---:|
-| Apiro | 20% | 0% | 100% | 1 |
-| Standard RAG | 20% | 20% | 100% | 1 |
-| Bare LLM | 20% | 0% | 100% | 1 |
+- separates patient fact IDs from retrieved general medical knowledge;
+- keeps a scored board of competing diagnoses;
+- accepts medical evidence only with an exact quote from the cited passage;
+- computes entropy over the candidate-score distribution;
+- removes the leading diagnosis's most influential fact to test rank stability;
+- performs at most one contrastive retrieval and revision;
+- records the initial and final audit in benchmark results;
+- builds a shallow graph only as a provenance output.
 
-The sample is too small to compare arms. Its value was operational: it exposed
-1,814 model calls across ten case variants, including 1,192 contradiction
-calls, and a mean all-arm latency of 116.08 seconds per case.
+The hard limit is two retrievals and two reasoning calls. The unused concept
+graph, associative-memory, and trainable action-policy stack was removed.
 
-The local artifact under `data/runs/` was created from a dirty checkout before
-the scoring correction. Keep it as a diagnostic artifact and use the rescore
-command when inspecting it:
+## Verification
 
-```bash
-python scripts/run_medeinst_eval.py \
-  --rescore-results data/runs/medeinst-20260905T134645Z-8a5e705c/results.json
-```
+- Full offline test suite passes with two expected skips.
+- The 100,000-document corpus validates with manifest SHA-256
+  `462dd355c2ac7db407ef70cf518f93d93d555913d07e3561aeb5e53c222ae13b`.
+- Mechanism tests cover exact-span verification, candidate-distribution
+  entropy, counterfactual rank flips, one-revision stopping, and unresolved
+  patient questions.
 
-Do not publish its original summary table.
+## Latest Smoke Result
 
-## Remaining blockers
+A two-pair integration run was completed with `llama3.1:8b`, seed 7, fixed
+decoding, and the validated corpus. This sample is too small for architecture
+comparison.
 
-1. **Corpus validation:** the target corpus on the benchmark machine must pass
-   `scripts/validate_corpus.py`, or its schema must be repaired and versioned.
-2. **No frozen evaluation configuration:** prompts, model digests, stopping
-   rules, and sample-size plan must be frozen before the unseen run.
-3. **No powered result:** the paired distractor benchmark has not been run at a
-   sample size capable of comparing `simple`, `investigator`, Standard RAG, and
-   bare LLM.
-4. **No contamination-resistant result:** the post-cutoff PMC paired set has
-   not been assembled and run.
-5. **No ablation evidence:** the complete mode's graph, memory, backtracking,
-   and adjudication components have not individually demonstrated benefit.
-6. **No fitted calibration:** abstention thresholds remain experimental until
-   fitted and evaluated on separate splits.
+| Benchmark | Apiro result | RAG result | Bare LLM result |
+|---|---|---|---|
+| MedEinst | control@1 50%, trap@1 0%, pair@1 0% | 0%, 50%, 0% | 50%, 0%, 0% |
+| MedDistractQA | clean@1 50%, distracted@1 50%, retention 100% | same | same |
 
-## Next execution sequence
+Investigator used eight reasoning calls across four MedEinst variants. All four
+cases reached the one-revision limit and none passed the final audit. It used
+seven reasoning calls across four MedDistractQA variants: three revised, one
+stopped after the initial audit, and two passed the final audit.
 
-1. Move this branch to the corpus machine and validate the corpus.
-2. Freeze prompts, models, seeds, distractor families, and the power plan.
-3. Run small paired clean/distracted pilots in `simple` and `investigator` mode.
-4. Execute the powered paired distractor run once for every comparison arm.
-5. Run MedEinst as a focused anchoring-bias secondary analysis.
-6. Run component ablations and clean-accuracy guardrails.
-7. Fit and evaluate calibration on separate data.
-8. Publish confidence intervals, paired tests, failure analysis, compute cost,
-   and immutable manifests; then merge and tag the evaluation release.
+Two structured responses in the MedEinst run were malformed and recovered by
+the parser fallback. That is a measured limitation of the current local model
+and prompt, not evidence of architectural success.
 
-## Definition of complete
+## Remaining Work
 
-The current phase is complete when another researcher can reproduce a powered
-held-out run from its manifest, all arms receive compatible inputs and answer
-budgets, the primary endpoints and uncertainty intervals are reported, and the
-written conclusions match the strength of that evidence. Clinical deployment
-validation is outside the scope of this phase.
+1. Predeclare a larger pilot size and freeze prompts, model digest, corpus,
+   seed, thresholds, and case IDs.
+2. Run identical MedEinst and MedDistractQA subsets on `simple` and
+   `investigator` and compare paired outcomes plus compute.
+3. Inspect failures where the final audit still reports fragility; decide
+   whether to abstain rather than return an unsupported leader.
+4. Add clean diagnostic guardrails through the canonical service before using
+   CUPCase or DDXPlus to compare the new engines.
+5. Build the clinician-validated paired report benchmark with should-change
+   controls, held-out distractor families, and a locked test split.
+
+## Definition of Complete
+
+This research phase is complete when another researcher can reproduce a
+powered held-out run from its manifest, all arms receive compatible inputs and
+answer budgets, paired uncertainty intervals and compute are reported, and the
+written conclusion matches the evidence. Clinical deployment validation is
+outside this phase.

@@ -10,7 +10,7 @@ It is not clinical decision-support software.
 | Mode | Purpose |
 |---|---|
 | `simple` | Efficient bounded reasoning; default |
-| `investigator` | Bounded multi-round investigation with graph and memory support |
+| `investigator` | Bounded candidate/evidence audit with one optional revision |
 | `legacy` | Original entropy-guided graph traversal |
 
 `investigator` is available on `new/complete-apiro`. The efficient branch
@@ -40,11 +40,10 @@ apiro --findings "49yo female with dyspnea" --mode investigator
 python -m apiro.web
 ```
 
-The investigator mode also supports an optional persisted concept graph:
-
-```bash
-python scripts/build_concept_graph.py data/corpus/chunks.jsonl
-```
+Investigator mode separates patient facts from retrieved medical knowledge,
+requires exact retrieved evidence spans, measures uncertainty across competing
+diagnoses, and performs at most one counterfactual revision. Its graph is an
+output provenance record; it does not control runtime traversal.
 
 ## Primary Benchmark
 
