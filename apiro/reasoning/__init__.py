@@ -3,9 +3,6 @@
 from .models import DiagnosticHypothesis, EvidenceChunk, InvestigationResult
 from .simple import SimpleReasoner
 from .investigator import InvestigatorReasoner
-from .action_policy import ActionValuePolicy
-from .associative_memory import AssociativeMemory
-from .concept_graph import MedicalConceptGraph
 
 __all__ = [
     "DiagnosticHypothesis",
@@ -13,7 +10,4 @@ __all__ = [
     "InvestigationResult",
     "SimpleReasoner",
     "InvestigatorReasoner",
-    "ActionValuePolicy",
-    "AssociativeMemory",
-    "MedicalConceptGraph",
 ]
