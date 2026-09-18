@@ -141,6 +141,7 @@ def test_text_fallback_recovers_diagnoses_from_malformed_json():
     result = reasoner.run("Abdominal pain")
 
     assert result.synthesis == ["Crohn's disease", "Ulcerative colitis"]
+    assert result.hypotheses[0].confidence == 0.8
 
 
 def test_abstention_allows_an_explicit_empty_differential():
