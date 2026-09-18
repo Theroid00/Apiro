@@ -37,6 +37,9 @@ Investigator now:
 The hard limit is two retrievals and two reasoning calls. The unused concept
 graph, associative-memory, and trainable action-policy stack was removed.
 
+The application service uses one factory for `simple` and `investigator`, so
+shared dependency wiring is centralized while each reasoner owns its policy.
+
 ## Verification
 
 - Full offline test suite passes with two expected skips.

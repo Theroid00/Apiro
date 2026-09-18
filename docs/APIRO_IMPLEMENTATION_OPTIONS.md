@@ -34,6 +34,11 @@ structured output, and deterministic validation.
 traversal. It keeps the medical-detective objective while using the same hard
 one/two-pass execution shape as Simple Apiro.
 
+Both new engines enter through one service pipeline. The service validates the
+request, builds the selected reasoner with shared clients and detectors, then
+returns the common `InvestigationResult` contract. Engine-specific policy
+starts inside the reasoner, keeping setup and telemetry consistent.
+
 ```text
 raw case
     -> patient fact ledger

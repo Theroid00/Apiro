@@ -64,7 +64,22 @@ class InvestigationService:
     def _run_simple(
         self, narrative: str, *, n_diagnoses: int, allow_abstention: bool, on_event
     ):
+        return self._build_reasoner(
+            "simple", n_diagnoses=n_diagnoses, allow_abstention=allow_abstention
+        ).run(narrative, on_event=on_event)
+
+    def _run_investigator(
+        self, narrative: str, *, n_diagnoses: int, allow_abstention: bool, on_event
+    ):
+        return self._build_reasoner(
+            "investigator", n_diagnoses=n_diagnoses,
+            allow_abstention=allow_abstention,
+        ).run(narrative, on_event=on_event)
+
+    def _build_reasoner(self, mode: str, *, n_diagnoses: int, allow_abstention: bool):
+        """Build one bounded new-engine pipeline with shared dependencies."""
         from apiro.graph.contradiction import ContradictionDetector
+        from apiro.reasoning.investigator import InvestigatorReasoner
         from apiro.reasoning.simple import SimpleReasoner
 
         contradiction = ContradictionDetector(
@@ -72,27 +87,13 @@ class InvestigationService:
             ollama_url=self.resources.ollama_url,
             scheduler=getattr(self.resources, "model_scheduler", None),
         )
-        return SimpleReasoner(
-            embedder=self.resources.embedder,
-            llm_client=self.resources.llm_client,
-            axiom_extractor=self.resources.axiom_extractor,
-            contradiction_detector=contradiction,
-            n_diagnoses=n_diagnoses,
-            allow_abstention=allow_abstention,
-        ).run(narrative, on_event=on_event)
-
-    def _run_investigator(
-        self, narrative: str, *, n_diagnoses: int, allow_abstention: bool, on_event
-    ):
-        from apiro.graph.contradiction import ContradictionDetector
-        from apiro.reasoning.investigator import InvestigatorReasoner
-
-        contradiction = ContradictionDetector(
-            model=self.resources.model,
-            ollama_url=self.resources.ollama_url,
-            scheduler=getattr(self.resources, "model_scheduler", None),
-        )
-        return InvestigatorReasoner(
+        reasoner_type = {
+            "simple": SimpleReasoner,
+            "investigator": InvestigatorReasoner,
+        }.get(mode)
+        if reasoner_type is None:
+            raise ValueError(f"unsupported new-engine mode: {mode}")
+        return reasoner_type(
             embedder=self.resources.embedder,
             llm_client=self.resources.llm_client,
             axiom_extractor=self.resources.axiom_extractor,
