@@ -100,7 +100,13 @@ def build_runtime_resources(
 
     from apiro.axioms.extractor import AxiomExtractor
     from apiro.application.model_scheduler import ModelCallScheduler
-    from apiro.config import MAX_MODEL_CONCURRENCY, OLLAMA_BASE_URL, PRIMARY_MODEL
+    from apiro.config import (
+        MAX_MODEL_CONCURRENCY,
+        MODEL_SEED,
+        MODEL_TEMPERATURE,
+        OLLAMA_BASE_URL,
+        PRIMARY_MODEL,
+    )
     from apiro.corpus.embedder import Embedder
     from apiro.llm_client import OllamaLLMClient
 
@@ -126,6 +132,8 @@ def build_runtime_resources(
         llm_client=OllamaLLMClient(
             OLLAMA_BASE_URL,
             PRIMARY_MODEL,
+            temperature=MODEL_TEMPERATURE,
+            seed=MODEL_SEED,
             timeout=llm_timeout,
             scheduler=scheduler,
         ),

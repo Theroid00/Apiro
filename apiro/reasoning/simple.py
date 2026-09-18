@@ -141,7 +141,7 @@ class SimpleReasoner:
 
         stage = time.monotonic()
         prompt = self._build_prompt(selected.text, seeds, evidence)
-        raw_output = self.llm_client.chat(prompt)
+        raw_output = self._generate_json(prompt)
         parsed = self._parse_hypotheses(raw_output, seeds, evidence)
         hypotheses = self._constrain_and_rank(parsed, seeds)
         reasoning_calls = 1
@@ -160,7 +160,7 @@ class SimpleReasoner:
                     for item in hypotheses
                 ) or "No usable diagnosis was produced."
             ) + self._build_prompt(selected.text, seeds, evidence)
-            raw_output = self.llm_client.chat(revision_prompt)
+            raw_output = self._generate_json(revision_prompt)
             reasoning_calls += 1
             parsed = self._parse_hypotheses(raw_output, seeds, evidence)
             hypotheses = self._constrain_and_rank(parsed, seeds)
@@ -398,6 +398,10 @@ class SimpleReasoner:
             }
             for index, diagnosis in enumerate(fallback)
         ]
+
+    def _generate_json(self, prompt: str) -> str:
+        generate_json = getattr(self.llm_client, "generate_json", None)
+        return generate_json(prompt) if generate_json else self.llm_client.chat(prompt)
 
     @staticmethod
     def _as_string_list(value) -> list[str]:
