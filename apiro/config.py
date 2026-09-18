@@ -29,6 +29,8 @@ LOG_DIR    = DATA_DIR / "logs"
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 PRIMARY_MODEL   = os.environ.get("PRIMARY_MODEL", "llama3.1:8b")
 MAX_MODEL_CONCURRENCY = int(os.environ.get("APIRO_MAX_MODEL_CONCURRENCY", "2"))
+MODEL_TEMPERATURE = float(os.environ.get("APIRO_MODEL_TEMPERATURE", "0.2"))
+MODEL_SEED = int(os.environ.get("APIRO_MODEL_SEED", "7"))
 
 # Reasoning architecture selected by CLI, web, and live evaluation.  The
 # simplified engine normally uses one generation and permits one corrective

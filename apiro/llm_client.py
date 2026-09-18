@@ -32,6 +32,7 @@ class OllamaLLMClient:
         url: str,
         model: str,
         temperature: float = 0.2,
+        seed: int = 7,
         num_predict: int = 180,
         timeout: int = 90,
         scheduler=None,
@@ -39,20 +40,28 @@ class OllamaLLMClient:
         self.url = url
         self.model = model
         self.temperature = temperature
+        self.seed = seed
         self.num_predict = num_predict
         self.timeout = timeout
         self.scheduler = scheduler
 
-    def generate(self, prompt: str) -> str:
+    def _generate(self, prompt: str, *, json_mode: bool = False) -> str:
         def request():
+            payload = {
+                "model": self.model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": self.temperature,
+                    "seed": self.seed,
+                    "num_predict": self.num_predict,
+                },
+            }
+            if json_mode:
+                payload["format"] = "json"
             response = requests.post(
                 f"{self.url}/api/generate",
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {"temperature": self.temperature, "num_predict": self.num_predict},
-                },
+                json=payload,
                 timeout=self.timeout,
             )
             response.raise_for_status()
@@ -64,6 +73,12 @@ class OllamaLLMClient:
             else request()
         )
         return resp.json().get("response", "")
+
+    def generate(self, prompt: str) -> str:
+        return self._generate(prompt)
+
+    def generate_json(self, prompt: str) -> str:
+        return self._generate(prompt, json_mode=True)
 
     def chat(self, prompt: str) -> str:
         return self.generate(prompt)

@@ -76,7 +76,12 @@ def main(argv=None) -> int:
         case_ids=[f"{r['case_id']}:{r['condition']}" for r in selected],
         config={"seed": args.seed, "n_pairs": len(selected)//2, "max_depth": args.max_depth,
                 "subset": "Patient Care: Diagnosis", "n_diagnoses": 3,
-                "model": components.resources.model},
+                "model": components.resources.model,
+                "decoding": {
+                    "temperature": components.resources.llm_client.temperature,
+                    "seed": components.resources.llm_client.seed,
+                    "num_predict": components.resources.llm_client.num_predict,
+                }},
     )
     run_dir = create_run_directory(manifest, args.runs_dir)
     records = []
