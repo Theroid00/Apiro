@@ -18,6 +18,26 @@ bounded candidate exploration, backtracking, associative retrieval, a sparse
 concept graph, graph-linked query expansion, policy-guided actions, and bounded
 contradiction adjudication.
 
+## Completed smoke comparison — 2026-09-18
+
+The documented two-pair smoke test now passes on both branches with the same
+case IDs, corpus, `llama3.1:8b` model, seed 7, and decoding settings. Both
+manifests report clean Git state. The benchmark code revisions were `48dfdd7`
+for Simplified and `b47b587` for Complete.
+
+| Benchmark and engine | Clean/control@1 | Distracted/trap@1 | Pair@1 | Apiro calls | All-arm wall time |
+|---|---:|---:|---:|---:|---:|
+| MedEinst — Simplified | 50% | 0% | 0% | 4 | 22.4 s |
+| MedEinst — Complete | 0% | 50% | 0% | 10 | 92.1 s |
+| MedDistractQA — Simplified | 50% | 50% | 100% retention | 6 | 32.2 s |
+| MedDistractQA — Complete | 50% | 50% | 100% retention | 6 | 63.5 s |
+
+The sample is an integration check, not evidence that either engine is more
+accurate. Complete used more compute without improving this tiny sample. The
+run also verified native structured generation without parser fallback, stable
+MedDistractQA case IDs, pinned dataset revisions and decoding configuration,
+and a valid 100,000-document corpus with manifest hash `462dd355c2ac7db4`.
+
 ## What is already compared
 
 `apiro/eval/live.py` evaluates three arms on the same narrative:
@@ -37,19 +57,17 @@ model, corpus, prompts, seed, dataset revision, and decoding settings fixed.
 
 ## What is implemented now
 
-Executable runners currently use:
+The runners that currently route Apiro through `InvestigationService` are:
 
 - MedEinst control/trap pairs
 - MedDistractQA clean/distracted pairs
-- C-NIAH/NIAH cases
-- CUPCase
-- DDXPlus
-- PMC-style cases
 - optional MINT-style incremental cases
 
-These runners already include bare LLM, RAG, and Apiro arms where the task
-contract supports the comparison. They are suitable for smoke tests,
-regression testing, and initial side-by-side measurements.
+The C-NIAH/NIAH, CUPCase, DDXPlus, and PMC runners still instantiate the legacy
+traversal directly. Their historical results remain useful, but they do not
+measure `simple` or `investigator` until migrated to the service. MedEinst and
+MedDistractQA include bare LLM, RAG, and Apiro arms and are the current valid
+side-by-side runners for both new engines.
 
 ## What is not finished
 
@@ -173,8 +191,7 @@ compare a smoke run from one branch with a powered run from the other.
 
 ## Current conclusion
 
-The two new systems are ready for controlled engineering and benchmark
-experiments. They are not yet supported by the final proposed benchmark or a
-powered held-out result. The next meaningful milestone is a reproducible
-side-by-side run on the other computer, followed by construction and
-validation of the new paired distractor-report test set.
+The two new systems have passed the reproducible side-by-side smoke milestone.
+They are not yet supported by the final proposed benchmark or a powered
+held-out result. The next meaningful milestone is to predeclare a larger pilot,
+then construct and validate the new paired distractor-report test set.

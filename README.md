@@ -46,8 +46,9 @@ APIRO_REASONING_MODE=legacy python scripts/run_meddistractqa_eval.py --n 100
 ```
 
 The headline metric is top-1 diagnostic retention under distraction. MedEinst
-is a secondary anchoring-bias benchmark; DDXPlus and CUPCase are clean-accuracy
-guardrails.
+is a secondary anchoring-bias benchmark. The DDXPlus and CUPCase runners still
+use the legacy traversal and must be migrated before they can act as
+clean-accuracy guardrails for `simple`.
 
 ## Development
 
