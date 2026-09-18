@@ -89,6 +89,11 @@ Each run directory contains `manifest.json`, `results.json`, and logs. The
 evidence audit is saved per case under `traversal.evidence_audit`; parser
 fallbacks are counted in `traversal.parse_fallback_count`.
 
+The final clean smoke artifacts are
+`medeinst-20260918T195739Z-7bfd0eec` and
+`meddistractqa-20260918T195926Z-15d65de4`, both produced from commit
+`3739119` with clean manifests.
+
 ## Final Benchmark Still Missing
 
 The proposed primary benchmark remains a design rather than a finished final

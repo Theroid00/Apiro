@@ -63,6 +63,15 @@ count is now stored as `traversal.parse_fallback_count`; this is a measured
 limitation of the current local model and prompt, not evidence of
 architectural success.
 
+Final clean artifacts were produced from commit `3739119`:
+
+- `data/runs/medeinst-20260918T195739Z-7bfd0eec/results.json`
+  (92.9 seconds across all arms, eight Apiro reasoning calls, one fallback);
+- `data/runs/meddistractqa-20260918T195926Z-15d65de4/results.json`
+  (105.4 seconds across all arms, seven Apiro reasoning calls, one fallback).
+
+Both manifests record `dirty: false`.
+
 ## Remaining Work
 
 1. Predeclare a larger pilot size and freeze prompts, model digest, corpus,
