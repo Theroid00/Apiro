@@ -28,6 +28,10 @@ This mode is intentionally close to a strong RAG baseline. Its purpose is to
 show whether the investigator's evidence audit adds value beyond retrieval,
 structured output, and deterministic validation.
 
+In practical terms, Simple asks the model for a ranked differential grounded
+in retrieved context, then applies deterministic checks. It does not test
+whether the leading diagnosis depends on one misleading fact.
+
 ## Complete Apiro Investigator
 
 `investigator` implements a bounded evidence audit rather than runtime graph
@@ -114,6 +118,12 @@ Values above two are clamped by the investigator. The engine may stop after
 one pass when the initial candidate is independently supported, grounded, and
 well separated.
 
+The practical difference from Simple is the audit decision. Simple can perform
+one corrective retrieval when its quality gates fail; Investigator first
+measures candidate entropy, evidence dependence, and counterfactual rank
+stability, then uses one targeted contrastive retrieval only when those checks
+show fragility.
+
 ### Provenance graph
 
 The returned graph connects patient facts to diagnoses and records supporting
@@ -139,6 +149,12 @@ traversal adds value. It is not the current Complete architecture.
 | Counterfactual check | No | Removes the highest-impact fact | No |
 | Evidence quotes | Optional IDs | Exact verified spans | Source metadata |
 | Runtime graph traversal | No | No | Yes |
+
+The five-pair validation illustrates the trade-off: Investigator averaged
+about 30 seconds per case versus 6.7 seconds for Simple. Investigator's
+false-confidence rate was 0% on MedEinst and 10% on MedDistractQA, compared
+with 20% for Simple on both samples. Pair robustness was not better, so these
+figures support an auditability and caution hypothesis, not an accuracy claim.
 
 ## Evaluation Contract
 
