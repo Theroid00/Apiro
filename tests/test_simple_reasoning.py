@@ -132,6 +132,17 @@ def test_text_fallback_keeps_engine_usable_when_json_is_malformed():
     assert result.synthesis == ["Influenza", "Bacterial pneumonia"]
 
 
+def test_text_fallback_recovers_diagnoses_from_malformed_json():
+    reasoner, _embedder, _llm, _detector = _reasoner(
+        '{"hypotheses":[{"diagnosis":"Crohn\'s disease","confidence":0.8},'
+        '{"diagnosis":"Ulcerative colitis","confidence":0.6}'
+    )
+
+    result = reasoner.run("Abdominal pain")
+
+    assert result.synthesis == ["Crohn's disease", "Ulcerative colitis"]
+
+
 def test_abstention_allows_an_explicit_empty_differential():
     reasoner, _embedder, _llm, _detector = _reasoner('{"hypotheses": []}')
     reasoner.allow_abstention = True

@@ -28,6 +28,7 @@ from .models import DiagnosticHypothesis, EvidenceChunk, InvestigationResult
 logger = logging.getLogger(__name__)
 
 _JSON_OBJECT = re.compile(r"\{.*\}", re.DOTALL)
+_DIAGNOSIS_FIELD = re.compile(r'"diagnosis"\s*:\s*"([^"\r\n]+)', re.IGNORECASE)
 
 _PROMPT = """You are ranking differential diagnoses for one patient.
 Use the clinical presentation, deterministic facts, and retrieved evidence below.
@@ -379,7 +380,14 @@ class SimpleReasoner:
         if parsed or (self.allow_abstention and isinstance(payload, dict)):
             return parsed
 
-        fallback = parse_differential(raw or "", limit=self.n_diagnoses)
+        # Small models often return almost-JSON with a missing comma or brace.
+        # Recover its diagnosis values before the generic line parser can
+        # mistake schema keys such as "hypotheses" for diagnoses.
+        diagnosis_values = _DIAGNOSIS_FIELD.findall(raw or "")
+        fallback = parse_differential(
+            "\n".join(diagnosis_values) if diagnosis_values else raw or "",
+            limit=self.n_diagnoses,
+        )
         return [
             {
                 "diagnosis": diagnosis,
