@@ -47,7 +47,9 @@ class OllamaLLMClient:
         self.timeout = timeout
         self.scheduler = scheduler
 
-    def _generate(self, prompt: str, *, json_mode: bool = False) -> str:
+    def _generate(
+        self, prompt: str, *, json_mode: bool = False, schema: dict | None = None
+    ) -> str:
         def request():
             payload = {
                 "model": self.model,
@@ -62,7 +64,7 @@ class OllamaLLMClient:
                 },
             }
             if json_mode:
-                payload["format"] = "json"
+                payload["format"] = schema or "json"
             response = requests.post(
                 f"{self.url}/api/generate",
                 json=payload,
@@ -81,8 +83,8 @@ class OllamaLLMClient:
     def generate(self, prompt: str) -> str:
         return self._generate(prompt)
 
-    def generate_json(self, prompt: str) -> str:
-        return self._generate(prompt, json_mode=True)
+    def generate_json(self, prompt: str, schema: dict | None = None) -> str:
+        return self._generate(prompt, json_mode=True, schema=schema)
 
     def chat(self, prompt: str) -> str:
         return self.generate(prompt)

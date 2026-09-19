@@ -45,14 +45,16 @@ class _LLM:
         self.responses = list(responses)
         self.prompts = []
         self.structured_calls = 0
+        self.schemas = []
 
     def chat(self, prompt):
         self.prompts.append(prompt)
         index = min(len(self.prompts) - 1, len(self.responses) - 1)
         return self.responses[index]
 
-    def generate_json(self, prompt):
+    def generate_json(self, prompt, schema=None):
         self.structured_calls += 1
+        self.schemas.append(schema)
         return self.chat(prompt)
 
 
@@ -115,6 +117,7 @@ def test_robust_candidate_passes_without_extra_call():
     assert result.evidence_audit["initial"]["needs_revision"] is False
     assert len(embedder.calls) == len(llm.prompts) == 1
     assert llm.structured_calls == 1
+    assert llm.schemas[0]["type"] == "object"
 
 
 def test_fragile_result_gets_exactly_one_counterfactual_revision():
@@ -245,3 +248,50 @@ def test_output_is_capped_without_truncating_candidate_audit():
 
     assert result.synthesis == ["A", "B"]
     assert result.total_nodes == 4
+
+
+def test_entropy_alone_does_not_trigger_a_second_pass():
+    response = _response(
+        _candidate("A", 0.70, facts=("ax_0", "ax_1")),
+        _candidate("B", 0.65, facts=("ax_0", "ax_1")),
+    )
+    reasoner, embedder, llm = _reasoner([response])
+    original_extract = reasoner.axiom_extractor.extract
+    reasoner.axiom_extractor.extract = lambda *args, **kwargs: [
+        ClinicalAxiom(
+            item.id, item.text, item.domain, item.polarity, item.value, item.unit,
+            0.01, raw_text=item.raw_text,
+        )
+        for item in original_extract(*args, **kwargs)
+    ]
+
+    result = reasoner.run("Pleuritic chest pain without fever")
+
+    assert result.evidence_audit["initial"]["reasons"] == [
+        "small_candidate_margin", "high_differential_entropy"
+    ]
+    assert result.evidence_audit["initial"]["needs_revision"] is False
+    assert len(embedder.calls) == len(llm.prompts) == 1
+
+
+def test_unverified_confidence_is_capped_and_history_is_preserved():
+    weak = _response(_candidate("A", 0.95, facts=("ax_0",), evidence="", quote=""))
+    reasoner, _embedder, _llm = _reasoner([weak], max_model_calls=1)
+
+    result = reasoner.run("Pleuritic chest pain without fever")
+
+    assert result.hypotheses[0].confidence == 0.69
+    assert result.candidate_history["A"][0]["confidence"] == 0.95
+
+
+def test_obvious_junk_and_duplicate_facts_are_removed():
+    reasoner, _embedder, _llm = _reasoner([_response(_candidate("A", 0.5))])
+    facts = [
+        ClinicalAxiom("old_0", "pain", "symptom", "affirmed", None, None, 0.1, raw_text="pain"),
+        ClinicalAxiom("old_1", "Chest pain", "symptom", "affirmed", None, None, 0.8, raw_text="chest pain"),
+        ClinicalAxiom("old_2", "Chest pain", "symptom", "affirmed", None, None, 0.8, raw_text="chest pain"),
+    ]
+
+    cleaned = reasoner._clean_axioms(facts)
+
+    assert [(item.id, item.text) for item in cleaned] == [("ax_0", "Chest pain")]
