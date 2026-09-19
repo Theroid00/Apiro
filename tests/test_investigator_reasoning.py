@@ -245,3 +245,35 @@ def test_output_is_capped_without_truncating_candidate_audit():
 
     assert result.synthesis == ["A", "B"]
     assert result.total_nodes == 4
+
+
+def test_entropy_alone_does_not_trigger_a_second_pass():
+    response = _response(
+        _candidate("A", 0.70, facts=("ax_0", "ax_1")),
+        _candidate("B", 0.65, facts=("ax_0", "ax_1")),
+    )
+    reasoner, embedder, llm = _reasoner([response])
+    original_extract = reasoner.axiom_extractor.extract
+    reasoner.axiom_extractor.extract = lambda *args, **kwargs: [
+        ClinicalAxiom(
+            item.id, item.text, item.domain, item.polarity, item.value, item.unit,
+            0.01, raw_text=item.raw_text,
+        )
+        for item in original_extract(*args, **kwargs)
+    ]
+
+    result = reasoner.run("Pleuritic chest pain without fever")
+
+    assert result.evidence_audit["initial"]["revision_reasons"] == []
+    assert result.evidence_audit["initial"]["needs_revision"] is False
+    assert len(embedder.calls) == len(llm.prompts) == 1
+
+
+def test_unverified_confidence_is_capped_and_history_is_preserved():
+    weak = _response(_candidate("A", 0.95, facts=("ax_0",), evidence="", quote=""))
+    reasoner, _embedder, _llm = _reasoner([weak], max_model_calls=1)
+
+    result = reasoner.run("Pleuritic chest pain without fever")
+
+    assert result.hypotheses[0].confidence == 0.69
+    assert result.candidate_history["A"][0]["confidence"] == 0.95

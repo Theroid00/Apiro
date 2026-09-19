@@ -54,6 +54,10 @@ class CaseState:
 
 
 _JSON_OBJECT = re.compile(r"\{.*\}", re.DOTALL)
+_INFORMATIONAL_AUDIT_REASONS = {
+    "high_differential_entropy",
+    "small_candidate_margin",
+}
 
 _INITIAL_PREFIX = """You are an evidence-auditing medical investigator.
 The raw narrative may contain irrelevant or misleading details. Patient facts
@@ -250,6 +254,9 @@ class InvestigatorReasoner(SimpleReasoner):
                 stop_reason = "counterfactual_revision_complete"
 
         final_audit = self._audit(state.candidates, facts, state.evidence)
+        state.candidates = self._calibrate_confidence(
+            state.candidates, final_audit
+        )
         if not state.candidates and self.allow_abstention:
             stop_reason = "bounded_abstained"
 
@@ -425,6 +432,7 @@ class InvestigatorReasoner(SimpleReasoner):
             return {
                 "needs_revision": not self.allow_abstention,
                 "reasons": ["no_usable_candidate"],
+                "revision_reasons": ["no_usable_candidate"],
                 "normalized_entropy": 1.0,
                 "margin": 0.0,
                 "distribution": [],
@@ -480,9 +488,14 @@ class InvestigatorReasoner(SimpleReasoner):
             reasons.append("high_differential_entropy")
         if rank_flip:
             reasons.append("counterfactual_rank_flip")
+        revision_reasons = [
+            reason for reason in reasons
+            if reason not in _INFORMATIONAL_AUDIT_REASONS
+        ]
         return {
-            "needs_revision": bool(reasons),
+            "needs_revision": bool(revision_reasons),
             "reasons": reasons,
+            "revision_reasons": revision_reasons,
             "normalized_entropy": round(entropy, 6),
             "margin": round(margin, 6),
             "distribution": [
@@ -494,6 +507,26 @@ class InvestigatorReasoner(SimpleReasoner):
             "score_without_influential_fact": round(score_without_fact, 6),
             "verified_evidence_spans": len(top.evidence_spans),
         }
+
+    @staticmethod
+    def _calibrate_confidence(
+        candidates: list[DiagnosticHypothesis], audit: dict
+    ) -> list[DiagnosticHypothesis]:
+        material_warning = bool(audit.get("revision_reasons"))
+        return [
+            replace(
+                candidate,
+                confidence=min(candidate.confidence, 0.69)
+                if (
+                    len(candidate.supporting_fact_ids) < 2
+                    or not candidate.evidence_spans
+                    or bool(candidate.conflicting_fact_ids)
+                    or (index == 0 and material_warning)
+                )
+                else candidate.confidence,
+            )
+            for index, candidate in enumerate(candidates)
+        ]
 
     def _contrastive_action(
         self, state: CaseState, audit: dict
