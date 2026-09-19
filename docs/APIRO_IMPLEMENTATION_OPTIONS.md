@@ -151,7 +151,7 @@ traversal adds value. It is not the current Complete architecture.
 | Runtime graph traversal | No | No | Yes |
 
 The five-pair validation illustrates the trade-off: Investigator averaged
-about 30 seconds per case versus 6.7 seconds for Simple. Investigator's
+about 28 seconds per case versus 6.7 seconds for Simple. Investigator's
 false-confidence rate was 0% on MedEinst and 10% on MedDistractQA, compared
 with 20% for Simple on both samples. Pair robustness was not better, so these
 figures support an auditability and caution hypothesis, not an accuracy claim.

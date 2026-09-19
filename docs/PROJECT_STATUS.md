@@ -30,8 +30,12 @@ Investigator now:
 - accepts medical evidence only with an exact quote from the cited passage;
 - computes entropy over the candidate-score distribution;
 - removes the leading diagnosis's most influential fact to test rank stability;
-- performs at most one contrastive retrieval and revision;
-- records the initial and final audit in benchmark results;
+- performs at most one contrastive retrieval and revision when the audit finds
+  an evidence defect or unstable leader;
+- records the initial/final audit and per-round candidate history in benchmark
+  results;
+- caps reported confidence below 0.70 when support, verified evidence, or
+  conflict checks remain weak;
 - builds a shallow graph only as a provenance output.
 
 The hard limit is two retrievals and two reasoning calls. The unused concept
@@ -52,19 +56,22 @@ shared dependency wiring is centralized while each reasoner owns its policy.
 ## Five-Pair Pipeline Validation
 
 The public `RuntimeResources -> InvestigationService -> reasoner` pipeline was
-run from clean commit `ab47b5c` with `llama3.1:8b`, seed 7, fixed decoding, and
-the validated corpus. The sample is still too small for a superiority claim.
+rerun from clean commit `1e1e8d0` with `llama3.1:8b`, seed 7, fixed decoding,
+and the validated corpus. The sample is still too small for a superiority
+claim.
 
 | Benchmark and mode | First condition@1 | Distracted/trap@1 | Pair measure | False-confidence@1 (≥0.70) | Mean time | Calls | Fallbacks |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| MedEinst Investigator | 40% | 0% | 0% pair resilience | 0% (0/10) | 29.6 s | 20 | 4 |
+| MedEinst Investigator | 40% | 0% | 0% pair resilience | 0% (0/10) | 28.7 s | 18 | 3 |
 | MedEinst Simple | 20% | 0% | 0% pair resilience | 20% (2/10) | 6.7 s | 13 | 0 |
-| MedDistractQA Investigator | 40% | 60% | 100% retention | 10% (1/10) | 30.1 s | 19 | 2 |
+| MedDistractQA Investigator | 40% | 60% | 100% retention | 10% (1/10) | 27.2 s | 17 | 2 |
 | MedDistractQA Simple | 40% | 40% | 100% retention | 20% (2/10) | 6.7 s | 13 | 0 |
 
 Investigator gained one top-1 result on each five-pair sample, but did not
-improve either paired robustness measure. It cost about 4.5 times as much per
-case and was the only new engine to require structured-output fallbacks. The
+improve either paired robustness measure. It cost about 4.2 times as much per
+case and was the only new engine to require structured-output fallbacks. Audit
+gating removed two revisions per benchmark without changing accuracy, paired
+robustness, or false-confidence on these fixed cases. The
 false-confidence rate counts wrong top-1 Apiro diagnoses whose matched
 hypothesis confidence was at least 0.70; baseline arms do not expose a
 comparable confidence signal.
@@ -74,20 +81,21 @@ resilience at a mean 131 seconds per Apiro case while expanding 33--82 nodes.
 The five-pair Legacy MedDistractQA run was stopped before completion because of
 its runtime and has no valid result.
 
-The five completed artifacts are under `data/runs/pipeline-validation/`.
-Their manifests record commit `ab47b5c` with `dirty: false`.
+The accepted retest artifacts are
+`medeinst-20260919T141345Z-aa0cb305` and
+`meddistractqa-20260919T142151Z-6ddf1466` under
+`data/runs/pipeline-validation/`. Their manifests record commit `1e1e8d0`
+with `dirty: false`.
 
 ## Remaining Work
 
 1. Predeclare a larger pilot size and freeze prompts, model digest, corpus,
    seed, thresholds, and case IDs.
-2. Inspect the five-pair disagreements and structured-output fallbacks before
-   spending compute on the larger pilot.
-3. Inspect failures where the final audit still reports fragility; decide
+2. Inspect failures where the final audit still reports fragility; decide
    whether to abstain rather than return an unsupported leader.
-4. Add clean diagnostic guardrails through the canonical service before using
+3. Add clean diagnostic guardrails through the canonical service before using
    CUPCase or DDXPlus to compare the new engines.
-5. Build the clinician-validated paired report benchmark with should-change
+4. Build the clinician-validated paired report benchmark with should-change
    controls, held-out distractor families, and a locked test split.
 
 ## Definition of Complete

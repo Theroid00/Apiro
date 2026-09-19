@@ -59,24 +59,32 @@ the canonical service.
 
 ### Five-pair pipeline validation — 2026-09-19
 
-The canonical public pipeline was tested from clean commit `ab47b5c` on the
-same five pairs per mode.
+The canonical public pipeline used the same five pairs per mode. Investigator
+was retested from clean commit `1e1e8d0`; the Simple rows are the prior fixed
+sample baseline.
 
 | Benchmark and mode | Clean/control@1 | Distracted/trap@1 | Pair measure | False-confidence@1 (≥0.70) | Mean time | Calls | Fallbacks |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| MedEinst Investigator | 40% | 0% | 0% pair resilience | 0% (0/10) | 29.6 s | 20 | 4 |
+| MedEinst Investigator | 40% | 0% | 0% pair resilience | 0% (0/10) | 28.7 s | 18 | 3 |
 | MedEinst Simple | 20% | 0% | 0% pair resilience | 20% (2/10) | 6.7 s | 13 | 0 |
-| MedDistractQA Investigator | 40% | 60% | 100% retention | 10% (1/10) | 30.1 s | 19 | 2 |
+| MedDistractQA Investigator | 40% | 60% | 100% retention | 10% (1/10) | 27.2 s | 17 | 2 |
 | MedDistractQA Simple | 40% | 40% | 100% retention | 20% (2/10) | 6.7 s | 13 | 0 |
 
 Investigator gained one top-1 case on each tiny sample but did not improve the
-paired robustness measures. It was about 4.5 times slower and produced all six
+paired robustness measures. It was about 4.2 times slower and produced all five
 new-engine structured-output fallbacks. At a fixed 0.70 confidence threshold,
 it had fewer false-confident errors than Simple in both samples, but the
 denominator is only ten cases per benchmark and the threshold is provisional.
-This does not establish that its extra audit pass is worth the cost.
+This does not establish that its extra audit pass is worth the cost. A
+controller retest at commit `1e1e8d0` skipped revisions triggered only by
+entropy or a small margin. On the same fixed cases it preserved all reported
+accuracy, robustness, and false-confidence results while reducing calls from
+20 to 18 on MedEinst and from 19 to 17 on MedDistractQA.
 
-The completed artifacts are under `data/runs/pipeline-validation/`. A Legacy
+The accepted retest artifacts are
+`medeinst-20260919T141345Z-aa0cb305` and
+`meddistractqa-20260919T142151Z-6ddf1466` under
+`data/runs/pipeline-validation/`. A Legacy
 MedEinst comparison completed at 131 seconds per case on average; the matching
 Legacy MedDistractQA run was stopped before completion and is excluded.
 
@@ -116,7 +124,8 @@ APIRO_REASONING_MODE=investigator APIRO_MODEL_SEED=7 \
 
 Each run directory contains `manifest.json`, `results.json`, and logs. The
 evidence audit is saved per case under `traversal.evidence_audit`; parser
-fallbacks are counted in `traversal.parse_fallback_count`.
+fallbacks are counted in `traversal.parse_fallback_count`, and per-round
+candidate changes are saved in `traversal.candidate_history`.
 
 The final clean smoke artifacts are
 `medeinst-20260918T195739Z-7bfd0eec` and

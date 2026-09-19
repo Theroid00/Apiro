@@ -54,7 +54,7 @@ medical context, generates a ranked differential, and applies deterministic
 validation. Investigator adds an explicit evidence audit: it measures entropy,
 single-fact dependence, and counterfactual rank stability before deciding
 whether to perform one targeted revision. In the five-pair validation,
-Investigator was more cautious but about 4.5 times slower; it should be treated
+Investigator was more cautious but about four times slower; it should be treated
 as an audit experiment, not an established accuracy improvement.
 
 ## Primary Benchmark
