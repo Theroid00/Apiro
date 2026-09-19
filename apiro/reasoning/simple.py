@@ -417,18 +417,9 @@ class SimpleReasoner:
             for index, diagnosis in enumerate(fallback)
         ]
 
-    def _generate_json(self, prompt: str, *, schema: dict | None = None) -> str:
+    def _generate_json(self, prompt: str) -> str:
         generate_json = getattr(self.llm_client, "generate_json", None)
-        if not generate_json:
-            return self.llm_client.chat(prompt)
-        if schema is None:
-            return generate_json(prompt)
-        try:
-            return generate_json(prompt, schema=schema)
-        except TypeError as exc:
-            if "schema" not in str(exc):
-                raise
-            return generate_json(prompt)
+        return generate_json(prompt) if generate_json else self.llm_client.chat(prompt)
 
     @staticmethod
     def _as_string_list(value) -> list[str]:

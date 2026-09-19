@@ -86,7 +86,6 @@ def evaluate_narrative_case(
             "parse_fallback_count": result.parse_fallback_count,
             "adjudication_count": result.adjudication_count,
             "action_history": result.action_history,
-            "candidate_history": result.candidate_history,
             "unresolved_questions": result.unresolved_questions,
             "evidence_audit": result.evidence_audit,
             "stop_reason": result.stop_reason,

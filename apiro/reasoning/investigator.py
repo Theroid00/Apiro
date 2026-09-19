@@ -54,49 +54,6 @@ class CaseState:
 
 
 _JSON_OBJECT = re.compile(r"\{.*\}", re.DOTALL)
-_NON_FACT_TERMS = {"better", "feel", "pain", "side", "symptoms", "worse"}
-_INFORMATIONAL_AUDIT_REASONS = {
-    "high_differential_entropy",
-    "small_candidate_margin",
-}
-_INVESTIGATOR_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "hypotheses": {
-            "type": "array",
-            "maxItems": 6,
-            "items": {
-                "type": "object",
-                "properties": {
-                    "diagnosis": {"type": "string"},
-                    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-                    "supporting_fact_ids": {"type": "array", "items": {"type": "string"}},
-                    "conflicting_fact_ids": {"type": "array", "items": {"type": "string"}},
-                    "evidence_ids": {"type": "array", "items": {"type": "string"}},
-                    "evidence_spans": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "evidence_id": {"type": "string"},
-                                "quote": {"type": "string"},
-                            },
-                            "required": ["evidence_id", "quote"],
-                        },
-                    },
-                },
-                "required": [
-                    "diagnosis", "confidence", "supporting_fact_ids",
-                    "conflicting_fact_ids", "evidence_ids", "evidence_spans",
-                ],
-            },
-        },
-        "missing_information": {
-            "type": "array", "maxItems": 2, "items": {"type": "string"},
-        },
-    },
-    "required": ["hypotheses", "missing_information"],
-}
 
 _INITIAL_PREFIX = """You are an evidence-auditing medical investigator.
 The raw narrative may contain irrelevant or misleading details. Patient facts
@@ -111,10 +68,6 @@ patient facts. For every cited evidence ID, include a short exact quote in
 The root object must also include "missing_information", containing at most two
 patient-specific questions. Never assume or retrieve an answer to those
 questions.
-Distinguish a physiologic consequence or observed syndrome from the underlying
-diagnosis that best explains the complete narrative. Use confidence above 0.70
-only with two independent patient facts, a verified evidence span, and no
-conflicting patient fact.
 
 """
 
@@ -126,10 +79,6 @@ medical knowledge. Restore the prior leader only when independent patient fact
 IDs support it. General medical knowledge cannot establish a missing patient
 fact. Return the same strict JSON schema, including exact evidence_spans and at
 most two missing_information questions.
-Distinguish a physiologic consequence or observed syndrome from the underlying
-diagnosis that best explains the complete narrative. Use confidence above 0.70
-only with two independent patient facts, a verified evidence span, and no
-conflicting patient fact.
 
 High-impact fact: {fact}
 Audit reason: {reason}
@@ -186,7 +135,7 @@ class InvestigatorReasoner(SimpleReasoner):
         timings: dict[str, float] = {}
 
         stage = time.monotonic()
-        axioms = self._clean_axioms(self._extract_axioms(narrative))
+        axioms = self._extract_axioms(narrative)
         facts = axioms_to_seed_nodes(axioms)
         if not facts:
             facts = [Node(
@@ -229,7 +178,6 @@ class InvestigatorReasoner(SimpleReasoner):
         })
 
         stage = time.monotonic()
-        fallback_before = self.parse_fallback_count
         raw_output = self._generate_json(
             _INITIAL_PREFIX + self._build_prompt(
                 selected.text,
@@ -237,8 +185,7 @@ class InvestigatorReasoner(SimpleReasoner):
                 state.evidence,
                 include_missing_information=True,
                 include_evidence_spans=True,
-            ),
-            schema=_INVESTIGATOR_SCHEMA,
+            )
         )
         state.reasoning_call_count = 1
         state.rounds = 1
@@ -249,15 +196,10 @@ class InvestigatorReasoner(SimpleReasoner):
         )
         self._record_candidates(state)
         self._add_missing_questions(state, raw_output)
-        initial_fallback = self.parse_fallback_count > fallback_before
-        initial_audit = self._audit(
-            state.candidates, facts, state.evidence,
-            structured_fallback=initial_fallback,
-        )
+        initial_audit = self._audit(state.candidates, facts, state.evidence)
         timings["initial_reasoning_and_audit"] = time.monotonic() - stage
 
         stop_reason = "evidence_audit_passed"
-        final_fallback = initial_fallback
         if initial_audit["needs_revision"]:
             budget_reason = self._revision_budget_reason(state)
             if budget_reason:
@@ -279,20 +221,19 @@ class InvestigatorReasoner(SimpleReasoner):
                 )
                 state.retrieval_count += 1
                 state.evidence = self._merge_evidence(state.evidence, extra)
-                fallback_before = self.parse_fallback_count
                 raw_output = self._generate_json(
                     _REVISION_PREFIX.format(
                         fact=initial_audit.get("influential_fact_id") or "none identified",
                         reason="; ".join(initial_audit["reasons"]),
                         candidates=self._format_candidate_board(state.candidates),
-                    ) + self._build_prompt(
+                    )
+                    + self._build_prompt(
                         selected.text,
                         facts,
                         state.evidence,
                         include_missing_information=True,
                         include_evidence_spans=True,
-                    ),
-                    schema=_INVESTIGATOR_SCHEMA,
+                    )
                 )
                 state.reasoning_call_count += 1
                 state.rounds += 1
@@ -305,17 +246,10 @@ class InvestigatorReasoner(SimpleReasoner):
                 )
                 self._record_candidates(state)
                 self._add_missing_questions(state, raw_output)
-                final_fallback = self.parse_fallback_count > fallback_before
                 timings["contrastive_revision"] = time.monotonic() - stage
                 stop_reason = "counterfactual_revision_complete"
 
-        final_audit = self._audit(
-            state.candidates, facts, state.evidence,
-            structured_fallback=final_fallback,
-        )
-        state.candidates = self._calibrate_confidence(
-            state.candidates, final_audit, final_fallback
-        )
+        final_audit = self._audit(state.candidates, facts, state.evidence)
         if not state.candidates and self.allow_abstention:
             stop_reason = "bounded_abstained"
 
@@ -486,14 +420,11 @@ class InvestigatorReasoner(SimpleReasoner):
         candidates: list[DiagnosticHypothesis],
         facts: list[Node],
         evidence: list[EvidenceChunk],
-        *,
-        structured_fallback: bool = False,
     ) -> dict:
         if not candidates:
             return {
                 "needs_revision": not self.allow_abstention,
                 "reasons": ["no_usable_candidate"],
-                "revision_reasons": ["no_usable_candidate"],
                 "normalized_entropy": 1.0,
                 "margin": 0.0,
                 "distribution": [],
@@ -549,16 +480,9 @@ class InvestigatorReasoner(SimpleReasoner):
             reasons.append("high_differential_entropy")
         if rank_flip:
             reasons.append("counterfactual_rank_flip")
-        if structured_fallback:
-            reasons.append("structured_output_fallback")
-        revision_reasons = [
-            reason for reason in reasons
-            if reason not in _INFORMATIONAL_AUDIT_REASONS
-        ]
         return {
-            "needs_revision": bool(revision_reasons),
+            "needs_revision": bool(reasons),
             "reasons": reasons,
-            "revision_reasons": revision_reasons,
             "normalized_entropy": round(entropy, 6),
             "margin": round(margin, 6),
             "distribution": [
@@ -570,41 +494,6 @@ class InvestigatorReasoner(SimpleReasoner):
             "score_without_influential_fact": round(score_without_fact, 6),
             "verified_evidence_spans": len(top.evidence_spans),
         }
-
-    @staticmethod
-    def _calibrate_confidence(
-        candidates: list[DiagnosticHypothesis], audit: dict,
-        structured_fallback: bool,
-    ) -> list[DiagnosticHypothesis]:
-        material_warning = bool(audit.get("revision_reasons")) or structured_fallback
-        calibrated = []
-        for index, candidate in enumerate(candidates):
-            fragile = (
-                len(candidate.supporting_fact_ids) < 2
-                or not candidate.evidence_spans
-                or bool(candidate.conflicting_fact_ids)
-                or (index == 0 and material_warning)
-            )
-            calibrated.append(replace(
-                candidate,
-                confidence=min(candidate.confidence, 0.69) if fragile
-                else candidate.confidence,
-            ))
-        return calibrated
-
-    @staticmethod
-    def _clean_axioms(axioms: list) -> list:
-        cleaned = []
-        seen = set()
-        for axiom in axioms:
-            raw = str(getattr(axiom, "raw_text", None) or axiom.text).strip()
-            normalized = " ".join(re.findall(r"[a-z0-9]+", raw.casefold()))
-            key = (normalized, getattr(axiom, "polarity", "affirmed"))
-            if not normalized or normalized in _NON_FACT_TERMS or key in seen:
-                continue
-            seen.add(key)
-            cleaned.append(replace(axiom, id=f"ax_{len(cleaned)}"))
-        return cleaned
 
     def _contrastive_action(
         self, state: CaseState, audit: dict
