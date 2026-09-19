@@ -88,6 +88,54 @@ The accepted retest artifacts are
 MedEinst comparison completed at 131 seconds per case on average; the matching
 Legacy MedDistractQA run was stopped before completion and is excluded.
 
+## Error Scan — Current Problem
+
+The latest scan shows that Investigator's main weakness is diagnostic
+interpretation, not graph traversal cost. It can identify uncertainty without
+recovering the underlying diagnosis, and it can mistake a physiological
+consequence for the cause the question asks for.
+
+The clearest failure is the MedDistractQA case whose correct answer is
+factitious disorder imposed on another. Investigator selected hypoglycemic
+encephalopathy with confidence `0.782`, while the final audit reported no
+warning. The engine recognized the low-glucose consequence but missed the
+etiology. This is a high-confidence error that the current audit does not catch.
+
+The fixed five-pair artifacts show the broader pattern:
+
+- MedEinst ended with high differential entropy in 9/10 cases, single-fact
+  dependence in 7/10, and no verified evidence span in 4/10. The audit exposes
+  fragility, but the one allowed revision usually does not recover the correct
+  diagnosis.
+- MedDistractQA still misses somatization disorder, chronic non-bacterial
+  prostatitis, and factitious-disorder cases even when the audit flags weak
+  support or unstable candidates.
+- Structured-output fallbacks occurred in 5/20 cases. The artifacts record the
+  count, but not the raw malformed response, extracted fact ledger, or retrieved
+  passages needed to explain each failure.
+- Evidence validation confirms that a quoted span exists in a passage. It does
+  not confirm that the passage actually supports the diagnosis.
+- Candidate scoring rewards model confidence, the number of supporting facts,
+  and any verified span, but has no explicit distinction between a syndrome or
+  physiological consequence and its underlying etiology.
+
+These findings change the priority order. Before a larger pilot, test the
+following changes offline against the saved case outputs:
+
+1. Add a causal-versus-manifestation check when the question asks for a cause
+   or underlying diagnosis.
+2. Recalibrate confidence when entropy is high or the top candidate probability
+   is low; this should catch the high-confidence factitious-disorder error.
+3. Validate semantic evidence support instead of checking only quote presence.
+4. Persist the extracted axioms, retrieved evidence, and raw model response for
+   every benchmark case.
+5. Run a larger multi-seed benchmark only after these checks pass on the saved
+   failures.
+
+The five-pair results remain mechanism evidence, not a clinical-performance
+claim. The branch is stable, but Investigator should not be called complete
+until it either resolves these failures or reports them as explicit uncertainty.
+
 ### Larger pilot
 
 Freeze a larger pilot before running it. Use the same case IDs, corpus hash,
