@@ -69,8 +69,7 @@ DOMAIN_COLORS = {
 
 class InvestigationRequest(BaseModel):
     findings: str
-    max_depth: int = 5
-    mode: Literal["simple", "investigator", "legacy"] | None = None
+    mode: Literal["simple", "investigator"] | None = None
     # NOTE: a `real_entropy` field used to sit here. Nothing read it — the
     # engine has had exactly one entropy path since the logprob engine was
     # rewritten — so it was an API parameter that silently did nothing.
@@ -607,12 +606,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
       <select id="mode-input">
         <option value="simple" selected>Simple (bounded)</option>
         <option value="investigator">Investigator (bounded deep reasoning)</option>
-        <option value="legacy">Legacy graph traversal</option>
       </select>
-    </div>
-    <div class="form-group" id="depth-group">
-      <div class="section-label">Legacy Max Graph Depth</div>
-      <input type="number" id="depth-input" value="5" min="2" max="8">
     </div>
     <button id="run-btn" onclick="startInvestigation()">▶ Run Detective</button>
     <div class="divider"></div>
@@ -956,7 +950,6 @@ function setStatus(state, text) {
 /* ─── Main investigation ───────────────────────────────────────────────────── */
 async function startInvestigation() {
   const findings = document.getElementById('findings-input').value.trim();
-  const maxDepth = parseInt(document.getElementById('depth-input').value) || 5;
   const mode = document.getElementById('mode-input').value;
   if (!findings) { alert('Please enter clinical findings.'); return; }
 
@@ -983,7 +976,7 @@ async function startInvestigation() {
     const resp = await fetch('/run/stream', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ findings, max_depth: maxDepth, mode }),
+      body:    JSON.stringify({ findings, mode }),
     });
     if (!resp.ok) throw new Error(`Server error ${resp.status}`);
 
@@ -1073,7 +1066,6 @@ async def run_investigation_stream(req: InvestigationRequest):
             investigation_service.investigate(
                 req.findings,
                 mode=req.mode,
-                max_depth=req.max_depth,
                 case_name=f"api_stream_{run_id}",
                 on_event=on_event,
             )
@@ -1118,7 +1110,6 @@ def run_investigation(req: InvestigationRequest):
         result = investigation_service.investigate(
             req.findings,
             mode=req.mode,
-            max_depth=req.max_depth,
             case_name=f"api_run_{run_id}",
         )
         graph = result.graph

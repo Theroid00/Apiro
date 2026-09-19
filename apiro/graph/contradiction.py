@@ -52,10 +52,8 @@ logger = logging.getLogger(__name__)
 _CACHE_MAX = 4096
 
 # Confidence assigned to a deterministic (keyword/negation) contradiction.
-# This MUST sit strictly above CONTRADICTION_THRESHOLD_EF. It used to be
-# exactly 0.92, and every consumer tests `score > 0.92`, so no keyword
-# contradiction could ever fire: the deterministic half of the guardrail —
-# the entire point of the Hybrid Apiro design — was dead code.
+# The deterministic contradiction score is deliberately high so bounded
+# reasoning can reject clear conflicts without spending another model call.
 FAST_FILTER_CONTRADICTION_SCORE = 0.95
 
 # Max concurrent LLM-judge calls issued by check_batch().

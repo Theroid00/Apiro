@@ -3,8 +3,8 @@
 scripts/investigate.py
 ======================
 CLI runner for Apiro. The default simplified engine extracts bounded facts,
-retrieves evidence once, and makes one structured reasoning call. The legacy
-entropy-first traversal remains selectable for comparison.
+retrieves evidence once, and makes one structured reasoning call. Investigator
+adds a bounded evidence audit and optional contrastive revision.
 
 Usage:
   python scripts/investigate.py --findings "49yo female, dyspnea, history of breast cancer"
@@ -38,7 +38,7 @@ def print_report(result, elapsed: float) -> None:
     print("+" + "-" * 58 + "+")
 
     print(f"\n  Time taken:             {elapsed:.1f} seconds")
-    print(f"  Reasoning mode:         {getattr(result, 'mode', 'legacy')}")
+    print(f"  Reasoning mode:         {getattr(result, 'mode', 'simple')}")
     if getattr(result, "rounds", 0):
         print(f"  Investigation rounds:   {result.rounds}")
         print(f"  Retrievals:             {result.retrieval_count}")
@@ -86,11 +86,7 @@ def main():
         help="Free-text clinical findings. If omitted, enters interactive mode.",
     )
     parser.add_argument(
-        "--max-depth", type=int, default=5,
-        help="Max traversal depth (legacy mode only).",
-    )
-    parser.add_argument(
-        "--mode", choices=("simple", "investigator", "legacy"), default=None,
+        "--mode", choices=("simple", "investigator"), default=None,
         help="Reasoning engine. Defaults to APIRO_REASONING_MODE or simple.",
     )
     parser.add_argument(
@@ -132,7 +128,6 @@ def main():
     result = service.investigate(
         raw_findings,
         mode=args.mode,
-        max_depth=args.max_depth,
         case_name="investigate",
     )
     elapsed = time.time() - t0

@@ -4,7 +4,7 @@ from .models import ClinicalAxiom
 
 logger = logging.getLogger(__name__)
 
-_LEGACY_PREFIX = "The patient presents with the clinical finding of "
+_DEFAULT_PREFIX = "The patient presents with the clinical finding of "
 
 
 def _raw_of(axiom: ClinicalAxiom) -> str:
@@ -12,14 +12,14 @@ def _raw_of(axiom: ClinicalAxiom) -> str:
     The bare entity text for an axiom.
 
     Prefers the `raw_text` recorded by the extractor. Falls back to stripping
-    the legacy sentence prefix for axioms built before that field existed —
+    the default sentence prefix for axioms built before that field existed —
     the old code sliced this prefix off blindly, so any axiom forged with a
     different template silently had its entire sentence treated as the entity.
     """
     if getattr(axiom, "raw_text", None):
         return axiom.raw_text
-    if axiom.text.startswith(_LEGACY_PREFIX):
-        return axiom.text[len(_LEGACY_PREFIX):].rstrip(".")
+    if axiom.text.startswith(_DEFAULT_PREFIX):
+        return axiom.text[len(_DEFAULT_PREFIX):].rstrip(".")
     return axiom.text
 
 

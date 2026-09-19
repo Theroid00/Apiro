@@ -6,6 +6,11 @@ Ollama and a built ChromaDB corpus; the offline step needs neither.
 See [PROJECT_STATUS.md](PROJECT_STATUS.md) before scheduling a full run. It
 records the latest smoke result, current blockers, and definition of complete.
 
+The active checkout contains only the bounded `simple` and `investigator`
+engines. The former entropy-traversal engine and its retired benchmark runners
+are preserved on `archive/legacy-main` for historical comparison; commands
+below that name those runners are historical, not active pipeline steps.
+
 ---
 
 ## TL;DR — one command
@@ -15,8 +20,8 @@ records the latest smoke result, current blockers, and definition of complete.
 ./run_eval.sh              # the real run: hours
 ```
 
-That is everything — preflight, tests, dataset downloads, case generation,
-adversarial and general benchmarks, calibration. Stages run in dependency order, each logs to
+That is everything — preflight, tests, and the active adversarial benchmarks.
+Stages run in dependency order, each logs to
 `data/logs/<stage>.log`, and the run stops at the first failure.
 
 ## Current benchmark order
@@ -26,7 +31,7 @@ adversarial and general benchmarks, calibration. Stages run in dependency order,
    **MedDistractQA**, then confirm the result on post-cutoff PMC reports with
    controlled distractor injection. The headline endpoint is top-1 retention,
    not aggregate top-3 accuracy. Run the released set once per mode:
-   `APIRO_REASONING_MODE=<simple|investigator|legacy> python
+   `APIRO_REASONING_MODE=<simple|investigator> python
    scripts/run_meddistractqa_eval.py --n 100`.
 2. **MedEinst** is a focused secondary anchoring-bias benchmark. Run
    `APIRO_REASONING_MODE=<simple|investigator> python

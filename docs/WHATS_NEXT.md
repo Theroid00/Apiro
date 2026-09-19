@@ -4,11 +4,11 @@
 
 - `new/simplified-apiro` provides the `simple` structured-RAG baseline.
 - `new/complete-apiro` provides the two-pass `investigator` evidence audit.
-- Both retain `legacy` for historical entropy-graph experiments.
+- The old entropy-traversal implementation is preserved on
+  `archive/legacy-main` for historical comparisons.
 
-On `new/complete-apiro`, legacy code is isolated under `apiro/legacy/`; the
-shared `apiro/graph/` package contains only data structures reused by the
-current engines.
+The active tree contains only the bounded engines; `apiro/graph/` contains the
+provenance data structures they share.
 
 Investigator is no longer a recursive graph or multi-round policy engine. It
 uses a patient fact ledger, candidate/evidence board, exact evidence-span

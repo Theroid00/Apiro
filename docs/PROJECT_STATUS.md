@@ -6,16 +6,14 @@ Active branch: `new/complete-apiro`
 
 ## Status
 
-Apiro is an evaluation-ready research prototype with three modes:
+Apiro is an evaluation-ready research prototype with two active modes:
 
 - `simple`: structured-RAG baseline with one optional correction;
 - `investigator`: bounded patient-fact and evidence audit with one optional
   counterfactual revision;
-- `legacy`: original entropy-guided runtime graph traversal.
-
-The legacy implementation is physically isolated in `apiro/legacy/`. The
-`apiro/graph/` package now contains only shared graph data structures used by
-the current engines.
+The original entropy-guided runtime graph traversal is preserved on the
+`archive/legacy-main` branch. The active `main` tree contains only the bounded
+engines and their shared provenance graph data structures.
 
 The new Complete architecture is implemented and tested. The research claim is
 not validated: no powered held-out result shows that Investigator outperforms

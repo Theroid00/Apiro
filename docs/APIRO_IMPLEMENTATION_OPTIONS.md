@@ -1,10 +1,9 @@
 # Apiro Architectures
 
-Apiro has three explicit reasoning modes. `simple` is the structured-RAG
-baseline, `investigator` is the bounded evidence-audit system, and `legacy`
-preserves the original entropy-guided graph traversal for historical ablations.
-On `new/complete-apiro`, that baseline lives under `apiro/legacy/`; the graph
-package contains only shared data structures.
+Apiro has two active reasoning modes. `simple` is the structured-RAG baseline
+and `investigator` is the bounded evidence-audit system. The original
+entropy-guided graph traversal is preserved on `archive/legacy-main` for
+historical ablations; it is not part of the active tree.
 
 ## Simple Apiro
 

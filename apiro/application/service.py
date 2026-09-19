@@ -47,15 +47,7 @@ class InvestigationService:
                 on_event=on_event,
             )
         else:
-            result = self._run_legacy(
-                narrative,
-                n_diagnoses=n_diagnoses,
-                max_depth=max_depth,
-                case_name=case_name,
-                log_dir=log_dir,
-                allow_abstention=allow_abstention,
-                on_event=on_event,
-            )
+            raise ValueError(f"unsupported new-engine mode: {selected_mode}")
 
         if scheduler is not None:
             result.model_telemetry = scheduler.delta(telemetry_before)
@@ -102,44 +94,11 @@ class InvestigationService:
             allow_abstention=allow_abstention,
         )
 
-    def _run_legacy(
-        self,
-        narrative: str,
-        *,
-        n_diagnoses: int,
-        max_depth: int,
-        case_name: str,
-        log_dir,
-        allow_abstention: bool,
-        on_event,
-    ) -> InvestigationResult:
-        from apiro.axioms.seeding import build_seeds
-        from apiro.graph.belief_graph import BeliefGraph
-
-        traversal = self.resources.create_traversal(
-            n_diagnoses=n_diagnoses,
-            allow_abstention=allow_abstention,
-            log_dir=log_dir,
-        )
-        graph = BeliefGraph()
-        seeds, axioms, enriched = build_seeds(
-            narrative, self.resources.axiom_extractor
-        )
-        legacy_result = traversal.run(
-            seed_nodes=seeds,
-            graph=graph,
-            max_depth=max_depth,
-            case_name=case_name,
-            vignette=enriched,
-            on_event=on_event,
-        )
-        return InvestigationResult.from_legacy(legacy_result, axioms=axioms)
-
     @staticmethod
     def _validate_mode(mode: str) -> str:
         normalized = str(mode).strip().lower()
-        if normalized not in {"simple", "investigator", "legacy"}:
+        if normalized not in {"simple", "investigator"}:
             raise ValueError(
-                "reasoning mode must be 'simple', 'investigator', or 'legacy'"
+                "reasoning mode must be 'simple' or 'investigator'"
             )
         return normalized

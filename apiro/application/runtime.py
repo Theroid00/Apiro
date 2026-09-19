@@ -9,22 +9,6 @@ class RuntimeSetupError(RuntimeError):
     """Raised when the local model or corpus is unavailable."""
 
 
-class ChromaQueryAdapter:
-    """Translate :class:`Embedder` results into the shape NodeExpander uses."""
-
-    def __init__(self, embedder):
-        self._embedder = embedder
-
-    def query(self, collection_name="", query_texts=None, n_results=6, where=None):
-        query_texts = query_texts or []
-        query = query_texts[0] if query_texts else ""
-        results = self._embedder.query(query, n_results=n_results, where=where)
-        return {
-            "documents": [[item["text"] for item in results]],
-            "distances": [[item.get("distance") for item in results]],
-        }
-
-
 @dataclass
 class RuntimeResources:
     """Expensive resources safe to share across independent investigations."""
@@ -45,51 +29,6 @@ class RuntimeResources:
         return InvestigationService(
             self, default_mode=default_mode or REASONING_MODE
         )
-
-    def create_traversal(
-        self,
-        *,
-        n_diagnoses: int | None = None,
-        allow_abstention: bool = False,
-        log_dir=None,
-    ):
-        """Return a traversal whose callbacks, logs and detectors are run-local."""
-        from apiro.config import N_DIFFERENTIAL, SATURATION_EXPLORATION_ONLY
-        from apiro.legacy.entropy import EntropyEngine
-        from apiro.graph.contradiction import ContradictionDetector
-        from apiro.legacy.expander import NodeExpander
-        from apiro.legacy.rabbit_hole import RabbitHoleDetector
-        from apiro.legacy.saturation import SaturationDetector
-        from apiro.legacy.traversal import ApiroTraversal
-
-        contradiction = ContradictionDetector(
-            model=self.model,
-            ollama_url=self.ollama_url,
-            scheduler=self.model_scheduler,
-        )
-        expander = NodeExpander(
-            entropy_engine=EntropyEngine(
-                model=self.model,
-                ollama_url=self.ollama_url,
-                scheduler=self.model_scheduler,
-            ),
-            chroma_client=ChromaQueryAdapter(self.embedder),
-            llm_client=self.llm_client,
-            contradiction_detector=contradiction,
-            n_diagnoses=n_diagnoses or N_DIFFERENTIAL,
-            allow_abstention=allow_abstention,
-        )
-        traversal = ApiroTraversal(
-            expander=expander,
-            saturation=SaturationDetector(
-                exploration_only=SATURATION_EXPLORATION_ONLY
-            ),
-            rabbit_hole=RabbitHoleDetector(),
-            contradiction=contradiction,
-            log_dir=log_dir,
-        )
-        traversal.run_id = None
-        return traversal
 
 
 def build_runtime_resources(

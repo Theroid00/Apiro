@@ -7,12 +7,8 @@ persistent ChromaDB corpus, an adapter presenting it in the shape
 NodeExpander expects, an EntropyEngine, a ContradictionDetector, and an
 ApiroTraversal tying them together.
 
-That wiring was copy-pasted into ``scripts/run_pmc_eval.py`` and
-``scripts/run_niah_eval.py`` — including a private ``_ChromaAdapter`` class
-defined twice, verbatim. The copies had already begun to drift (one passed a
-120 s LLM timeout, the other the 90 s default), which is exactly the failure
-mode ``apiro/llm_client.py`` was extracted to stop: two benchmarks reporting
-comparable numbers from stacks that were not actually identical.
+The benchmark wiring is centralized here so comparable runs use the same
+runtime resources, timeout, and corpus checks.
 
 This module is the single implementation. Heavy imports (chromadb,
 sentence-transformers, torch) stay inside the functions so importing
@@ -86,10 +82,6 @@ class RealComponents:
     axiom_extractor: object
     doc_count: int
     resources: object
-
-    def create_traversal(self, **kwargs):
-        """Create isolated mutable state for one benchmark case."""
-        return self.resources.create_traversal(**kwargs)
 
     def create_service(self, **kwargs):
         """Create the shared investigation facade used by live benchmarks."""

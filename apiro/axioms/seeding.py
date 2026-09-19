@@ -8,7 +8,7 @@ nodes from the extracted axioms, and they disagreed:
   * investigate.py / app.py assigned every axiom entropy 0.01, so a negated
     finding ("the patient denies chest pain") became just as certain and just
     as high-priority an anchor as a hard lab value;
-  * run_pmc_eval.py derived entropy from the axiom weight and polarity.
+  * benchmark adapters derived entropy from the axiom weight and polarity.
 
 Same engine, three behaviours, and only the eval path was ever measured. This
 module is the single implementation.

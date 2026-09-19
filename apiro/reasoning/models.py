@@ -27,7 +27,7 @@ class DiagnosticHypothesis:
 
 @dataclass
 class InvestigationResult:
-    """One result shape for both the simple and legacy engines."""
+    """One result shape shared by the bounded reasoning engines."""
 
     mode: str
     graph: object
@@ -55,20 +55,3 @@ class InvestigationResult:
     adjudication_count: int = 0
     evidence_audit: dict = field(default_factory=dict)
     parse_fallback_count: int = 0
-
-    @classmethod
-    def from_legacy(cls, result, *, axioms: list[object]) -> "InvestigationResult":
-        return cls(
-            mode="legacy",
-            graph=result.graph,
-            stop_reason=result.stop_reason,
-            total_nodes=result.total_nodes,
-            total_edges=result.total_edges,
-            rabbit_hole_count=result.rabbit_hole_count,
-            contradiction_count=result.contradiction_count,
-            duration_seconds=result.duration_seconds,
-            synthesis=list(result.synthesis or []),
-            saturation_status=result.saturation_status,
-            stage_timings=result.stage_timings,
-            axioms=axioms,
-        )

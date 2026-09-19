@@ -15,7 +15,7 @@ class _LLM:
     chat = generate
 
 
-def test_create_traversal_returns_fresh_mutable_components():
+def test_create_service_returns_fresh_bounded_services():
     resources = RuntimeResources(
         embedder=_Embedder(),
         llm_client=_LLM(),
@@ -25,14 +25,9 @@ def test_create_traversal_returns_fresh_mutable_components():
         ollama_url="http://invalid.test",
     )
 
-    first = resources.create_traversal()
-    second = resources.create_traversal()
+    first = resources.create_service(default_mode="simple")
+    second = resources.create_service(default_mode="investigator")
 
     assert first is not second
-    assert first.expander is not second.expander
-    assert first.saturation is not second.saturation
-    assert first.rabbit_hole is not second.rabbit_hole
-    assert first.contradiction is not second.contradiction
-    assert first.expander.llm_client is second.expander.llm_client
-    assert first.expander.chroma_client._embedder is resources.embedder
-    assert second.expander.chroma_client._embedder is resources.embedder
+    assert first.default_mode == "simple"
+    assert second.default_mode == "investigator"

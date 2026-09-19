@@ -119,7 +119,7 @@ def findings_to_seed_nodes(
     Returns:
         List of Node objects ready to be added to BeliefGraph as seeds.
     """
-    from apiro.legacy.expander import classify_domain
+    from apiro.corpus.domain import classify_domain
 
     nodes = []
     for i, finding in enumerate(findings):

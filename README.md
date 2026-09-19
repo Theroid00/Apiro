@@ -11,14 +11,9 @@ It is not clinical decision-support software.
 |---|---|
 | `simple` | Efficient bounded reasoning; default |
 | `investigator` | Bounded candidate/evidence audit with one optional revision |
-| `legacy` | Original entropy-guided graph traversal |
 
-`investigator` is available on `new/complete-apiro`. The efficient branch
-`new/simplified-apiro` provides `simple` and `legacy`.
-
-Legacy implementation files are isolated under [`apiro/legacy/`](apiro/legacy/)
-for reproducible ablations; shared graph data types remain under
-`apiro/graph/`.
+`main` contains the two bounded engines. The former entropy-traversal runtime
+is preserved on the `archive/legacy-main` branch for historical reproduction.
 
 ## Setup
 
@@ -65,13 +60,12 @@ is evaluated before and after plausible irrelevant context is added.
 ```bash
 APIRO_REASONING_MODE=simple python scripts/run_meddistractqa_eval.py --n 100
 APIRO_REASONING_MODE=investigator python scripts/run_meddistractqa_eval.py --n 100
-APIRO_REASONING_MODE=legacy python scripts/run_meddistractqa_eval.py --n 100
 ```
 
 The headline metric is top-1 diagnostic retention under distraction. MedEinst
-is a secondary anchoring-bias benchmark. The DDXPlus and CUPCase runners still
-use the legacy traversal and must be migrated before they can act as
-clean-accuracy guardrails for `simple` or `investigator`.
+is a secondary anchoring-bias benchmark. The older graph-traversal benchmark
+scripts are preserved with the archived branch and are not part of the active
+main pipeline.
 
 ## Development
 

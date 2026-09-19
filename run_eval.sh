@@ -10,15 +10,9 @@
 # Stages, in dependency order:
 #   preflight   python, package imports, Ollama reachable, corpus non-empty
 #   test        offline test suite — no Ollama, no ChromaDB, no downloads
-#   fetch       download + verify external datasets
-#   generate    build the C-NIAH counterfactual case set
-#   niah        C-NIAH: bias trap rate, abstention, distractor selection
 #   medeinst    MedEinst: external paired counterfactual Bias Trap Rate
 #   meddistract MedDistractQA: clean/distracted diagnosis-pair retention
 #   mint        MINT-style incremental run (requires MINT_DATASET=/path.json)
-#   ddxplus     DDXPlus: external, ranked reference differential
-#   cupcase     CUPCase: external, curated per-case distractors
-#   calibration ECE / Brier / risk-coverage over the C-NIAH results
 #
 # Every stage logs to data/logs/<stage>.log and the run stops at the first
 # failure. Read docs/BENCHMARKING.md before trusting any number this prints —
@@ -34,17 +28,13 @@ QUICK=0
 DRY_RUN=0
 STAGES=()
 
-ALL_STAGES=(preflight test fetch generate niah medeinst meddistract ddxplus cupcase mint calibration)
+ALL_STAGES=(preflight test medeinst meddistract mint)
 
 # ── Tunables (env-overridable) ──────────────────────────────────────────────
-NIAH_PAIRS="${NIAH_PAIRS:-40}"      # counterfactual pairs -> 2x cases + unanswerable
-DDXPLUS_N="${DDXPLUS_N:-60}"
-CUPCASE_N="${CUPCASE_N:-60}"
 MEDEINST_PAIRS="${MEDEINST_PAIRS:-60}"
 MEDDISTRACT_N="${MEDDISTRACT_N:-100}"
 MINT_DATASET="${MINT_DATASET:-}"
 SEED="${SEED:-7}"
-TAU="${TAU:-0.65}"
 
 # ── Arg parsing ─────────────────────────────────────────────────────────────
 for arg in "$@"; do
@@ -78,7 +68,7 @@ if [[ $QUICK -eq 1 ]]; then
     # Small enough to finish in minutes. Proves the pipeline end to end; far
     # too small to support any claim — see the power analysis in
     # docs/BENCHMARKING.md.
-    NIAH_PAIRS=4; DDXPLUS_N=4; CUPCASE_N=4; MEDEINST_PAIRS=4; MEDDISTRACT_N=4
+    MEDEINST_PAIRS=4; MEDDISTRACT_N=4
 fi
 
 mkdir -p "$LOG_DIR"
@@ -202,27 +192,6 @@ stage_test() {
     ok "tests"
 }
 
-stage_fetch() {
-    banner "FETCH DATASETS"
-    run fetch "$PY" scripts/fetch_datasets.py
-    ok "datasets ready"
-}
-
-stage_generate() {
-    banner "GENERATE C-NIAH CASES  ($NIAH_PAIRS counterfactual pairs)"
-    run generate "$PY" scripts/build_niah_cases.py \
-        --counterfactual --num-cases "$NIAH_PAIRS" --seed "$SEED"
-    ok "data/niah_cases.json"
-}
-
-stage_niah() {
-    banner "C-NIAH  — bias trap rate, abstention, distractor selection"
-    [[ -f data/niah_cases.json ]] || die "data/niah_cases.json missing. Run: ./run_eval.sh generate"
-    run niah "$PY" scripts/run_niah_eval.py \
-        --cases data/niah_cases.json --real --out data/niah_eval_results.json
-    ok "data/niah_eval_results.json"
-}
-
 stage_medeinst() {
     banner "MEDEINST — paired counterfactual Bias Trap Rate  (pairs=$MEDEINST_PAIRS)"
     run medeinst "$PY" scripts/run_medeinst_eval.py --n-pairs "$MEDEINST_PAIRS" --seed "$SEED"
@@ -245,28 +214,6 @@ stage_mint() {
     ok "MINT immutable run"
 }
 
-stage_ddxplus() {
-    banner "DDXPLUS  — external, ranked reference differential  (N=$DDXPLUS_N)"
-    run ddxplus "$PY" scripts/run_ddxplus_eval.py \
-        --n "$DDXPLUS_N" --seed "$SEED" --out data/ddxplus_eval_results.json
-    ok "data/ddxplus_eval_results.json"
-}
-
-stage_cupcase() {
-    banner "CUPCASE  — external, curated per-case distractors  (N=$CUPCASE_N)"
-    run cupcase "$PY" scripts/run_cupcase_eval.py \
-        --n "$CUPCASE_N" --seed "$SEED" --out data/cupcase_eval_results.json
-    ok "data/cupcase_eval_results.json"
-}
-
-stage_calibration() {
-    banner "CALIBRATION  — ECE / Brier / risk-coverage"
-    [[ -f data/niah_eval_results.json ]] || die "data/niah_eval_results.json missing. Run the niah stage first."
-    run calibration "$PY" scripts/run_safety_calibration_eval.py \
-        --input data/niah_eval_results.json --tau "$TAU"
-    ok "data/calibration_eval_results.json"
-}
-
 # ── Main ────────────────────────────────────────────────────────────────────
 echo "${c_bold}Apiro evaluation pipeline${c_reset}"
 echo "  stages : ${STAGES[*]}"
@@ -285,8 +232,7 @@ echo "${c_green}  PIPELINE COMPLETE${c_reset} in $(( (SECONDS - PIPELINE_START) 
 echo "${c_bold}==============================================================${c_reset}"
 if [[ $DRY_RUN -eq 0 ]]; then
     echo "  Results:"
-    for f in data/niah_eval_results.json data/ddxplus_eval_results.json \
-             data/cupcase_eval_results.json data/calibration_eval_results.json; do
+    for f in data/medeinst_eval_results.json data/meddistractqa_eval_results.json; do
         [[ -f "$f" ]] && echo "    $f  ($(du -h "$f" | cut -f1))"
     done
     echo "  Logs:    $LOG_DIR/"

@@ -7,8 +7,7 @@ Data model:
 Orchestration:
   ContradictionDetector (import directly: from apiro.graph.contradiction import ContradictionDetector)
 
-Stubs (for testing without Ollama/ChromaDB/model download):
-  (legacy stubs live in apiro.legacy)
+  Stubs for the bounded engines live with their tests.
 """
 
 from apiro.graph.node import Node

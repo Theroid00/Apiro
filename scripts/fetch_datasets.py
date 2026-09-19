@@ -5,14 +5,14 @@ scripts/fetch_datasets.py
 Download and verify the external benchmark datasets.
 
     CUPCase   ofir408/CupCase          3,562 real clinical cases, each with
-                                       three curated distractors. Drives
-                                       scripts/run_cupcase_eval.py.
+                                       three curated distractors for future
+                                       benchmark adapters.
 
     DDXPlus   aai530-group6/ddxplus    CC-BY. 1.3M synthetic patients, 49
                                        pathologies, structured evidences and a
                                        ground-truth ranked differential. The
                                        substrate MedEinst was built from.
-                                       Drives scripts/run_ddxplus_eval.py.
+                                       Stores the dataset for future adapters.
 
 Everything lands under data/datasets/ and is skipped on re-run unless --force.
 
@@ -218,7 +218,7 @@ def fetch_cupcase(force: bool, verify_only: bool) -> bool:
     print(f"  distractor columns: {n_distractors}")
     if n_distractors == 0:
         logger.warning(
-            "  No distractor columns found. run_cupcase_eval.py will still run, "
+            "  No distractor columns found; the downloaded dataset is incomplete, "
             "but its distractor-selection rate — the reason that benchmark is "
             "here — will report n/a."
         )

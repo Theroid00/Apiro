@@ -2,12 +2,9 @@
 apiro/llm_client.py — OllamaLLMClient
 ======================================
 
-Single shared implementation of the LLM client used by the CLI, the web
-app, and the evaluation scripts. This used to be copy-pasted, nearly
-identically, into apiro/run.py, scripts/investigate.py,
-scripts/run_pmc_eval.py, and scripts/run_niah_eval.py — consolidated here
-so a change (timeout, retry behaviour, model options) only has to happen
-once.
+Single shared implementation of the LLM client used by the CLI, web app, and
+evaluation scripts. Centralizing it keeps timeout, retry behaviour, and model
+options consistent across entry points.
 
 Any object with a `.chat(prompt: str) -> str` method satisfies the
 interface the rest of the codebase expects from an LLM client (see
