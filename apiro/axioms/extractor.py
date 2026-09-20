@@ -4,9 +4,8 @@ from .ner import NERExtractor
 from .negation import NegationClassifier
 from .lab_parser import LabParser
 from .weighter import AxiomWeighter
-from apiro.config import MAX_SEED_NODES
-
 logger = logging.getLogger(__name__)
+DEFAULT_MAX_AXIOMS = 20
 
 from .models import ClinicalAxiom
 
@@ -21,7 +20,7 @@ class AxiomExtractor:
         self.lab_parser = LabParser()
         self.weighter = AxiomWeighter()
 
-    def extract(self, vignette: str, max_axioms: int | None = MAX_SEED_NODES) -> list[ClinicalAxiom]:
+    def extract(self, vignette: str, max_axioms: int | None = DEFAULT_MAX_AXIOMS) -> list[ClinicalAxiom]:
         """
         Extract deterministic clinical axioms from a vignette.
 

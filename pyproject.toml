@@ -14,13 +14,11 @@ classifiers = [
 ]
 dependencies = [
     "chromadb>=0.5.0",
-    "networkx>=3.3",
     "requests>=2.31.0",
     "requests-cache>=1.2.0",
     "numpy>=1.26.0",
     "sentence-transformers>=2.7.0",
     "datasets>=2.18.0",
-    "biopython>=1.83",
     "nltk>=3.8.1",
     "certifi>=2024.2.2",
     "pydantic>=2.7.0",
@@ -28,9 +26,6 @@ dependencies = [
     "uvicorn>=0.30.0",
     "torch>=2.2.0",
     "transformers>=4.40.0",
-    "matplotlib>=3.8.0",
-    "tqdm>=4.66.0",
-    "pandas>=2.1.0",
     "pyyaml>=6.0.1",
 ]
 
@@ -43,17 +38,6 @@ dev = [
 # classifier automatically — this is genuinely optional, not a silent gap.
 medspacy = [
     "medspacy",
-]
-# Exact token counts when generating C-NIAH haystacks
-# (scripts/build_niah_cases.py). Without it the generator falls back to a
-# words/0.75 heuristic, so the "target_tokens" of a generated case is
-# approximate — fine for relative comparisons, not for a claim about a
-# specific context length.
-benchmarks = [
-    "tiktoken",
-    # scripts/fetch_datasets.py pulls the DDXPlus CSVs and dictionaries
-    # directly from the Hub; `datasets` (already a core dep) handles CUPCase.
-    "huggingface-hub>=0.23.0",
 ]
 
 [project.scripts]

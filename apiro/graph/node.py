@@ -11,7 +11,7 @@ class Node:
     Attributes:
         id:              Unique identifier (e.g. "node_0001").
         claim:           The clinical statement or hypothesis this node represents.
-        domain:          One of the 7 medical domains from config.DOMAINS.
+        domain:          Clinical domain label assigned to the node.
         entropy_score:   Bounded exploration uncertainty. Depth-0 findings use
                          diagnostic breadth; hypotheses use binary entropy of
                          the model's verbalized posterior confidence.

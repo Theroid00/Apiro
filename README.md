@@ -23,7 +23,7 @@ corpus.
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev,benchmarks]"
+pip install -e ".[dev]"
 ollama pull llama3.1:8b
 python -m apiro.corpus.build_corpus --sources textbooks
 ```

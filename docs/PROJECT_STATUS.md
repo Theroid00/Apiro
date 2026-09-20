@@ -2,7 +2,7 @@
 
 Last reviewed: 2026-09-19
 
-Active branch: `new/complete-apiro`
+Active branch: `main`
 
 ## Status
 
@@ -91,9 +91,7 @@ with `dirty: false`.
    seed, thresholds, and case IDs.
 2. Inspect failures where the final audit still reports fragility; decide
    whether to abstain rather than return an unsupported leader.
-3. Add clean diagnostic guardrails through the canonical service before using
-   CUPCase or DDXPlus to compare the new engines.
-4. Build the clinician-validated paired report benchmark with should-change
+3. Build the clinician-validated paired report benchmark with should-change
    controls, held-out distractor families, and a locked test split.
 
 ## Definition of Complete

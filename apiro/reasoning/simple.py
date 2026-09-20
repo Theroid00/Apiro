@@ -117,7 +117,7 @@ class SimpleReasoner:
                 depth=0,
                 metadata={"axiom_weight": 1.0, "polarity": "affirmed", "fallback": True},
             )]
-        graph = BeliefGraph(max_depth=1, max_nodes=len(seeds) + self.n_diagnoses)
+        graph = BeliefGraph()
         for seed in seeds:
             graph.add_node(seed)
             self._emit(on_event, {

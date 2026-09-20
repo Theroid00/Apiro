@@ -329,7 +329,7 @@ _CLINICAL_SYNONYM_GROUPS: List[List[str]] = [
         "chronic renal insufficiency",
     ],
     # ---------------------------------------------------------------------
-    # Groups for every diagnosis scripts/build_niah_cases.py can emit.
+    # Groups for the supported diagnosis labels.
     #
     # The map above was assembled around the ORIGINAL benchmark set. When
     # NEEDLE_BANK grew from 6 diagnoses to 20, only 2 of the 20 answers had a

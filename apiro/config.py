@@ -61,9 +61,6 @@ INVESTIGATOR_MAX_RETRIEVALS = int(
 INVESTIGATOR_MAX_MODEL_CALLS = int(
     os.environ.get("APIRO_INVESTIGATOR_MAX_MODEL_CALLS", "2")
 )
-INVESTIGATOR_MAX_GRAPH_NODES = int(
-    os.environ.get("APIRO_INVESTIGATOR_MAX_GRAPH_NODES", "50")
-)
 # ---------------------------------------------------------------------------
 # Embedding
 # ---------------------------------------------------------------------------
@@ -96,65 +93,3 @@ CHUNK_OVERLAP_TOKENS = 50
 # over their entire raw output (~7 lines per case, uncapped) while capping
 # Apiro at 3 parsed slots, so the arms were not answering the same question.
 N_DIFFERENTIAL = 3
-
-# BeliefGraph construction defaults. These were previously hard-coded in the
-# BeliefGraph constructor and unreachable from config.
-GRAPH_MAX_NODES = 200
-GRAPH_MAX_DEPTH = 6
-
-# Cap on how many deterministic axioms are seeded into the graph. Biomedical
-# NER over a long vignette routinely yields 40+ entities, many of them
-# duplicates or non-clinical; seeding all of them floods the graph budget and
-# the prompt before any reasoning happens. Axioms are ranked by weight and the
-# top MAX_SEED_NODES are kept.
-MAX_SEED_NODES = 20
-
-# Relevance weighting of the exploration frontier (see
-# BeliefGraph.set_case_anchor). Exploration priority becomes
-#     H * (RELEVANCE_FLOOR + (1 - RELEVANCE_FLOOR) * cos(claim, case))
-# so a claim unrelated to this patient retains RELEVANCE_FLOOR of its raw
-# entropy priority and a claim about this patient retains all of it.
-# 1.0 disables relevance weighting entirely (pure entropy-first).
-RELEVANCE_FLOOR = 0.4
-
-# ---------------------------------------------------------------------------
-# Heuristic seed entropy (used when entropy_engine=None in build_cases)
-# ---------------------------------------------------------------------------
-# Replaces the flat ln(2) default. Values calibrated on llama3.1:8b:
-#   - symptom/history: high uncertainty (many DDx possible)
-#   - lab: moderate (narrows to a set of conditions)
-#   - imaging: lower (specific findings constrain heavily)
-#   - vital: moderate-high
-SEED_ENTROPY_BY_FINDING_TYPE: dict[str, float] = {
-    "symptom":   0.80,
-    "history":   0.72,
-    "vital":     0.65,
-    "lab":       0.58,
-    "imaging":   0.32,
-    "diagnosis": 0.20,   # explicit diagnosis mention is near-certain
-}
-SEED_ENTROPY_DEFAULT = 0.693   # ln(2) — max binary uncertainty fallback
-
-# ---------------------------------------------------------------------------
-# Vital sign thresholds (used by clinical_case_adapter.py)
-# ---------------------------------------------------------------------------
-VITAL_THRESHOLDS: dict[str, tuple[float, float]] = {
-    "blood_pressure_systolic":  (90.0, 180.0),
-    "blood_pressure_diastolic": (60.0, 120.0),
-    "heart_rate":               (50.0, 120.0),
-    "oxygen_saturation":        (0.0,   94.0),  # SpO2 below 94 is flagged
-    "temperature":              (36.0,  38.5),
-}
-
-# ---------------------------------------------------------------------------
-# Domain classifier
-# ---------------------------------------------------------------------------
-DOMAINS = [
-    "pathophysiology",
-    "pharmacology",
-    "genetics",
-    "imaging",
-    "lab findings",
-    "treatment",
-    "comorbidity",
-]

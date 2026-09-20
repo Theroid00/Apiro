@@ -51,9 +51,9 @@ and the selected Apiro mode on the same narrative:
 - `scripts/run_meddistractqa_eval.py`
 - `scripts/run_mint_eval.py` for a supplied local incremental dataset
 
-C-NIAH, CUPCase, DDXPlus, and PMC still instantiate Legacy traversal directly.
-Do not use them to compare Simple and Investigator until they are migrated to
-the canonical service.
+The retired C-NIAH, CUPCase, DDXPlus, PMC, MIMIC, and safety-calibration
+tooling is not part of this branch. Reproduce those historical experiments
+from `archive/legacy-main`.
 
 ## Next Experiment
 

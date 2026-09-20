@@ -2,7 +2,7 @@
 
 import pytest
 
-from apiro.graph.belief_graph import BeliefGraph, BudgetExceededError
+from apiro.graph.belief_graph import BeliefGraph
 from apiro.graph.edge import Edge
 from apiro.graph.node import Node
 
@@ -23,22 +23,20 @@ def test_node_and_edge_validate_values():
         Edge(parent_id="a", child_id="b", relation="invalid")
 
 
-def test_graph_adds_nodes_edges_and_queries_relationships():
-    graph = BeliefGraph(max_depth=1, max_nodes=3)
+def test_graph_stores_nodes_edges_and_exports_json():
+    graph = BeliefGraph()
     graph.add_node(node("fact"))
     graph.add_node(node("diagnosis", depth=1))
     graph.add_edge(Edge(parent_id="fact", child_id="diagnosis", relation="supports"))
 
-    assert graph.get_frontier()
-    assert graph.children_of("fact")[0].id == "diagnosis"
-    assert graph.parents_of("diagnosis")[0].id == "fact"
+    exported = graph.export_json()
+    assert [item["id"] for item in exported["nodes"]] == ["fact", "diagnosis"]
+    assert exported["edges"][0]["relation"] == "supports"
+    assert exported["stats"] == {"n_nodes": 2, "n_edges": 1}
 
 
-def test_graph_enforces_depth_and_node_budgets():
-    graph = BeliefGraph(max_depth=1, max_nodes=2)
-    graph.add_node(node("root"))
-    graph.add_node(node("too_deep", depth=2))
-    assert "too_deep" not in graph.nodes
-    graph.add_node(node("valid", depth=1))
-    with pytest.raises(BudgetExceededError):
-        graph.add_node(node("overflow"))
+def test_graph_validates_edge_endpoints():
+    graph = BeliefGraph()
+    graph.add_node(node("fact"))
+    with pytest.raises(ValueError):
+        graph.add_edge(Edge(parent_id="missing", child_id="fact", relation="supports"))

@@ -13,7 +13,6 @@ from apiro.axioms.seeding import axioms_to_seed_nodes
 from apiro.config import (
     INVESTIGATOR_MAX_CANDIDATES,
     INVESTIGATOR_MAX_FACTS,
-    INVESTIGATOR_MAX_GRAPH_NODES,
     INVESTIGATOR_MAX_MODEL_CALLS,
     INVESTIGATOR_MAX_RETRIEVALS,
     INVESTIGATOR_MAX_ROUNDS,
@@ -109,21 +108,19 @@ class InvestigatorReasoner(SimpleReasoner):
         max_rounds: int = INVESTIGATOR_MAX_ROUNDS,
         max_retrievals: int = INVESTIGATOR_MAX_RETRIEVALS,
         max_model_calls: int = INVESTIGATOR_MAX_MODEL_CALLS,
-        max_graph_nodes: int = INVESTIGATOR_MAX_GRAPH_NODES,
     ):
         self.output_diagnoses = max(1, int(n_diagnoses))
         self.max_candidates = max(self.output_diagnoses, int(max_candidates))
         self.max_rounds = min(2, max(1, int(max_rounds)))
         self.max_retrievals = min(2, max(1, int(max_retrievals)))
         self.max_model_calls = min(2, max(1, int(max_model_calls)))
-        self.max_graph_nodes = max(self.max_candidates + 1, int(max_graph_nodes))
         super().__init__(
             embedder=embedder,
             llm_client=llm_client,
             axiom_extractor=axiom_extractor,
             contradiction_detector=contradiction_detector,
             n_diagnoses=self.max_candidates,
-            max_facts=min(int(max_facts), self.max_graph_nodes - self.max_candidates),
+            max_facts=max_facts,
             allow_abstention=allow_abstention,
             corrective_pass=False,
         )
@@ -153,7 +150,7 @@ class InvestigatorReasoner(SimpleReasoner):
                 depth=0,
                 metadata={"axiom_weight": 1.0, "polarity": "affirmed", "fallback": True},
             )]
-        graph = BeliefGraph(max_depth=1, max_nodes=self.max_graph_nodes)
+        graph = BeliefGraph()
         for fact in facts:
             graph.add_node(fact)
             self._emit(on_event, {

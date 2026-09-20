@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-scripts/app.py
-==============
+apiro/web/app.py
+================
 FastAPI web interface for Apiro — with live SSE streaming.
 
 Run with:
@@ -11,7 +11,6 @@ Features:
   - /run/stream  : Server-Sent Events endpoint — streams each traversal step
                    (seed_added, expanding, node_expanded, contradiction, etc.)
                    to the browser in real time via a thread-pool + asyncio queue.
-  - /run         : Legacy sync endpoint (kept for backward compatibility).
   - New 3-column UI:
       Left   → Clinical input form + run statistics
       Center → Live "Thought Log" — stage cards slide in as the model reasons
@@ -20,7 +19,6 @@ Features:
 
 import sys
 import logging
-import time
 import json
 import asyncio
 import uuid
@@ -1056,7 +1054,7 @@ async def run_investigation_stream(req: InvestigationRequest):
         """Called from the traversal thread — schedules a put on the async queue."""
         asyncio.run_coroutine_threadsafe(q.put({**event, "run_id": run_id}), loop)
 
-    def run_traversal() -> None:
+    def run_request() -> None:
         try:
             if not req.findings.strip():
                 asyncio.run_coroutine_threadsafe(
@@ -1078,7 +1076,7 @@ async def run_investigation_stream(req: InvestigationRequest):
             asyncio.run_coroutine_threadsafe(q.put(None), loop)   # sentinel → close stream
 
     # Launch traversal in background thread
-    loop.run_in_executor(_executor, run_traversal)
+    loop.run_in_executor(_executor, run_request)
 
     async def event_stream():
         while True:
@@ -1096,62 +1094,3 @@ async def run_investigation_stream(req: InvestigationRequest):
             "Connection":        "keep-alive",
         },
     )
-
-
-@app.post("/run")
-def run_investigation(req: InvestigationRequest):
-    """Legacy synchronous endpoint — kept for backward compatibility."""
-    if not runtime_resources:
-        raise HTTPException(status_code=500, detail="Apiro engine not initialised")
-
-    t0 = time.time()
-    try:
-        run_id = uuid.uuid4().hex
-        result = investigation_service.investigate(
-            req.findings,
-            mode=req.mode,
-            case_name=f"api_run_{run_id}",
-        )
-        graph = result.graph
-        elapsed = time.time() - t0
-
-        nodes_list = [
-            {
-                "id":            n.id,
-                "claim":         n.claim,
-                "domain":        n.domain,
-                "entropy_score": n.entropy_score,
-                "resolved":      n.resolved,
-                "is_rabbit_hole": n.is_rabbit_hole,
-                "depth":         n.depth,
-                "parent_id":     n.parent_id,
-            }
-            for n in graph.nodes.values()
-        ]
-        edges_list = [
-            {"parent_id": e.parent_id, "child_id": e.child_id, "contradiction_flag": e.contradiction_flag}
-            for e in graph.edges
-        ]
-
-        return {
-            "run_id":      run_id,
-            "synthesis":   result.synthesis or [],
-            "nodes":       nodes_list,
-            "edges":       edges_list,
-            "duration":    elapsed,
-            "stop_reason": result.stop_reason,
-            "mode":        result.mode,
-            "rounds":      result.rounds,
-            "retrieval_count": result.retrieval_count,
-            "reasoning_call_count": result.reasoning_call_count,
-            "action_history": result.action_history,
-            "candidate_history": result.candidate_history,
-            "graph_context": result.graph_context,
-            "unresolved_questions": result.unresolved_questions,
-            "adjudication_count": result.adjudication_count,
-            "model_telemetry": result.model_telemetry,
-        }
-
-    except Exception as exc:
-        logger.error(f"Error during API investigation: {exc}")
-        raise HTTPException(status_code=500, detail=str(exc))

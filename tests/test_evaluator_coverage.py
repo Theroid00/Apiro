@@ -1,11 +1,11 @@
 """
 tests/test_evaluator_coverage.py
 ================================
-The evaluator must be able to score the cases the generator produces.
+The evaluator must be able to score the supported diagnosis labels.
 
-This is a scoring-integrity suite, not a matching-quality one. When
-`scripts/build_niah_cases.py` grew its clinical bank from 6 diagnoses to 20,
-only 2 of the 20 answers had a synonym group — so 22 of 36 clinically correct
+This is a scoring-integrity suite, not a matching-quality one. When the
+clinical bank grew from 6 diagnoses to 20, only 2 of the 20 answers had a
+synonym group — so 22 of 36 clinically correct
 paraphrases were graded as misses, including every common abbreviation. That
 depresses every arm equally and can swamp the effect under test, exactly like
 the markdown-parsing defect before it.
@@ -51,8 +51,8 @@ PARAPHRASES = {
     "thyroid storm": ["Thyrotoxic crisis", "Thyrotoxicosis"],
 }
 
-#: The confusable pairs build_niah_cases.py builds counterfactual traps from.
-#: These MUST stay distinct.
+#: Confusable diagnosis pairs used by paired distractor tests. These MUST stay
+#: distinct.
 CONFUSABLE = [
     ("acute myocardial infarction", "aortic dissection"),
     ("bacterial meningitis", "subarachnoid hemorrhage"),
