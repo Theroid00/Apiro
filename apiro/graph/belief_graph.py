@@ -41,8 +41,10 @@ class BeliefGraph:
                     "claim": node.claim,
                     "domain": node.domain,
                     "entropy_score": node.entropy_score,
-                    "resolved": node.resolved,
-                    "is_rabbit_hole": node.is_rabbit_hole,
+                    # Retained as stable UI fields; provenance nodes do not
+                    # have traversal state.
+                    "resolved": False,
+                    "is_rabbit_hole": False,
                     "contradiction_penalty": node.contradiction_penalty,
                     "depth": node.depth,
                     "parent_id": node.parent_id,
