@@ -124,7 +124,7 @@ sys.path.insert(0, ".")
 problems = []
 
 try:
-    import apiro.eval.metrics, apiro.parsing, apiro.eval.evaluator      # noqa: F401
+    import apiro.eval.metrics, apiro.eval.parsing, apiro.eval.evaluator  # noqa: F401
     print("  apiro package imports cleanly")
 except Exception as exc:
     problems.append(f"apiro package will not import: {exc}")
