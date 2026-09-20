@@ -38,7 +38,6 @@ def main(argv=None) -> int:
     parser.add_argument("--dataset-json", type=Path, required=True)
     parser.add_argument("--n", type=int, default=100)
     parser.add_argument("--seed", type=int, default=7)
-    parser.add_argument("--max-depth", type=int, default=6)
     parser.add_argument("--runs-dir", type=Path, default=ROOT / "data" / "runs")
     parser.add_argument("--describe-only", action="store_true")
     args = parser.parse_args(argv)
@@ -51,14 +50,14 @@ def main(argv=None) -> int:
     manifest = build_manifest(
         benchmark="mint", dataset=str(args.dataset_json), revision="local",
         case_ids=[str(c["case_id"]) for c in cases],
-        config={"seed": args.seed, "n": len(cases), "max_depth": args.max_depth,
+        config={"seed": args.seed, "n": len(cases),
                 "model": components.resources.model, "policy": "evaluate-every-turn"},
     )
     run_dir = create_run_directory(manifest, args.runs_dir)
     results = []
     for case in cases:
         session = IncrementalDiagnosisSession(
-            str(case["case_id"]), components.resources, args.max_depth, run_dir / "logs"
+            str(case["case_id"]), components.resources
         )
         for turn in case["turns"]:
             session.add_turn(turn["text"], category=turn.get("category", "unknown"),

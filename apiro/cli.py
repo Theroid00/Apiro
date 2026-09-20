@@ -128,7 +128,6 @@ def main():
     result = service.investigate(
         raw_findings,
         mode=args.mode,
-        case_name="investigate",
     )
     elapsed = time.time() - t0
 

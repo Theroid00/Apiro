@@ -1064,7 +1064,6 @@ async def run_investigation_stream(req: InvestigationRequest):
             investigation_service.investigate(
                 req.findings,
                 mode=req.mode,
-                case_name=f"api_stream_{run_id}",
                 on_event=on_event,
             )
         except Exception as exc:

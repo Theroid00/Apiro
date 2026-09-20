@@ -21,7 +21,7 @@ from apiro.context import select_clinical_context
 from apiro.graph.belief_graph import BeliefGraph
 from apiro.graph.edge import Edge
 from apiro.graph.node import Node
-from apiro.parsing import parse_differential
+from apiro.eval.parsing import parse_differential
 
 from .models import DiagnosticHypothesis, EvidenceChunk, InvestigationResult
 

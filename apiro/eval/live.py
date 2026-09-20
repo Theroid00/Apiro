@@ -6,7 +6,7 @@ import hashlib
 import time
 
 from apiro.config import REASONING_MODE
-from apiro.parsing import ABSTENTION_SENTINEL, parse_differential
+from apiro.eval.parsing import ABSTENTION_SENTINEL, parse_differential
 
 
 BARE_PROMPT = """Read the clinical presentation and list the top {n} differential diagnoses, most likely first.
@@ -27,8 +27,8 @@ Retrieved context:
 
 
 def evaluate_narrative_case(
-    *, case_name: str, narrative: str, resources, n_diagnoses: int = 3,
-    max_depth: int = 6, log_dir=None, allow_abstention: bool = False,
+    *, narrative: str, resources, n_diagnoses: int = 3,
+    allow_abstention: bool = False,
     reasoning_mode: str = REASONING_MODE,
 ) -> dict:
     """Evaluate bare, RAG and isolated Apiro arms with equal answer budgets."""
@@ -52,9 +52,6 @@ def evaluate_narrative_case(
         narrative,
         mode=reasoning_mode,
         n_diagnoses=n_diagnoses,
-        max_depth=max_depth,
-        case_name=case_name,
-        log_dir=log_dir,
         allow_abstention=allow_abstention,
     )
     graph = result.graph

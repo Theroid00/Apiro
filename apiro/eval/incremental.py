@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from apiro.eval.metrics import first_hit_rank
-from apiro.parsing import detect_abstention
+from apiro.eval.parsing import detect_abstention
 
 
 @dataclass
@@ -14,8 +14,6 @@ class IncrementalDiagnosisSession:
 
     case_id: str
     resources: object
-    max_depth: int = 6
-    log_dir: object = None
     evidence: list[str] = field(default_factory=list)
     history: list[dict] = field(default_factory=list)
 
@@ -26,9 +24,7 @@ class IncrementalDiagnosisSession:
         turn = len(self.evidence)
         from apiro.eval.live import evaluate_narrative_case
         result = evaluate_narrative_case(
-            case_name=f"{self.case_id}_turn_{turn:02d}",
             narrative="\n".join(self.evidence), resources=self.resources,
-            max_depth=self.max_depth, log_dir=self.log_dir,
             allow_abstention=True,
         )
         record = {

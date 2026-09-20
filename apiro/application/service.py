@@ -19,9 +19,6 @@ class InvestigationService:
         *,
         mode: str | None = None,
         n_diagnoses: int = N_DIFFERENTIAL,
-        max_depth: int = 6,
-        case_name: str = "investigation",
-        log_dir=None,
         allow_abstention: bool = False,
         on_event=None,
     ) -> InvestigationResult:

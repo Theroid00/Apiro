@@ -82,7 +82,6 @@ def main(argv=None) -> int:
     parser.add_argument("--n-pairs", type=int, default=60)
     parser.add_argument("--split", default="test")
     parser.add_argument("--seed", type=int, default=7)
-    parser.add_argument("--max-depth", type=int, default=6)
     parser.add_argument("--dataset-json", type=Path)
     parser.add_argument("--runs-dir", type=Path, default=ROOT / "data" / "runs")
     parser.add_argument(
@@ -118,7 +117,7 @@ def main(argv=None) -> int:
         benchmark="medeinst", dataset=DATASET, revision=REVISION,
         case_ids=[f"{r['case_id']}:{r['case_type']}" for r in selected],
         config={"split": args.split, "seed": args.seed, "n_pairs": len(selected)//2,
-                "max_depth": args.max_depth, "n_diagnoses": 3,
+                "n_diagnoses": 3,
                 "model": components.resources.model,
                 "decoding": {
                     "temperature": components.resources.llm_client.temperature,
@@ -131,9 +130,7 @@ def main(argv=None) -> int:
     records = []
     for row in selected:
         evaluated = evaluate_narrative_case(
-            case_name=f"{row['case_id']}_{row['case_type']}",
             narrative=row["narrative"], resources=components.resources,
-            max_depth=args.max_depth, log_dir=run_dir / "logs",
         )
         records.append({
             "case_id": str(row["case_id"]), "case_type": row["case_type"],

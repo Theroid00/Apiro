@@ -67,7 +67,6 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--n", type=int, default=100)
     parser.add_argument("--seed", type=int, default=7)
-    parser.add_argument("--max-depth", type=int, default=6)
     parser.add_argument("--dataset-json", type=Path)
     parser.add_argument("--runs-dir", type=Path, default=ROOT / "data" / "runs")
     parser.add_argument(
@@ -99,7 +98,7 @@ def main(argv=None) -> int:
     manifest = build_manifest(
         benchmark="meddistractqa", dataset=DATASET, revision=REVISION,
         case_ids=[f"{r['case_id']}:{r['condition']}" for r in selected],
-        config={"seed": args.seed, "n_pairs": len(selected)//2, "max_depth": args.max_depth,
+        config={"seed": args.seed, "n_pairs": len(selected)//2,
                 "subset": "Patient Care: Diagnosis; explicit most-likely-diagnosis question",
                 "n_diagnoses": 3,
                 "model": components.resources.model,
@@ -114,8 +113,7 @@ def main(argv=None) -> int:
     records = []
     for row in selected:
         evaluated = evaluate_narrative_case(
-            case_name=f"{row['case_id']}_{row['condition']}", narrative=row["narrative"],
-            resources=components.resources, max_depth=args.max_depth, log_dir=run_dir / "logs",
+            narrative=row["narrative"], resources=components.resources,
         )
         records.append({k: row[k] for k in ("case_id", "condition", "ground_truth", "choices", "distracting_sentence")} | evaluated)
     payload = {"manifest": manifest, "scores": score_meddistract(records, make_matcher()), "case_results": records}

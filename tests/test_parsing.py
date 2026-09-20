@@ -14,7 +14,7 @@ Offline: no Ollama, no ChromaDB, no model download.
 
 import pytest
 
-from apiro.parsing import (
+from apiro.eval.parsing import (
     DIFFERENTIAL_SENTINEL,
     detect_abstention,
     parse_claims,
